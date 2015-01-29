@@ -60,9 +60,10 @@ func NewMySQLLexer(sql string) *MySQLLexer {
 // This function is used by go yacc.
 func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
+	var result_state int
 	cs := lval.charset
-	sm := cs.StateMap
-	im := cs.IdentMap
+	state_map := cs.StateMap
+	ident_map := cs.IdentMap
 
 	token_start_lineno := lex.yylineno
 
@@ -91,7 +92,9 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				// Allow \N as shortcut for NULL
 				return NULL_SYM
 			}
-		case MY_LEXCHAR, MY_LEX_SKIP:
+			break CHAR_OR_SKIP
+		case MY_LEX_CHAR, MY_LEX_SKIP:
+		CHAR_OR_SKIP:
 			if c == '-' && lex.yyPeek() == '-' && (isspace(cs, lex.yyPeek2()) ||
 				iscntrl(cs, lex.yyPeek2())) {
 				state = MY_LEX_COMMENT
@@ -118,50 +121,48 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				break
 			}
 
-            lex.yyGet() // Skip '
+			lex.yyGet() // Skip '
 
-            // Skip any char except '
-            for c = lex.yyGet(); c != 0 && c != '\'' {}
-            
-            if c != '\'' {
-                return ABORT_SYM
-            }
-            
-            lval.bytes = lex.buf[lex.tok_start : lex.ptr] 
+			// Skip any char except '
+			for c = lex.yyGet(); c != 0 && c != '\''; {
+			}
 
-            lex.yytoklen -= 3
-            return NCHAR_STRING
-        
-        case MY_LEX_IDENT_OR_HEX:
-            if lex.yyPeek() == '\'' {
-                state = MY_LEX_HEX_NUMBER
-            }
+			if c != '\'' {
+				return ABORT_SYM
+			}
 
-        case MY_LEX_IDENT_OR_BIN:
-            if lex.yyPeek() == '\'' {
-                state = MY_LEX_BIN_NUMBER;
-            }
+			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
 
-        case MY_LEX_IDENT:
-           var start byte
+			lex.yytoklen -= 3
+			return NCHAR_STRING
 
-            for result_state = c; ident_map[c = lex.yyGet()]; result_state |= c)
-            {}
+		case MY_LEX_IDENT_OR_HEX:
+			if lex.yyPeek() == '\'' {
+				state = MY_LEX_HEX_NUMBER
+			}
 
-            if result_state & 0x80 {
-                result_state = IDENT_QUOTED
-            } else {
-                result_state = IDENT
-            }
+		case MY_LEX_IDENT_OR_BIN:
+			if lex.yyPeek() == '\'' {
+				state = MY_LEX_BIN_NUMBER
+			}
 
+		case MY_LEX_IDENT:
+			var start byte
 
+			for result_state = c; ; result_state |= c {
+				c = lex.yyGet()
+				if !ident_map[c] {
+					break
+				}
+			}
 
+			if result_state & 0x80 {
+				result_state = IDENT_QUOTED
+			} else {
+				result_state = IDENT
+			}
 
 		}
-
-
-
-
 
 	}
 }
