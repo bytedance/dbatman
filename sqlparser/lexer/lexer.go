@@ -1,8 +1,12 @@
+package lexer
+
+import (
+	"github.com/wangjild/go-mysql-proxy/sqlparser/token"
+)
+
 // Copyright 2012, Google Inc. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
-package token
 
 import (
 	"bytes"
@@ -14,10 +18,25 @@ import (
 
 const EOFCHAR = 0x100
 
-// Tokenizer is the struct used to generate SQL
+// MySQLLexer is the struct used to generate SQL
 // tokens for the parser.
-type Tokenizer struct {
-	InStream      *strings.Reader
+type MySQLLexer struct {
+	reader bufio.Reader
+
+	buf []byte
+	cur uint
+
+	yylineno uint
+	yytoklen uint
+
+	tok_start uint
+	tok_end   uint
+
+	tok_start_pre uint
+	tok_end_pre   uint
+
+	next_state uint
+
 	AllowComments bool
 	ForceEOF      bool
 	lastChar      uint16
@@ -28,169 +47,157 @@ type Tokenizer struct {
 	ParseTree     Statement
 }
 
-// NewStringTokenizer creates a new Tokenizer for the
+// NewStringMySQLLexer creates a new MySQLLexer for the
 // sql string.
-func NewStringTokenizer(sql string) *Tokenizer {
-	return &Tokenizer{InStream: strings.NewReader(sql)}
+func NewMySQLLexer(sql string) *MySQLLexer {
+	return &MySQLLexer{
+		reader: bufio.NewReader(strings.NewReader(sql)),
+		buf:    []byte(sql),
+	}
 }
 
-var keywords = map[string]int{
-	"all":           ALL,
-	"alter":         ALTER,
-	"analyze":       ANALYZE,
-	"and":           AND,
-	"as":            AS,
-	"asc":           ASC,
-	AST_AUTO_INCR:   AUTO_INCREMENT,
-	"between":       BETWEEN,
-	AST_BIGINT:      BIGINT,
-	"blob":          BLOB,
-	"bit":           BIT,
-	"bool":          BOOL,
-	"by":            BY,
-	"case":          CASE,
-	AST_CHAR:        CHAR,
-	AST_CHARACTER:   CHARACTER,
-	"columns":       COLUMNS,
-	"create":        CREATE,
-	"cross":         CROSS,
-	"database":      DATABASE,
-	"databases":     DATABASES,
-	"date":          DATE,
-	"datetime":      DATETIME,
-	"decimal":       DECIMAL,
-	"default":       DEFAULT,
-	"delete":        DELETE,
-	"desc":          DESC,
-	"describe":      DESCRIBE,
-	"distinct":      DISTINCT,
-	"drop":          DROP,
-	"double":        DOUBLE,
-	"duplicate":     DUPLICATE,
-	"else":          ELSE,
-	"end":           END,
-	"enum":          ENUM,
-	AST_ERRORS:      ERRORS,
-	"except":        EXCEPT,
-	"exists":        EXISTS,
-	"explain":       EXPLAIN,
-	"float":         FLOAT,
-	"for":           FOR,
-	"force":         FORCE,
-	"from":          FROM,
-	"fulltext":      FULLTEXT,
-	"function":      FUNCTION,
-	"global":        GLOBAL,
-	"group":         GROUP,
-	"having":        HAVING,
-	"if":            IF,
-	"ignore":        IGNORE,
-	"in":            IN,
-	AST_INT:         INT,
-	"index":         INDEX,
-	"indexes":       INDEXES,
-	"inner":         INNER,
-	"insert":        INSERT,
-	"integer":       INTEGER,
-	"intersect":     INTERSECT,
-	"into":          INTO,
-	"is":            IS,
-	"join":          JOIN,
-	"key":           KEY,
-	"keys":          KEYS,
-	"left":          LEFT,
-	"like":          LIKE,
-	"limit":         LIMIT,
-	"lock":          LOCK,
-	"long":          LONG,
-	"longblob":      LONGBLOB,
-	"longtext":      LONGTEXT,
-	"mediumblob":    MEDIUMBLOB,
-	"mediumint":     MEDIUMINT,
-	"mediumtext":    MEDIUMTEXT,
-	"minus":         MINUS,
-	"names":         NAMES,
-	"natural":       NATURAL,
-	"not":           NOT,
-	"null":          NULL,
-	"numeric":       NUMERIC,
-	"on":            ON,
-	"or":            OR,
-	"order":         ORDER,
-	"outer":         OUTER,
-	"precision":     PRECISION,
-	AST_PRIMARY:     PRIMARY,
-	"procedure":     PROCEDURE,
-	"real":          REAL,
-	"rename":        RENAME,
-	"replace":       REPLACE,
-	"right":         RIGHT,
-	AST_STATUS:      STATUS,
-	"select":        SELECT,
-	"session":       SESSION,
-	"set":           SET,
-	"show":          SHOW,
-	"signed":        SIGNED,
-	AST_SMALLINT:    SMALLINT,
-	"straight_join": STRAIGHT_JOIN,
-	"table":         TABLE,
-	"tables":        TABLES,
-	AST_TEMPORARY:   TEMPORARY,
-	"text":          TEXT,
-	AST_TIME:        TIME,
-	AST_TIMESTAMP:   TIMESTAMP,
-	"tinyblob":      TINYBLOB,
-	AST_TINYINT:     TINYINT,
-	"tinytext":      TINYTEXT,
-	"then":          THEN,
-	"to":            TO,
-	"union":         UNION,
-	"unique":        UNIQUE,
-	"unsigned":      UNSIGNED,
-	"update":        UPDATE,
-	"use":           USE,
-	"using":         USING,
-	"varchar":       VARCHAR,
-	"values":        VALUES,
-	"value":         VALUE,
-	"varbinary":     VARBINARY,
-	"variables":     VARIABLES,
-	"view":          VIEW,
-	AST_WARNINGS:    WARNINGS,
-	"when":          WHEN,
-	"where":         WHERE,
-	"year":          YEAR,
-	"begin":         BEGIN,
-	"rollback":      ROLLBACK,
-	"commit":        COMMIT,
-
-	//for proxy admin
-	"admin": ADMIN,
-	"proxy": PROXY,
-
-	//special
-}
-
-// Lex returns the next token form the Tokenizer.
+// Lex returns the next token form the MySQLLexer.
 // This function is used by go yacc.
-func (tkn *Tokenizer) Lex(lval *yySymType) int {
-	typ, val := tkn.Scan()
-	for typ == COMMENT {
-		if tkn.AllowComments {
-			break
+func (lex *MySQLLexer) Lex(lval *yySymType) int {
+
+	cs := lval.charset
+	sm := cs.StateMap
+	im := cs.IdentMap
+
+	token_start_lineno := lex.yylineno
+
+	lex.tok_end_prev = lex.tok_end
+	lex.tok_start_prev = lex.tok_start
+
+	lex.tok_start = lex.ptr
+	lex.tok_end = lex.ptr
+
+	state := lex.next_state
+	lval.next_state = MY_LEX_OPERATOR_OR_IDENT
+
+	var c byte
+	for {
+		switch status {
+		case MY_LEX_OPERATOR_OR_IDENT, MY_LEX_START:
+			for c = yyGet(); sm[c] == MY_LEX_SKIP; c = yyGet() {
+			}
+
+			lex.tok_start = lex.ptr - 1
+			state = sm[c]
+			token_start_lineno = lex.yylineno
+
+		case MY_LEX_ESCAPE:
+			if lex.yyGet() == 'N' {
+				// Allow \N as shortcut for NULL
+				return NULL_SYM
+			}
+		case MY_LEXCHAR, MY_LEX_SKIP:
+			if c == '-' && lex.yyPeek() == '-' && (isspace(cs, lex.yyPeek2()) ||
+				iscntrl(cs, lex.yyPeek2())) {
+				state = MY_LEX_COMMENT
+			} else {
+
+				lex.ptr = lex.tok_start
+				c = lex.yyGet()
+				if c != ')' {
+					lex.next_state = MY_LEX_START
+				}
+
+				if c == ',' {
+					lex.tok_start = lex.ptr
+				} else if c == '?' && lex.stmt_prepare_mode && !ident_map[yyPeek()] {
+					return token.PARAM_MARKER
+				}
+
+				return int(c)
+			}
+
+		case MY_LEX_IDENT_OR_NCHAR:
+			if lex.yyPeek() != '\'' {
+				state = MY_LEX_IDENT
+				break
+			}
+
+            lex.yyGet() // Skip '
+
+            // Skip any char except '
+            for c = lex.yyGet(); c != 0 && c != '\'' {}
+            
+            if c != '\'' {
+                return ABORT_SYM
+            }
+            
+            lval.bytes = lex.buf[lex.tok_start : lex.ptr] 
+
+            lex.yytoklen -= 3
+            return NCHAR_STRING
+        
+        case MY_LEX_IDENT_OR_HEX:
+            if lex.yyPeek() == '\'' {
+                state = MY_LEX_HEX_NUMBER
+            }
+
+        case MY_LEX_IDENT_OR_BIN:
+            if lex.yyPeek() == '\'' {
+                state = MY_LEX_BIN_NUMBER;
+            }
+
+        case MY_LEX_IDENT:
+           var start byte
+
+            for result_state = c; ident_map[c = lex.yyGet()]; result_state |= c)
+            {}
+
+            if result_state & 0x80 {
+                result_state = IDENT_QUOTED
+            } else {
+                result_state = IDENT
+            }
+
+
+
+
 		}
-		typ, val = tkn.Scan()
+
+
+
+
+
 	}
-	switch typ {
-	case ID, STRING, NUMBER, VALUE_ARG, LIST_ARG, COMMENT:
-		lval.bytes = val
+}
+
+// return current char
+func (lex *MySQLLexer) yyGet() (b byte) {
+
+	if lex.buf[lex.ptr] == '\n' || (lex.buf[lex.ptr] == '\r' && lex.buf[lex.ptr+1] != '\n') {
+		lex.yylineno += 1
 	}
-	tkn.errorToken = val
-	return typ
+	b = lex.buf[lex.ptr]
+	lex.ptr += 1
+
+	return
+}
+
+func (lex *MySQLLexer) yyPeek() (b byte) {
+	b = lex.buf[lex.ptr]
+}
+
+func (lex *MySQLLexer) yyPeek2() (b byte) {
+	b = lex.buf[lex.ptr+1]
+}
+
+func (lex *MySQLLexer) yySkip() (b byte) {
+	b := lex.buf[lex.ptr]
+	n := lex.buf[lex.ptr+1]
+	if b == '\n' || (b == '\r' && n != '\n') {
+		lex.yylineno += 1
+	}
+
+	lex.ptr += 1
 }
 
 // Error is called by go yacc if there's a parsing error.
-func (tkn *Tokenizer) Error(err string) {
+func (tkn *MySQLLexer) Error(err string) {
 	buf := bytes.NewBuffer(make([]byte, 0, 32))
 	if tkn.errorToken != nil {
 		fmt.Fprintf(buf, "%s at position %v near %s", err, tkn.Position, tkn.errorToken)
@@ -202,7 +209,7 @@ func (tkn *Tokenizer) Error(err string) {
 
 // Scan scans the tokenizer for the next token and returns
 // the token type and an optional value.
-func (tkn *Tokenizer) Scan() (int, []byte) {
+func (tkn *MySQLLexer) Scan() (int, []byte) {
 	if tkn.ForceEOF {
 		return 0, nil
 	}
@@ -295,7 +302,7 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 	}
 }
 
-func (tkn *Tokenizer) skipBlank() {
+func (tkn *MySQLLexer) skipBlank() {
 	ch := tkn.lastChar
 	for ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t' {
 		tkn.next()
@@ -303,7 +310,7 @@ func (tkn *Tokenizer) skipBlank() {
 	}
 }
 
-func (tkn *Tokenizer) scanIdentifier() (int, []byte) {
+func (tkn *MySQLLexer) scanIdentifier() (int, []byte) {
 	buffer := bytes.NewBuffer(make([]byte, 0, 8))
 	buffer.WriteByte(byte(tkn.lastChar))
 	for tkn.next(); isLetter(tkn.lastChar) || isDigit(tkn.lastChar); tkn.next() {
@@ -316,7 +323,7 @@ func (tkn *Tokenizer) scanIdentifier() (int, []byte) {
 	return ID, buffer.Bytes()
 }
 
-func (tkn *Tokenizer) scanLiteralIdentifier() (int, []byte) {
+func (tkn *MySQLLexer) scanLiteralIdentifier() (int, []byte) {
 	buffer := bytes.NewBuffer(make([]byte, 0, 8))
 	buffer.WriteByte(byte(tkn.lastChar))
 	if !isLetter(tkn.lastChar) {
@@ -332,7 +339,7 @@ func (tkn *Tokenizer) scanLiteralIdentifier() (int, []byte) {
 	return ID, buffer.Bytes()
 }
 
-func (tkn *Tokenizer) scanBindVar() (int, []byte) {
+func (tkn *MySQLLexer) scanBindVar() (int, []byte) {
 	buffer := bytes.NewBuffer(make([]byte, 0, 8))
 	buffer.WriteByte(byte(tkn.lastChar))
 	token := VALUE_ARG
@@ -352,13 +359,13 @@ func (tkn *Tokenizer) scanBindVar() (int, []byte) {
 	return token, buffer.Bytes()
 }
 
-func (tkn *Tokenizer) scanMantissa(base int, buffer *bytes.Buffer) {
+func (tkn *MySQLLexer) scanMantissa(base int, buffer *bytes.Buffer) {
 	for digitVal(tkn.lastChar) < base {
 		tkn.ConsumeNext(buffer)
 	}
 }
 
-func (tkn *Tokenizer) scanNumber(seenDecimalPoint bool) (int, []byte) {
+func (tkn *MySQLLexer) scanNumber(seenDecimalPoint bool) (int, []byte) {
 	buffer := bytes.NewBuffer(make([]byte, 0, 8))
 	if seenDecimalPoint {
 		buffer.WriteByte('.')
@@ -415,7 +422,7 @@ exit:
 	return NUMBER, buffer.Bytes()
 }
 
-func (tkn *Tokenizer) scanString(delim uint16, typ int) (int, []byte) {
+func (tkn *MySQLLexer) scanString(delim uint16, typ int) (int, []byte) {
 	buffer := bytes.NewBuffer(make([]byte, 0, 8))
 	for {
 		ch := tkn.lastChar
@@ -445,7 +452,7 @@ func (tkn *Tokenizer) scanString(delim uint16, typ int) (int, []byte) {
 	return typ, buffer.Bytes()
 }
 
-func (tkn *Tokenizer) scanCommentType1(prefix string) (int, []byte) {
+func (tkn *MySQLLexer) scanCommentType1(prefix string) (int, []byte) {
 	buffer := bytes.NewBuffer(make([]byte, 0, 8))
 	buffer.WriteString(prefix)
 	for tkn.lastChar != EOFCHAR {
@@ -458,7 +465,7 @@ func (tkn *Tokenizer) scanCommentType1(prefix string) (int, []byte) {
 	return COMMENT, buffer.Bytes()
 }
 
-func (tkn *Tokenizer) scanCommentType2() (int, []byte) {
+func (tkn *MySQLLexer) scanCommentType2() (int, []byte) {
 	buffer := bytes.NewBuffer(make([]byte, 0, 8))
 	buffer.WriteString("/*")
 	for {
@@ -478,7 +485,7 @@ func (tkn *Tokenizer) scanCommentType2() (int, []byte) {
 	return COMMENT, buffer.Bytes()
 }
 
-func (tkn *Tokenizer) ConsumeNext(buffer *bytes.Buffer) {
+func (tkn *MySQLLexer) ConsumeNext(buffer *bytes.Buffer) {
 	if tkn.lastChar == EOFCHAR {
 		// This should never happen.
 		panic("unexpected EOF")
@@ -487,7 +494,7 @@ func (tkn *Tokenizer) ConsumeNext(buffer *bytes.Buffer) {
 	tkn.next()
 }
 
-func (tkn *Tokenizer) next() {
+func (tkn *MySQLLexer) next() {
 	if ch, err := tkn.InStream.ReadByte(); err != nil {
 		// Only EOF is possible.
 		tkn.lastChar = EOFCHAR

@@ -12,7 +12,8 @@ import (
 
 
 %union {
-    
+   NextState int
+   charset *CharsetInfo
 }
 
 query:

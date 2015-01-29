@@ -19,6 +19,7 @@ const (
 	ACCESSIBLE_SYM
 	ACTION
 	ADD
+	ADDDATE_SYM
 	AFTER_SYM
 	AGAINST
 	AGGREGATE_SYM
@@ -45,7 +46,10 @@ const (
 	BIGINT
 	BINARY
 	BINLOG_SYM
+	BIT_AND
+	BIT_OR
 	BIT_SYM
+	BIT_XOR
 	BLOB_SYM
 	BLOCK_SYM
 	BOOL_SYM
@@ -59,6 +63,7 @@ const (
 	CASCADE
 	CASCADED
 	CASE_SYM
+	CAST_SYM
 	CATALOG_NAME_SYM
 	CHAIN_SYM
 	CHANGE
@@ -97,6 +102,7 @@ const (
 	CONTEXT_SYM
 	CONTINUE_SYM
 	CONVERT_SYM
+	COUNT_SYM
 	CPU_SYM
 	CREATE
 	CROSS
@@ -111,12 +117,15 @@ const (
 	DATABASE
 	DATABASES
 	DATAFILE_SYM
+	DATE_ADD_INTERVAL
+	DATE_SUB_INTERVAL
 	DATE_SYM
 	DATETIME
 	DAY_HOUR_SYM
 	DAY_MICROSECOND_SYM
 	DAY_MINUTE_SYM
 	DAY_SECOND_SYM
+	DAY_SYM
 	DEALLOCATE_SYM
 	DECIMAL_SYM
 	DECLARE_SYM
@@ -170,6 +179,7 @@ const (
 	EXPIRE_SYM
 	EXTENDED_SYM
 	EXTENT_SIZE_SYM
+	EXTRACT_SYM
 	FALSE_SYM
 	FAST_SYM
 	FAULTS_SYM
@@ -196,6 +206,7 @@ const (
 	GLOBAL_SYM
 	GRANT
 	GRANTS
+	GROUP_CONCAT_SYM
 	GROUP_SYM
 	HANDLER_SYM
 	HASH_SYM
@@ -226,6 +237,7 @@ const (
 	INSTALL_SYM
 	INTERVAL_SYM
 	INTO
+	INT_SYM
 	IO_SYM
 	IO_AFTER_GTIDS
 	IO_BEFORE_GTIDS
@@ -293,6 +305,7 @@ const (
 	MAX_QUERIES_PER_HOUR
 	MAX_ROWS
 	MAX_SIZE_SYM
+	MAX_SYM
 	MAX_UPDATES_PER_HOUR
 	MAX_USER_CONNECTIONS_SYM
 	MAX_VALUE_SYM
@@ -309,6 +322,7 @@ const (
 	MINUTE_MICROSECOND_SYM
 	MINUTE_SECOND_SYM
 	MIN_ROWS
+	MIN_SYM
 	MOD_SYM
 	MODE_SYM
 	MODIFIES_SYM
@@ -332,6 +346,7 @@ const (
 	NODEGROUP_SYM
 	NONE_SYM
 	NOT_SYM
+	NOW_SYM
 	NO_WRITE_TO_BINLOG
 	NULL_SYM
 	NUMBER_SYM
@@ -368,6 +383,7 @@ const (
 	POINT_SYM
 	POLYGON
 	PORT_SYM
+	POSITION_SYM
 	PRECISION
 	PREPARE_SYM
 	PRESERVE_SYM
@@ -484,18 +500,24 @@ const (
 	STATS_PERSISTENT_SYM
 	STATS_SAMPLE_PAGES_SYM
 	STATUS_SYM
+	STD_SYM
+	STDDEV_SAMP_SYM
 	STOP_SYM
 	STORAGE_SYM
 	STRAIGHT_JOIN
 	STRING_SYM
 	SUBCLASS_ORIGIN_SYM
+	SUBDATE_SYM
 	SUBJECT_SYM
 	SUBPARTITION_SYM
 	SUBPARTITIONS_SYM
+	SUBSTRING
+	SUM_SYM
 	SUPER_SYM
 	SUSPEND_SYM
 	SWAPS_SYM
 	SWITCHES_SYM
+	SYSDATE
 	TABLE_SYM
 	TABLE_NAME_SYM
 	TABLES
@@ -519,6 +541,7 @@ const (
 	TRANSACTION_SYM
 	TRIGGER_SYM
 	TRIGGERS_SYM
+	TRIM
 	TRUE_SYM
 	TRUNCATE_SYM
 	TYPE_SYM
@@ -552,7 +575,9 @@ const (
 	VARBINARY
 	VARCHAR
 	VARIABLES
+	VARIANCE_SYM
 	VARYING
+	VAR_SAMP_SYM
 	VIEW_SYM
 	WAIT_SYM
 	WARNINGS
@@ -574,19 +599,22 @@ const (
 	ZEROFILL
 )
 
+var Operators map[string]int = map[string]int{
+	"&&":  AND_AND_SYM,
+	"||":  OR_OR_SYM,
+	"<":   LT,
+	"<=":  LE,
+	"<>":  NE,
+	"!=":  NE,
+	"=":   EQ,
+	">":   GT_SYM,
+	">=":  GE,
+	"<<":  SHIFT_LEFT,
+	">>":  SHIFT_RIGHT,
+	"<=>": EQUAL_SYM,
+}
+
 var Symbols map[string]int = map[string]int{
-	"&&":                            AND_AND_SYM,
-	"||":                            OR_OR_SYM,
-	"<":                             LT,
-	"<=":                            LE,
-	"<>":                            NE,
-	"!=":                            NE,
-	"=":                             EQ,
-	">":                             GT_SYM,
-	">=":                            GE,
-	"<<":                            SHIFT_LEFT,
-	">>":                            SHIFT_RIGHT,
-	"<=>":                           EQUAL_SYM,
 	"ACCESSIBLE":                    ACCESSIBLE_SYM,
 	"ACTION":                        ACTION,
 	"ADD":                           ADD,
@@ -967,214 +995,218 @@ var Symbols map[string]int = map[string]int{
 	"PRIMARY":                       PRIMARY_SYM,
 	"PRIVILEGES":                    PRIVILEGES,
 	"PROCEDURE":                     PROCEDURE_SYM,
-	"PROCESS", PROCESS,
-	"PROCESSLIST":         PROCESSLIST_SYM,
-	"PROFILE":             PROFILE_SYM,
-	"PROFILES":            PROFILES_SYM,
-	"PROXY":               PROXY_SYM,
-	"PURGE":               PURGE,
-	"QUARTER":             QUARTER_SYM,
-	"QUERY":               QUERY_SYM,
-	"QUICK":               QUICK,
-	"RANGE":               RANGE_SYM,
-	"READ":                READ_SYM,
-	"READ_ONLY":           READ_ONLY_SYM,
-	"READ_WRITE":          READ_WRITE_SYM,
-	"READS":               READS_SYM,
-	"REAL":                REAL,
-	"REBUILD":             REBUILD_SYM,
-	"RECOVER":             RECOVER_SYM,
-	"REDO_BUFFER_SIZE":    REDO_BUFFER_SIZE_SYM,
-	"REDOFILE":            REDOFILE_SYM,
-	"REDUNDANT":           REDUNDANT_SYM,
-	"REFERENCES":          REFERENCES,
-	"REGEXP":              REGEXP,
-	"RELAY":               RELAY,
-	"RELAYLOG":            RELAYLOG_SYM,
-	"RELAY_LOG_FILE":      RELAY_LOG_FILE_SYM,
-	"RELAY_LOG_POS":       RELAY_LOG_POS_SYM,
-	"RELAY_THREAD":        RELAY_THREAD,
-	"RELEASE":             RELEASE_SYM,
-	"RELOAD":              RELOAD,
-	"REMOVE":              REMOVE_SYM,
-	"RENAME":              RENAME,
-	"REORGANIZE":          REORGANIZE_SYM,
-	"REPAIR":              REPAIR,
-	"REPEATABLE":          REPEATABLE_SYM,
-	"REPLACE":             REPLACE,
-	"REPLICATION":         REPLICATION,
-	"REPEAT":              REPEAT_SYM,
-	"REQUIRE":             REQUIRE_SYM,
-	"RESET":               RESET_SYM,
-	"RESIGNAL":            RESIGNAL_SYM,
-	"RESTORE":             RESTORE_SYM,
-	"RESTRICT":            RESTRICT,
-	"RESUME":              RESUME_SYM,
-	"RETURNED_SQLSTATE":   RETURNED_SQLSTATE_SYM,
-	"RETURN":              RETURN_SYM,
-	"RETURNS":             RETURNS_SYM,
-	"REVERSE":             REVERSE_SYM,
-	"REVOKE":              REVOKE,
-	"RIGHT":               RIGHT,
-	"RLIKE":               REGEXP, /* Like in mSQL2 */
-	"ROLLBACK":            ROLLBACK_SYM,
-	"ROLLUP":              ROLLUP_SYM,
-	"ROUTINE":             ROUTINE_SYM,
-	"ROW":                 ROW_SYM,
-	"ROW_COUNT":           ROW_COUNT_SYM,
-	"ROWS":                ROWS_SYM,
-	"ROW_FORMAT":          ROW_FORMAT_SYM,
-	"RTREE":               RTREE_SYM,
-	"SAVEPOINT":           SAVEPOINT_SYM,
-	"SCHEDULE":            SCHEDULE_SYM,
-	"SCHEMA":              DATABASE,
-	"SCHEMA_NAME":         SCHEMA_NAME_SYM,
-	"SCHEMAS":             DATABASES,
-	"SECOND":              SECOND_SYM,
-	"SECOND_MICROSECOND":  SECOND_MICROSECOND_SYM,
-	"SECURITY":            SECURITY_SYM,
-	"SELECT":              SELECT_SYM,
-	"SENSITIVE":           SENSITIVE_SYM,
-	"SEPARATOR":           SEPARATOR_SYM,
-	"SERIAL":              SERIAL_SYM,
-	"SERIALIZABLE":        SERIALIZABLE_SYM,
-	"SESSION":             SESSION_SYM,
-	"SERVER":              SERVER_SYM,
-	"SET":                 SET,
-	"SHARE":               SHARE_SYM,
-	"SHOW":                SHOW,
-	"SHUTDOWN":            SHUTDOWN,
-	"SIGNAL":              SIGNAL_SYM,
-	"SIGNED":              SIGNED_SYM,
-	"SIMPLE":              SIMPLE_SYM,
-	"SLAVE":               SLAVE,
-	"SLOW":                SLOW,
-	"SNAPSHOT":            SNAPSHOT_SYM,
-	"SMALLINT":            SMALLINT,
-	"SOCKET":              SOCKET_SYM,
-	"SOME":                ANY_SYM,
-	"SONAME":              SONAME_SYM,
-	"SOUNDS":              SOUNDS_SYM,
-	"SOURCE":              SOURCE_SYM,
-	"SPATIAL":             SPATIAL_SYM,
-	"SPECIFIC":            SPECIFIC_SYM,
-	"SQL":                 SQL_SYM,
-	"SQLEXCEPTION":        SQLEXCEPTION_SYM,
-	"SQLSTATE":            SQLSTATE_SYM,
-	"SQLWARNING":          SQLWARNING_SYM,
-	"SQL_AFTER_GTIDS":     SQL_AFTER_GTIDS,
-	"SQL_AFTER_MTS_GAPS":  SQL_AFTER_MTS_GAPS,
-	"SQL_BEFORE_GTIDS":    SQL_BEFORE_GTIDS,
-	"SQL_BIG_RESULT":      SQL_BIG_RESULT,
-	"SQL_BUFFER_RESULT":   SQL_BUFFER_RESULT,
-	"SQL_CACHE":           SQL_CACHE_SYM,
-	"SQL_CALC_FOUND_ROWS": SQL_CALC_FOUND_ROWS,
-	"SQL_NO_CACHE":        SQL_NO_CACHE_SYM,
-	"SQL_SMALL_RESULT":    SQL_SMALL_RESULT,
-	"SQL_THREAD":          SQL_THREAD,
-	"SQL_TSI_SECOND":      SECOND_SYM,
-	"SQL_TSI_MINUTE":      MINUTE_SYM,
-	"SQL_TSI_HOUR":        HOUR_SYM,
-	"SQL_TSI_DAY":         DAY_SYM,
-	"SQL_TSI_WEEK":        WEEK_SYM,
-	"SQL_TSI_MONTH":       MONTH_SYM,
-	"SQL_TSI_QUARTER":     QUARTER_SYM,
-	"SQL_TSI_YEAR":        YEAR_SYM,
-	"SSL":                 SSL_SYM,
-	"START":               START_SYM,
-	"STARTING":            STARTING,
-	"STARTS":              STARTS_SYM,
-	"STATS_AUTO_RECALC":   STATS_AUTO_RECALC_SYM,
-	"STATS_PERSISTENT":    STATS_PERSISTENT_SYM,
-	"STATS_SAMPLE_PAGES":  STATS_SAMPLE_PAGES_SYM,
-	"STATUS":              STATUS_SYM,
-	"STOP":                STOP_SYM,
-	"STORAGE":             STORAGE_SYM,
-	"STRAIGHT_JOIN":       STRAIGHT_JOIN,
-	"STRING":              STRING_SYM,
-	"SUBCLASS_ORIGIN":     SUBCLASS_ORIGIN_SYM,
-	"SUBJECT":             SUBJECT_SYM,
-	"SUBPARTITION":        SUBPARTITION_SYM,
-	"SUBPARTITIONS":       SUBPARTITIONS_SYM,
-	"SUPER":               SUPER_SYM,
-	"SUSPEND":             SUSPEND_SYM,
-	"SWAPS":               SWAPS_SYM,
-	"SWITCHES":            SWITCHES_SYM,
-	"TABLE":               TABLE_SYM,
-	"TABLE_NAME":          TABLE_NAME_SYM,
-	"TABLES":              TABLES,
-	"TABLESPACE":          TABLESPACE,
-	"TABLE_CHECKSUM":      TABLE_CHECKSUM_SYM,
-	"TEMPORARY":           TEMPORARY,
-	"TEMPTABLE":           TEMPTABLE_SYM,
-	"TERMINATED":          TERMINATED,
-	"TEXT":                TEXT_SYM,
-	"THAN":                THAN_SYM,
-	"THEN":                THEN_SYM,
-	"TIME":                TIME_SYM,
-	"TIMESTAMP":           TIMESTAMP,
-	"TIMESTAMPADD":        TIMESTAMP_ADD,
-	"TIMESTAMPDIFF":       TIMESTAMP_DIFF,
-	"TINYBLOB":            TINYBLOB,
-	"TINYINT":             TINYINT,
-	"TINYTEXT":            TINYTEXT,
-	"TO":                  TO_SYM,
-	"TRAILING":            TRAILING,
-	"TRANSACTION":         TRANSACTION_SYM,
-	"TRIGGER":             TRIGGER_SYM,
-	"TRIGGERS":            TRIGGERS_SYM,
-	"TRUE":                TRUE_SYM,
-	"TRUNCATE":            TRUNCATE_SYM,
-	"TYPE":                TYPE_SYM,
-	"TYPES":               TYPES_SYM,
-	"UNCOMMITTED":         UNCOMMITTED_SYM,
-	"UNDEFINED":           UNDEFINED_SYM,
-	"UNDO_BUFFER_SIZE":    UNDO_BUFFER_SIZE_SYM,
-	"UNDOFILE":            UNDOFILE_SYM,
-	"UNDO":                UNDO_SYM,
-	"UNICODE":             UNICODE_SYM,
-	"UNION":               UNION_SYM,
-	"UNIQUE":              UNIQUE_SYM,
-	"UNKNOWN":             UNKNOWN_SYM,
-	"UNLOCK":              UNLOCK_SYM,
-	"UNINSTALL":           UNINSTALL_SYM,
-	"UNSIGNED":            UNSIGNED,
-	"UNTIL":               UNTIL_SYM,
-	"UPDATE":              UPDATE_SYM,
-	"UPGRADE":             UPGRADE_SYM,
-	"USAGE":               USAGE,
-	"USE":                 USE_SYM,
-	"USER":                USER,
-	"USER_RESOURCES":      RESOURCES,
-	"USE_FRM":             USE_FRM,
-	"USING":               USING,
-	"UTC_DATE":            UTC_DATE_SYM,
-	"UTC_TIME":            UTC_TIME_SYM,
-	"UTC_TIMESTAMP":       UTC_TIMESTAMP_SYM,
-	"VALUE":               VALUE_SYM,
-	"VALUES":              VALUES,
-	"VARBINARY":           VARBINARY,
-	"VARCHAR":             VARCHAR,
-	"VARCHARACTER":        VARCHAR,
-	"VARIABLES":           VARIABLES,
-	"VARYING":             VARYING,
-	"WAIT":                WAIT_SYM,
-	"WARNINGS":            WARNINGS,
-	"WEEK":                WEEK_SYM,
-	"WEIGHT_STRING":       WEIGHT_STRING_SYM,
-	"WHEN":                WHEN_SYM,
-	"WHERE":               WHERE,
-	"WHILE":               WHILE_SYM,
-	"VIEW":                VIEW_SYM,
-	"WITH":                WITH,
-	"WORK":                WORK_SYM,
-	"WRAPPER":             WRAPPER_SYM,
-	"WRITE":               WRITE_SYM,
-	"X509":                X509_SYM,
-	"XOR":                 XOR,
-	"XA":                  XA_SYM,
-	"XML":                 XML_SYM, /* LOAD XML Arnold/Erik */
-	"YEAR":                YEAR_SYM,
-	"YEAR_MONTH":          YEAR_MONTH_SYM,
-	"ZEROFILL":            ZEROFILL,
+	"PROCESS":                       PROCESS,
+	"PROCESSLIST":                   PROCESSLIST_SYM,
+	"PROFILE":                       PROFILE_SYM,
+	"PROFILES":                      PROFILES_SYM,
+	"PROXY":                         PROXY_SYM,
+	"PURGE":                         PURGE,
+	"QUARTER":                       QUARTER_SYM,
+	"QUERY":                         QUERY_SYM,
+	"QUICK":                         QUICK,
+	"RANGE":                         RANGE_SYM,
+	"READ":                          READ_SYM,
+	"READ_ONLY":                     READ_ONLY_SYM,
+	"READ_WRITE":                    READ_WRITE_SYM,
+	"READS":                         READS_SYM,
+	"REAL":                          REAL,
+	"REBUILD":                       REBUILD_SYM,
+	"RECOVER":                       RECOVER_SYM,
+	"REDO_BUFFER_SIZE":              REDO_BUFFER_SIZE_SYM,
+	"REDOFILE":                      REDOFILE_SYM,
+	"REDUNDANT":                     REDUNDANT_SYM,
+	"REFERENCES":                    REFERENCES,
+	"REGEXP":                        REGEXP,
+	"RELAY":                         RELAY,
+	"RELAYLOG":                      RELAYLOG_SYM,
+	"RELAY_LOG_FILE":                RELAY_LOG_FILE_SYM,
+	"RELAY_LOG_POS":                 RELAY_LOG_POS_SYM,
+	"RELAY_THREAD":                  RELAY_THREAD,
+	"RELEASE":                       RELEASE_SYM,
+	"RELOAD":                        RELOAD,
+	"REMOVE":                        REMOVE_SYM,
+	"RENAME":                        RENAME,
+	"REORGANIZE":                    REORGANIZE_SYM,
+	"REPAIR":                        REPAIR,
+	"REPEATABLE":                    REPEATABLE_SYM,
+	"REPLACE":                       REPLACE,
+	"REPLICATION":                   REPLICATION,
+	"REPEAT":                        REPEAT_SYM,
+	"REQUIRE":                       REQUIRE_SYM,
+	"RESET":                         RESET_SYM,
+	"RESIGNAL":                      RESIGNAL_SYM,
+	"RESTORE":                       RESTORE_SYM,
+	"RESTRICT":                      RESTRICT,
+	"RESUME":                        RESUME_SYM,
+	"RETURNED_SQLSTATE":             RETURNED_SQLSTATE_SYM,
+	"RETURN":                        RETURN_SYM,
+	"RETURNS":                       RETURNS_SYM,
+	"REVERSE":                       REVERSE_SYM,
+	"REVOKE":                        REVOKE,
+	"RIGHT":                         RIGHT,
+	"RLIKE":                         REGEXP, /* Like in mSQL2 */
+	"ROLLBACK":                      ROLLBACK_SYM,
+	"ROLLUP":                        ROLLUP_SYM,
+	"ROUTINE":                       ROUTINE_SYM,
+	"ROW":                           ROW_SYM,
+	"ROW_COUNT":                     ROW_COUNT_SYM,
+	"ROWS":                          ROWS_SYM,
+	"ROW_FORMAT":                    ROW_FORMAT_SYM,
+	"RTREE":                         RTREE_SYM,
+	"SAVEPOINT":                     SAVEPOINT_SYM,
+	"SCHEDULE":                      SCHEDULE_SYM,
+	"SCHEMA":                        DATABASE,
+	"SCHEMA_NAME":                   SCHEMA_NAME_SYM,
+	"SCHEMAS":                       DATABASES,
+	"SECOND":                        SECOND_SYM,
+	"SECOND_MICROSECOND":            SECOND_MICROSECOND_SYM,
+	"SECURITY":                      SECURITY_SYM,
+	"SELECT":                        SELECT_SYM,
+	"SENSITIVE":                     SENSITIVE_SYM,
+	"SEPARATOR":                     SEPARATOR_SYM,
+	"SERIAL":                        SERIAL_SYM,
+	"SERIALIZABLE":                  SERIALIZABLE_SYM,
+	"SESSION":                       SESSION_SYM,
+	"SERVER":                        SERVER_SYM,
+	"SET":                           SET,
+	"SHARE":                         SHARE_SYM,
+	"SHOW":                          SHOW,
+	"SHUTDOWN":                      SHUTDOWN,
+	"SIGNAL":                        SIGNAL_SYM,
+	"SIGNED":                        SIGNED_SYM,
+	"SIMPLE":                        SIMPLE_SYM,
+	"SLAVE":                         SLAVE,
+	"SLOW":                          SLOW,
+	"SNAPSHOT":                      SNAPSHOT_SYM,
+	"SMALLINT":                      SMALLINT,
+	"SOCKET":                        SOCKET_SYM,
+	"SOME":                          ANY_SYM,
+	"SONAME":                        SONAME_SYM,
+	"SOUNDS":                        SOUNDS_SYM,
+	"SOURCE":                        SOURCE_SYM,
+	"SPATIAL":                       SPATIAL_SYM,
+	"SPECIFIC":                      SPECIFIC_SYM,
+	"SQL":                           SQL_SYM,
+	"SQLEXCEPTION":                  SQLEXCEPTION_SYM,
+	"SQLSTATE":                      SQLSTATE_SYM,
+	"SQLWARNING":                    SQLWARNING_SYM,
+	"SQL_AFTER_GTIDS":               SQL_AFTER_GTIDS,
+	"SQL_AFTER_MTS_GAPS":            SQL_AFTER_MTS_GAPS,
+	"SQL_BEFORE_GTIDS":              SQL_BEFORE_GTIDS,
+	"SQL_BIG_RESULT":                SQL_BIG_RESULT,
+	"SQL_BUFFER_RESULT":             SQL_BUFFER_RESULT,
+	"SQL_CACHE":                     SQL_CACHE_SYM,
+	"SQL_CALC_FOUND_ROWS":           SQL_CALC_FOUND_ROWS,
+	"SQL_NO_CACHE":                  SQL_NO_CACHE_SYM,
+	"SQL_SMALL_RESULT":              SQL_SMALL_RESULT,
+	"SQL_THREAD":                    SQL_THREAD,
+	"SQL_TSI_SECOND":                SECOND_SYM,
+	"SQL_TSI_MINUTE":                MINUTE_SYM,
+	"SQL_TSI_HOUR":                  HOUR_SYM,
+	"SQL_TSI_DAY":                   DAY_SYM,
+	"SQL_TSI_WEEK":                  WEEK_SYM,
+	"SQL_TSI_MONTH":                 MONTH_SYM,
+	"SQL_TSI_QUARTER":               QUARTER_SYM,
+	"SQL_TSI_YEAR":                  YEAR_SYM,
+	"SSL":                           SSL_SYM,
+	"START":                         START_SYM,
+	"STARTING":                      STARTING,
+	"STARTS":                        STARTS_SYM,
+	"STATS_AUTO_RECALC":             STATS_AUTO_RECALC_SYM,
+	"STATS_PERSISTENT":              STATS_PERSISTENT_SYM,
+	"STATS_SAMPLE_PAGES":            STATS_SAMPLE_PAGES_SYM,
+	"STATUS":                        STATUS_SYM,
+	"STOP":                          STOP_SYM,
+	"STORAGE":                       STORAGE_SYM,
+	"STRAIGHT_JOIN":                 STRAIGHT_JOIN,
+	"STRING":                        STRING_SYM,
+	"SUBCLASS_ORIGIN":               SUBCLASS_ORIGIN_SYM,
+	"SUBJECT":                       SUBJECT_SYM,
+	"SUBPARTITION":                  SUBPARTITION_SYM,
+	"SUBPARTITIONS":                 SUBPARTITIONS_SYM,
+	"SUPER":                         SUPER_SYM,
+	"SUSPEND":                       SUSPEND_SYM,
+	"SWAPS":                         SWAPS_SYM,
+	"SWITCHES":                      SWITCHES_SYM,
+	"TABLE":                         TABLE_SYM,
+	"TABLE_NAME":                    TABLE_NAME_SYM,
+	"TABLES":                        TABLES,
+	"TABLESPACE":                    TABLESPACE,
+	"TABLE_CHECKSUM":                TABLE_CHECKSUM_SYM,
+	"TEMPORARY":                     TEMPORARY,
+	"TEMPTABLE":                     TEMPTABLE_SYM,
+	"TERMINATED":                    TERMINATED,
+	"TEXT":                          TEXT_SYM,
+	"THAN":                          THAN_SYM,
+	"THEN":                          THEN_SYM,
+	"TIME":                          TIME_SYM,
+	"TIMESTAMP":                     TIMESTAMP,
+	"TIMESTAMPADD":                  TIMESTAMP_ADD,
+	"TIMESTAMPDIFF":                 TIMESTAMP_DIFF,
+	"TINYBLOB":                      TINYBLOB,
+	"TINYINT":                       TINYINT,
+	"TINYTEXT":                      TINYTEXT,
+	"TO":                            TO_SYM,
+	"TRAILING":                      TRAILING,
+	"TRANSACTION":                   TRANSACTION_SYM,
+	"TRIGGER":                       TRIGGER_SYM,
+	"TRIGGERS":                      TRIGGERS_SYM,
+	"TRUE":                          TRUE_SYM,
+	"TRUNCATE":                      TRUNCATE_SYM,
+	"TYPE":                          TYPE_SYM,
+	"TYPES":                         TYPES_SYM,
+	"UNCOMMITTED":                   UNCOMMITTED_SYM,
+	"UNDEFINED":                     UNDEFINED_SYM,
+	"UNDO_BUFFER_SIZE":              UNDO_BUFFER_SIZE_SYM,
+	"UNDOFILE":                      UNDOFILE_SYM,
+	"UNDO":                          UNDO_SYM,
+	"UNICODE":                       UNICODE_SYM,
+	"UNION":                         UNION_SYM,
+	"UNIQUE":                        UNIQUE_SYM,
+	"UNKNOWN":                       UNKNOWN_SYM,
+	"UNLOCK":                        UNLOCK_SYM,
+	"UNINSTALL":                     UNINSTALL_SYM,
+	"UNSIGNED":                      UNSIGNED,
+	"UNTIL":                         UNTIL_SYM,
+	"UPDATE":                        UPDATE_SYM,
+	"UPGRADE":                       UPGRADE_SYM,
+	"USAGE":                         USAGE,
+	"USE":                           USE_SYM,
+	"USER":                          USER,
+	"USER_RESOURCES":                RESOURCES,
+	"USE_FRM":                       USE_FRM,
+	"USING":                         USING,
+	"UTC_DATE":                      UTC_DATE_SYM,
+	"UTC_TIME":                      UTC_TIME_SYM,
+	"UTC_TIMESTAMP":                 UTC_TIMESTAMP_SYM,
+	"VALUE":                         VALUE_SYM,
+	"VALUES":                        VALUES,
+	"VARBINARY":                     VARBINARY,
+	"VARCHAR":                       VARCHAR,
+	"VARCHARACTER":                  VARCHAR,
+	"VARIABLES":                     VARIABLES,
+	"VARYING":                       VARYING,
+	"WAIT":                          WAIT_SYM,
+	"WARNINGS":                      WARNINGS,
+	"WEEK":                          WEEK_SYM,
+	"WEIGHT_STRING":                 WEIGHT_STRING_SYM,
+	"WHEN":                          WHEN_SYM,
+	"WHERE":                         WHERE,
+	"WHILE":                         WHILE_SYM,
+	"VIEW":                          VIEW_SYM,
+	"WITH":                          WITH,
+	"WORK":                          WORK_SYM,
+	"WRAPPER":                       WRAPPER_SYM,
+	"WRITE":                         WRITE_SYM,
+	"X509":                          X509_SYM,
+	"XOR":                           XOR,
+	"XA":                            XA_SYM,
+	"XML":                           XML_SYM, /* LOAD XML Arnold/Erik */
+	"YEAR":                          YEAR_SYM,
+	"YEAR_MONTH":                    YEAR_MONTH_SYM,
+	"ZEROFILL":                      ZEROFILL,
 }
+
+const (
+	TK_NAME_LENGTH = 24
+)
