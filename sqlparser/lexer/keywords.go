@@ -1,4 +1,4 @@
-package token
+package lexer
 
 var Operators map[string]int = map[string]int{
 	"&&":  AND_AND_SYM,
@@ -610,4 +610,9 @@ var Symbols map[string]int = map[string]int{
 
 const (
 	TK_NAME_LENGTH = 24
+	EOF            = 0
 )
+
+func findKeywords(str []byte, isfun bool) (int, bool) {
+	return 0, true
+}

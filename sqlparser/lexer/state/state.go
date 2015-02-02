@@ -1,4 +1,4 @@
-package lexer
+package state
 
 const (
 	MY_LEX_START = iota

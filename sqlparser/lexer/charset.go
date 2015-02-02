@@ -1,5 +1,9 @@
 package lexer
 
+import (
+	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/state"
+)
+
 type (
 	CharsetInfo struct {
 		Number        int
@@ -11,73 +15,119 @@ type (
 
 		CType []byte
 
-		StateMap []byte
-		IdentMap []byte
+		StateMap []int
+		IdentMap []int
 	}
 )
 
+func init() {
+	validCharsets := make(map[string]*CharsetInfo)
+	validCharsets["utf8_general_cli"] = &CSUtf8GeneralCli
+}
+
+var validCharsets map[string]*CharsetInfo
+
 func initStateMaps(cs *CharsetInfo) {
 
-	var state_map [256]byte
+	var state_map [256]int
 
 	for i := 0; i < 256; i++ {
-		if isalpha(cs, byte(i)) == true {
-			state_map[i] = byte(MY_LEX_IDENT)
-		} else if isdigit(cs, byte(i)) {
-			state_map[i] = byte(MY_LEX_NUMBER_IDENT)
-		} else if isspace(cs, byte(i)) {
-			state_map[i] = byte(MY_LEX_IDENT)
+		if cs.isalpha(byte(i)) == true {
+			state_map[i] = (MY_LEX_IDENT)
+		} else if cs.isdigit(byte(i)) {
+			state_map[i] = MY_LEX_NUMBER_IDENT
+		} else if cs.isspace(byte(i)) {
+			state_map[i] = MY_LEX_IDENT
 		} else {
-			state_map[i] = byte(MY_LEX_CHAR)
+			state_map[i] = MY_LEX_CHAR
 		}
 	}
-	state_map[0] = byte(MY_LEX_EOL)
-	state_map['_'] = byte(MY_LEX_IDENT)
-	state_map['$'] = byte(MY_LEX_IDENT)
-	state_map['\''] = byte(MY_LEX_STRING)
-	state_map['.'] = byte(MY_LEX_REAL_OR_POINT)
-	state_map['>'] = byte(MY_LEX_CMP_OP)
-	state_map['='] = byte(MY_LEX_CMP_OP)
-	state_map['!'] = byte(MY_LEX_CMP_OP)
-	state_map['<'] = byte(MY_LEX_LONG_CMP_OP)
-	state_map['&'] = byte(MY_LEX_BOOL)
-	state_map['|'] = byte(MY_LEX_BOOL)
-	state_map['#'] = byte(MY_LEX_COMMENT)
-	state_map[';'] = byte(MY_LEX_SEMICOLON)
-	state_map[':'] = byte(MY_LEX_SET_VAR)
-	state_map['\\'] = byte(MY_LEX_ESCAPE)
-	state_map['/'] = byte(MY_LEX_LONG_COMMENT)
-	state_map['*'] = byte(MY_LEX_END_LONG_COMMENT)
-	state_map['@'] = byte(MY_LEX_USER_END)
-	state_map['`'] = byte(MY_LEX_USER_VARIABLE_DELIMITER)
-	state_map['"'] = byte(MY_LEX_STRING_OR_DELIMITER)
+	state_map[0] = MY_LEX_EOL
+	state_map['_'] = MY_LEX_IDENT
+	state_map['$'] = MY_LEX_IDENT
+	state_map['\''] = MY_LEX_STRING
+	state_map['.'] = MY_LEX_REAL_OR_POINT
+	state_map['>'] = MY_LEX_CMP_OP
+	state_map['='] = MY_LEX_CMP_OP
+	state_map['!'] = MY_LEX_CMP_OP
+	state_map['<'] = MY_LEX_LONG_CMP_OP
+	state_map['&'] = MY_LEX_BOOL
+	state_map['|'] = MY_LEX_BOOL
+	state_map['#'] = MY_LEX_COMMENT
+	state_map[';'] = MY_LEX_SEMICOLON
+	state_map[':'] = MY_LEX_SET_VAR
+	state_map['\\'] = MY_LEX_ESCAPE
+	state_map['/'] = MY_LEX_LONG_COMMENT
+	state_map['*'] = MY_LEX_END_LONG_COMMENT
+	state_map['@'] = MY_LEX_USER_END
+	state_map['`'] = MY_LEX_USER_VARIABLE_DELIMITER
+	state_map['"'] = MY_LEX_STRING_OR_DELIMITER
 
-	var ident_map [256]byte
+	var ident_map [256]int
 	for i := 0; i < 256; i++ {
-		ident_map[i] = byte((state_map[i] == MY_LEX_IDENT || state_map[i] == MY_LEX_NUMBER_IDENT))
+		ident_map[i] = func() int {
+			if state_map[i] == MY_LEX_IDENT || state_map[i] == MY_LEX_NUMBER_IDENT {
+				return 1
+			}
+			return 0
+		}()
 	}
 
-	state_map['x'] = byte(MY_LEX_IDENT_OR_HEX)
-	state_map['X'] = byte(MY_LEX_IDENT_OR_HEX)
-	state_map['b'] = byte(MY_LEX_IDENT_OR_BIN)
-	state_map['B'] = byte(MY_LEX_IDENT_OR_BIN)
-	state_map['n'] = byte(MY_LEX_IDENT_OR_NCHAR)
-	state_map['N'] = byte(MY_LEX_IDENT_OR_NCHAR)
+	state_map['x'] = MY_LEX_IDENT_OR_HEX
+	state_map['X'] = MY_LEX_IDENT_OR_HEX
+	state_map['b'] = MY_LEX_IDENT_OR_BIN
+	state_map['B'] = MY_LEX_IDENT_OR_BIN
+	state_map['n'] = (MY_LEX_IDENT_OR_NCHAR)
+	state_map['N'] = (MY_LEX_IDENT_OR_NCHAR)
 
-	cs.IdentMap = ident_map
-	cs.StateMap = state_map
+	cs.IdentMap = ident_map[:]
+	cs.StateMap = state_map[:]
 }
 
-func isalpha(cs *CharsetInfo, c byte) bool {
-	return cs.CType[c+1] & (_MY_U | _MY_L)
+func (cs *CharsetInfo) isalpha(c byte) bool {
+	if cs.CType[c+1]&(_MY_U|_MY_L) == 0 {
+		return false
+	}
+	return true
 }
 
-func isdigit(cs *CharsetInfo, c byte) bool {
-	return cs.CType[c+1] & _MY_U
+func (cs *CharsetInfo) isdigit(c byte) bool {
+	if cs.CType[c+1]&_MY_U == 0 {
+		return false
+	}
+
+	return true
 }
 
-func isspace(cs *CharsetInfo, c byte) bool {
-	return cs.CType[c+1] & _MY_SPC
+func (cs *CharsetInfo) isspace(c byte) bool {
+	if cs.CType[c+1]&_MY_SPC == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (cs *CharsetInfo) iscntrl(c byte) bool {
+	if cs.CType[c+1]&_MY_CTR == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (cs *CharsetInfo) isxdigit(c byte) bool {
+	if cs.CType[c+1]&_MY_X == 0 {
+		return false
+	}
+	return true
+}
+
+func (cs *CharsetInfo) isalnum(c byte) bool {
+	if cs.CType[c+1]&(_MY_U|_MY_L|_MY_NMR) == 0 {
+		return false
+	}
+
+	return true
 }
 
 const (

@@ -2,18 +2,16 @@
 
 %{
 
-package sqlparser
+package lexer
 
 import (
-    "bytes"
 )
 
 %}
 
 
 %union {
-   NextState int
-   charset *CharsetInfo
+    bytes []byte
 }
 
 /*
@@ -678,7 +676,7 @@ import (
         NUM LONG_NUM HEX_NUM LEX_HOSTNAME ULONGLONG_NUM
         NCHAR_STRING BIN_NUM
 
-
+%%
 query:
   END_OF_INPUT
 | verb_clause ';' opt_end_of_input
@@ -4629,3 +4627,4 @@ install:
 uninstall:
   UNINSTALL_SYM PLUGIN_SYM ident;
 
+%%

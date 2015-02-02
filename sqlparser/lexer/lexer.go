@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"github.com/wangjild/go-mysql-proxy/sqlparser/token"
+	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/state"
 )
 
 // Copyright 2012, Google Inc. All rights reserved.
@@ -9,19 +9,21 @@ import (
 // license that can be found in the LICENSE file.
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"strings"
-
-	"micode.be.xiaomi.com/wangjing1/go-mysql-proxy/sqltypes"
 )
 
 const EOFCHAR = 0x100
+const NAMES_SEP_CHAR byte = '\377' /* Char to sep. names */
+
+const MYSQL_VERSION_ID = 50109
 
 // MySQLLexer is the struct used to generate SQL
 // tokens for the parser.
 type MySQLLexer struct {
-	reader bufio.Reader
+	reader *bufio.Reader
 
 	buf []byte
 	ptr uint
@@ -32,29 +34,42 @@ type MySQLLexer struct {
 	tok_start uint
 	tok_end   uint
 
-	tok_start_pre uint
-	tok_end_pre   uint
+	tok_start_prev uint
+	tok_end_prev   uint
 
 	state      uint // current state
 	next_state uint // next should be state
 
-	AllowComments bool
-	ForceEOF      bool
-	lastChar      uint16
-	Position      int
-	errorToken    []byte
-	LastError     string
-	posVarIndex   int
-	ParseTree     Statement
+	in_comment uint
+
+	charset *CharsetInfo
+
+	stmt_prepare_mode bool
+	ignore_space      bool
+	sqlMode           SQLMode
+
+	errorToken *string
+
+	ParseTree string
+	LastError string
+}
+
+type SQLMode struct {
+	MODE_ANSI_QUOTES          bool
+	MODE_HIGH_NOT_PRECEDENCE  bool
+	MODE_PIPES_AS_CONCAT      bool
+	MODE_NO_BACKSLASH_ESCAPES bool
+	MODE_IGNORE_SPACE         bool
 }
 
 // NewStringMySQLLexer creates a new MySQLLexer for the
 // sql string.
 func NewMySQLLexer(sql string) *MySQLLexer {
 	return &MySQLLexer{
-		reader: bufio.NewReader(strings.NewReader(sql)),
-		buf:    []byte(sql),
-		status: MY_LEX_START,
+		reader:  bufio.NewReader(strings.NewReader(sql)),
+		buf:     []byte(sql),
+		state:   MY_LEX_START,
+		charset: &CSUtf8GeneralCli,
 	}
 }
 
@@ -63,11 +78,10 @@ func NewMySQLLexer(sql string) *MySQLLexer {
 func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 	var result_state int
+	var length uint
 	cs := lex.charset
 	state_map := cs.StateMap
 	ident_map := cs.IdentMap
-
-	token_start_lineno := lex.yylineno
 
 	lex.tok_start_prev = lex.tok_start
 	lex.tok_end_prev = lex.tok_end
@@ -79,24 +93,24 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 	lex.next_state = MY_LEX_OPERATOR_OR_IDENT
 
 	var c byte
+	var state int
+
 	for {
-		switch status {
+		switch state {
 		case MY_LEX_OPERATOR_OR_IDENT, MY_LEX_START:
-			for c = yyGet(); sm[c] == MY_LEX_SKIP; c = yyGet() {
+			for c = lex.yyGet(); state_map[c] == MY_LEX_SKIP; c = lex.yyGet() {
 			}
 
 			lex.tok_start = lex.ptr - 1
-			state = sm[c]
-			token_start_lineno = lex.yylineno
+			state = state_map[c]
 
 		case MY_LEX_ESCAPE:
 			if lex.yyGet() == 'N' {
 				// Allow \N as shortcut for NULL
 				return NULL_SYM
 			}
-			break TAG_CHAR_OR_SKIP
+			fallthrough
 		case MY_LEX_CHAR, MY_LEX_SKIP:
-		TAG_CHAR_OR_SKIP:
 			if c == '-' && lex.yyPeek() == '-' && (cs.isspace(lex.yyPeek2()) ||
 				cs.iscntrl(lex.yyPeek2())) {
 				state = MY_LEX_COMMENT
@@ -111,8 +125,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 			if c == ',' {
 				lex.tok_start = lex.ptr
-			} else if c == '?' && lex.stmt_prepare_mode && !ident_map[yyPeek()] {
-				return token.PARAM_MARKER
+			} else if c == '?' && lex.stmt_prepare_mode && ident_map[lex.yyPeek()] != 0 {
+				return PARAM_MARKER
 			}
 
 			return int(c)
@@ -138,72 +152,400 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 		case MY_LEX_IDENT:
-			var start byte
+			var start uint
 
 			c = lex.yyGet()
-			for result_state = c; ident_map[c]; result_state |= c {
+			for result_state = int(c); ident_map[int(c)] != 0; result_state |= int(c) {
 				c = lex.yyGet()
 			}
 
-			if result_state & 0x80 {
+			if result_state&0x80 != 0 {
 				result_state = IDENT_QUOTED
 			} else {
 				result_state = IDENT
 			}
 
-			start := lex.ptr
+			start = lex.ptr
 			idc := lex.buf[lex.tok_start:lex.ptr]
 			if lex.ignore_space {
 				for ; state_map[c] == MY_LEX_SKIP; c = lex.yyGet() {
 				}
 			}
 
-			if start == lex.ptr && c == '.' && ident_map[lex.yyPeek()] {
+			if start == lex.ptr && c == '.' && ident_map[int(lex.yyPeek())] != 0 {
 				lex.next_state = MY_LEX_IDENT_SEP
 			} else {
-				yyUnget()
-				if tokval := token.FindKeyword(idc, c == '('); tokval {
-                    lex.next_state = MY_LEX_START
-                    return tokval
+				lex.yyUnget()
+				if tokval, ok := findKeywords(idc, c == '('); ok {
+					lex.next_state = MY_LEX_START
+					return tokval
 				}
-                yySkip()
+				lex.yySkip()
 			}
 
-            // match _charsername
-            if idc[0] == '_' {
-                if _, ok : = charsets[string(idc)]; ok {
-                    return UNDERSCORE_CHARSET
-                }
-            }
+			// match _charsername
+			if idc[0] == '_' {
+				if _, ok := validCharsets[string(idc)]; ok {
+					return UNDERSCORE_CHARSET
+				}
+			}
 
-            return result_state
+			return result_state
 
-        case MY_LEX_IDENT_SEP: // Found ident before
-                               // And Now '.'
-            c = lex.yyGet()
-            lex.next_state= MY_LEX_IDENT_START
-            if !ident_map[lex.yyPeek()] {
-                lex.next_state = MY_LEX_START;
-            }
+		case MY_LEX_IDENT_SEP: // Found ident before
+			// And Now '.'
+			c = lex.yyGet()
+			lex.next_state = MY_LEX_IDENT_START
+			if ident_map[lex.yyPeek()] == 0 {
+				lex.next_state = MY_LEX_START
+			}
 
-            return int(c)
+			return int(c)
 
-        case MY_LEX_NUMER_IDENT:
-            for c = lex.yyGet(); cs.isdigit(c); c = lex.yyGet() {
-            }
+		case MY_LEX_NUMBER_IDENT: // number or ident which num-start
+			for c = lex.yyGet(); cs.isdigit(c); c = lex.yyGet() {
+			}
 
-            if !ident_map[c] {
-                state = MY_LEX_INT_OR_REAL
-                break
-            }
+			if ident_map[c] == 0 {
+				// Can't be identifier
+				state = MY_LEX_INT_OR_REAL
+				break
+			}
 
-            if (c == 'e' || c == 'E') {
-                
-            }
+			if c == 'e' || c == 'E' {
+				if cs.isdigit(lex.yyPeek()) { // Allow 1E10
+					if cs.isdigit(lex.yyPeek()) { // Number must have digit after sign
+						lex.yySkip()
+						for tmpc := lex.yyGet(); cs.isdigit(tmpc); tmpc = lex.yyGet() {
+						} // until non-numberic char
 
+						return FLOAT_NUM
+					}
+				} else if c = lex.yyGet(); c == '+' || c == '-' { // Allow 1E+10
+					if cs.isdigit(lex.yyPeek()) { // Number must have digit after sign
+						lex.yySkip()
+						for tmpc := lex.yyGet(); cs.isdigit(tmpc); tmpc = lex.yyGet() {
+						} // until non-numberic char
+
+						return FLOAT_NUM
+					}
+				} else {
+					lex.yyUnget()
+				}
+			} else if c == 'x' && (lex.ptr-lex.tok_start) == 2 && lex.buf[lex.tok_start] == '0' {
+				// 0xdddd number
+				for c = lex.yyGet(); cs.isxdigit(c); c = lex.yyGet() {
+				}
+
+				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
+					return HEX_NUM
+				}
+
+				lex.yyUnget()
+			} else if c == 'b' && lex.ptr-lex.tok_start == 2 && lex.buf[lex.tok_start] == '0' {
+				// binary number 0bxxxx
+				for c = lex.yyGet(); cs.isxdigit(c); c = lex.yyGet() {
+				}
+
+				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
+					return BIN_NUM
+				}
+
+				lex.yyUnget()
+			}
+
+			fallthrough
+		case MY_LEX_IDENT_START:
+			result_state = 0
+			for c = lex.yyGet(); ident_map[int(c)] != 0; result_state |= int(c) {
+			}
+
+			result_state = result_state & 0x80
+			if result_state != 0 {
+				result_state = IDENT_QUOTED
+			} else {
+				result_state = IDENT
+			}
+
+			if c == '.' && ident_map[int(lex.yyPeek())] != 0 {
+				lex.next_state = MY_LEX_IDENT_SEP
+			}
+
+			return result_state
+
+		case MY_LEX_USER_VARIABLE_DELIMITER:
+			double_quotes := 0
+			quote_char := c
+
+			lex.tok_start = lex.ptr
+			for c = lex.yyGet(); c != 0; c = lex.yyGet() {
+				if c == NAMES_SEP_CHAR {
+					break
+				}
+
+				if c == quote_char {
+					if lex.yyPeek() != quote_char {
+						break
+					}
+					c = lex.yyGet()
+					double_quotes += 1
+				}
+			}
+
+			if double_quotes != 0 {
+
+			} else {
+
+			}
+
+			if c == quote_char {
+				lex.yySkip()
+			}
+
+			lex.next_state = MY_LEX_START
+			return IDENT_QUOTED
+
+		case MY_LEX_INT_OR_REAL:
+			if c != '.' {
+				// TODO
+				// return getNumberType()
+			}
+			fallthrough
+		case MY_LEX_REAL:
+			for c = lex.yyGet(); cs.isdigit(c); c = lex.yyGet() {
+			}
+
+			if c == 'e' || c == 'E' {
+				c = lex.yyGet()
+				if c == '-' || c == '+' {
+					c = lex.yyGet() // skip sign
+				}
+
+				if !cs.isdigit(c) {
+					state = MY_LEX_CHAR
+					break
+				}
+
+				for tmpc := lex.yyGet(); cs.isdigit(tmpc); tmpc = lex.yyGet() {
+				}
+
+				return FLOAT_NUM
+			}
+
+			return DECIMAL_NUM
+		case MY_LEX_HEX_NUMBER:
+			lex.yyGet() // skip '
+			for c = lex.yyGet(); cs.isxdigit(c); c = lex.yyGet() {
+			}
+
+			length = lex.ptr - lex.tok_start
+
+			if (length&1) == 0 || c != '\'' {
+				return ABORT_SYM
+			}
+
+			lex.yyGet() //
+			return HEX_NUM
+
+		case MY_LEX_BIN_NUMBER:
+			lex.yyGet()
+			for c = lex.yyGet(); c == '0' || c == '1'; c = lex.yyGet() {
+			}
+
+			length = lex.ptr - lex.tok_start
+			if c != '\'' {
+				return ABORT_SYM
+			}
+
+			lex.yyGet()
+
+			return BIN_NUM
+
+		case MY_LEX_CMP_OP:
+			if state_map[lex.yyPeek()] == MY_LEX_CMP_OP || state_map[lex.yyPeek()] == MY_LEX_LONG_CMP_OP {
+				lex.yySkip()
+			}
+
+			if tokval, ok := findKeywords(lex.buf[lex.tok_start:lex.ptr], false); ok {
+				lex.next_state = MY_LEX_START
+				return tokval
+			}
+			state = MY_LEX_CHAR
+
+		case MY_LEX_LONG_CMP_OP:
+			if state_map[lex.yyPeek()] == MY_LEX_CMP_OP || state_map[lex.yyPeek()] == MY_LEX_LONG_CMP_OP {
+				lex.yySkip()
+				if state_map[lex.yyPeek()] == MY_LEX_CMP_OP {
+					lex.yySkip()
+				}
+			}
+
+			if tokval, ok := findKeywords(lex.buf[lex.tok_start:lex.ptr], false); ok {
+				lex.next_state = MY_LEX_START
+				return tokval
+			}
+			state = MY_LEX_CHAR
+
+		case MY_LEX_BOOL:
+			if c != lex.yyPeek() {
+				state = MY_LEX_CHAR
+			} else {
+				lex.yySkip()
+				tokval, _ := findKeywords(lex.buf[lex.tok_start:lex.tok_start+2], false)
+				lex.next_state = MY_LEX_START
+				return tokval
+			}
+
+		case MY_LEX_STRING_OR_DELIMITER:
+			if lex.sqlMode.MODE_ANSI_QUOTES {
+				state = MY_LEX_USER_VARIABLE_DELIMITER
+				break
+			}
+			fallthrough
+		case MY_LEX_STRING:
+			// TODO
+			return TEXT_STRING
+		case MY_LEX_COMMENT:
+			c = lex.yyGet()
+			n := lex.yyPeek()
+			for c != '\n' && !(c == '\r' && n != '\n') {
+				c = lex.yyGet()
+				n = lex.yyPeek()
+			}
+
+			lex.yyUnget() // Safety against eof
+			state = MY_LEX_START
+		case MY_LEX_LONG_COMMENT:
+			if lex.yyPeek() != '*' {
+				state = MY_LEX_CHAR
+				break
+			}
+
+			lex.yySkip() // skip '*'
+			if lex.yyPeek() == '!' {
+				var version uint32 = MYSQL_VERSION_ID
+				lex.yySkip()
+				state = MY_LEX_START
+				if cs.isdigit(lex.yyPeek()) {
+					// TODO version = atoi
+				}
+
+				if version <= MYSQL_VERSION_ID {
+					lex.in_comment = 1
+					break
+				}
+			}
+
+			for lex.ptr != uint(len(lex.buf)) {
+				if c = lex.yyGet(); c != '*' || lex.yyPeek() != '/' {
+					continue
+				}
+			} //
+
+			if lex.ptr != uint(len(lex.buf)) {
+				lex.yySkip()
+			}
+
+			state = MY_LEX_START
+
+		case MY_LEX_END_LONG_COMMENT:
+			if lex.in_comment != 0 && lex.yyPeek() == '/' {
+				lex.yySkip()
+				lex.in_comment = 0
+				state = MY_LEX_START
+			} else {
+				state = MY_LEX_CHAR
+			}
+		case MY_LEX_SET_VAR:
+			if lex.yyPeek() != '=' {
+				state = MY_LEX_CHAR
+			} else {
+				lex.yySkip()
+				return SET_VAR
+			}
+
+		case MY_LEX_SEMICOLON:
+			if lex.yyPeek() != 0 {
+				state = MY_LEX_CHAR
+				break
+			}
+			fallthrough
+		case MY_LEX_EOL:
+			if lex.ptr >= uint(len(lex.buf)) {
+				lex.next_state = MY_LEX_END
+				return END_OF_INPUT
+			}
+
+			state = MY_LEX_CHAR
+		case MY_LEX_END:
+			lex.next_state = MY_LEX_END
+			return 0
+		case MY_LEX_REAL_OR_POINT:
+			if cs.isdigit(lex.yyPeek()) {
+				state = MY_LEX_REAL
+			} else {
+				state = MY_LEX_IDENT_SEP
+				lex.yyUnget()
+			}
+		case MY_LEX_USER_END: // end '@' of user@hostname
+			switch state_map[lex.yyPeek()] {
+			case MY_LEX_STRING, MY_LEX_USER_VARIABLE_DELIMITER, MY_LEX_STRING_OR_DELIMITER:
+			case MY_LEX_USER_END:
+				lex.next_state = MY_LEX_SYSTEM_VAR
+			default:
+				lex.next_state = MY_LEX_HOSTNAME
+			}
+
+			return int('@')
+
+		case MY_LEX_HOSTNAME:
+			for c = lex.yyGet(); cs.isalnum(c) || c == '.' || c == '_' || c == '$'; c = lex.yyGet() {
+			}
+
+			return LEX_HOSTNAME
+		case MY_LEX_SYSTEM_VAR:
+			lex.yySkip()
+			lex.next_state = func() uint {
+				if state_map[lex.yyPeek()] == MY_LEX_USER_VARIABLE_DELIMITER {
+					return MY_LEX_OPERATOR_OR_IDENT
+				} else {
+					return MY_LEX_IDENT_OR_KEYWORD
+				}
+			}()
+
+			return int('@')
+		case MY_LEX_IDENT_OR_KEYWORD:
+			result_state = 0
+			c = lex.yyGet()
+			for ; ident_map[c] != 0; result_state |= int(c) {
+				c = lex.yyGet()
+			}
+
+			if result_state&0x80 != 0 {
+				result_state = IDENT_QUOTED
+			} else {
+				result_state = IDENT
+			}
+
+			if c == '.' {
+				lex.next_state = MY_LEX_IDENT_SEP
+			}
+
+			length = lex.ptr - lex.tok_start - 1
+			if length == 0 {
+				return ABORT_SYM
+			}
+
+			if tokval, ok := findKeywords(lex.buf[lex.tok_start:lex.ptr-1], false); ok {
+				lex.yyUnget()
+				return tokval
+			}
+
+			return result_state
 		}
-
 	}
+
+	return 0
 }
 
 // return current char
@@ -221,44 +563,49 @@ func (lex *MySQLLexer) yyGet() (b byte) {
 
 func (lex *MySQLLexer) yyUnget() {
 	lex.ptr -= 1
-	if lex.Peek() == '\n' || (lex.Peek() == '\r' && lex.Peek2() != '\n') {
+	if lex.yyPeek() == '\n' || (lex.yyPeek() == '\r' && lex.yyPeek2() != '\n') {
 		lex.yylineno -= 1
 	}
 }
 
 func (lex *MySQLLexer) yyPeek() (b byte) {
-	if lex.ptr < len(lex.buf) {
+	if lex.ptr < uint(len(lex.buf)) {
 		b = lex.buf[lex.ptr]
 	} else {
-		b.token.EOF
+		b = EOF
 	}
+	return
 }
 
 func (lex *MySQLLexer) yyPeek2() (b byte) {
-	if lex.ptr+1 < len(lex.buf) {
+	if lex.ptr+1 < uint(len(lex.buf)) {
 		b = lex.buf[lex.ptr+1]
 	} else {
-		b = token.EOF
+		b = EOF
 	}
+
+	return
 }
 
 func (lex *MySQLLexer) yySkip() (b byte) {
-	b = lex.Peek()
-	n := lex.Peek2()
+	b = lex.yyPeek()
+	n := lex.yyPeek2()
 	if b == '\n' || (b == '\r' && n != '\n') {
 		lex.yylineno += 1
 	}
 
 	lex.ptr += 1
+	return
 }
 
 // Error is called by go yacc if there's a parsing error.
-func (tkn *MySQLLexer) Error(err string) {
+func (lexer *MySQLLexer) Error(err string) {
 	buf := bytes.NewBuffer(make([]byte, 0, 32))
-	if tkn.errorToken != nil {
-		fmt.Fprintf(buf, "%s at position %v near %s", err, tkn.Position, tkn.errorToken)
+	if lexer.errorToken != nil {
+		fmt.Fprintf(buf, "%s at position %v near %s", err, lexer.ptr, lexer.errorToken)
 	} else {
-		fmt.Fprintf(buf, "%s at position %v", err, tkn.Position)
+		fmt.Fprintf(buf, "%s at position %v", err, lexer.ptr)
 	}
-	tkn.LastError = buf.String()
+
+	lexer.LastError = buf.String()
 }

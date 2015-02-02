@@ -1,4 +1,4 @@
-package token
+package lexer
 
 var Functions map[string]int = map[string]int{
 	"ADDDATE":      ADDDATE_SYM,
