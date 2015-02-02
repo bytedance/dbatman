@@ -1,4 +1,4 @@
-package lexer
+package charset
 
 import (
 	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/state"
@@ -21,26 +21,26 @@ type (
 )
 
 func init() {
-	validCharsets := make(map[string]*CharsetInfo)
-	validCharsets["utf8_general_cli"] = CSUtf8GeneralCli
+	ValidCharsets = make(map[string]*CharsetInfo)
+	ValidCharsets["utf8_general_cli"] = CSUtf8GeneralCli
 
-	for _, v := range validCharsets {
+	for _, v := range ValidCharsets {
 		initStateMaps(v)
 	}
 }
 
-var validCharsets map[string]*CharsetInfo
+var ValidCharsets map[string]*CharsetInfo
 
 func initStateMaps(cs *CharsetInfo) {
 
 	var state_map [256]uint
 
 	for i := 0; i < 256; i++ {
-		if cs.isalpha(byte(i)) == true {
+		if cs.IsAlpha(byte(i)) == true {
 			state_map[i] = (MY_LEX_IDENT)
-		} else if cs.isdigit(byte(i)) {
+		} else if cs.IsDigit(byte(i)) {
 			state_map[i] = MY_LEX_NUMBER_IDENT
-		} else if cs.isspace(byte(i)) {
+		} else if cs.IsSpace(byte(i)) {
 			state_map[i] = MY_LEX_SKIP
 		} else {
 			state_map[i] = MY_LEX_CHAR
@@ -88,14 +88,14 @@ func initStateMaps(cs *CharsetInfo) {
 	cs.StateMap = state_map[:]
 }
 
-func (cs *CharsetInfo) isalpha(c byte) bool {
+func (cs *CharsetInfo) IsAlpha(c byte) bool {
 	if cs.CType[c+1]&(_MY_U|_MY_L) == 0 {
 		return false
 	}
 	return true
 }
 
-func (cs *CharsetInfo) isdigit(c byte) bool {
+func (cs *CharsetInfo) IsDigit(c byte) bool {
 	if cs.CType[c+1]&_MY_NMR == 0 {
 		return false
 	}
@@ -103,7 +103,7 @@ func (cs *CharsetInfo) isdigit(c byte) bool {
 	return true
 }
 
-func (cs *CharsetInfo) isspace(c byte) bool {
+func (cs *CharsetInfo) IsSpace(c byte) bool {
 	if cs.CType[c+1]&_MY_SPC == 0 {
 		return false
 	}
@@ -111,7 +111,7 @@ func (cs *CharsetInfo) isspace(c byte) bool {
 	return true
 }
 
-func (cs *CharsetInfo) iscntrl(c byte) bool {
+func (cs *CharsetInfo) IsCntrl(c byte) bool {
 	if cs.CType[c+1]&_MY_CTR == 0 {
 		return false
 	}
@@ -119,14 +119,14 @@ func (cs *CharsetInfo) iscntrl(c byte) bool {
 	return true
 }
 
-func (cs *CharsetInfo) isxdigit(c byte) bool {
+func (cs *CharsetInfo) IsXdigit(c byte) bool {
 	if cs.CType[c+1]&_MY_X == 0 {
 		return false
 	}
 	return true
 }
 
-func (cs *CharsetInfo) isalnum(c byte) bool {
+func (cs *CharsetInfo) IsAlnum(c byte) bool {
 	if cs.CType[c+1]&(_MY_U|_MY_L|_MY_NMR) == 0 {
 		return false
 	}

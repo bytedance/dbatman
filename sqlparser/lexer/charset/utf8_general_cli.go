@@ -1,4 +1,4 @@
-package lexer
+package charset
 
 var CSUtf8GeneralCli *CharsetInfo = &CharsetInfo{
 	33,

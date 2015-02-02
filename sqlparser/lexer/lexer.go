@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/charset"
 	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/state"
 )
 
@@ -113,8 +114,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 			fallthrough
 		case MY_LEX_CHAR, MY_LEX_SKIP:
-			if c == '-' && lex.yyPeek() == '-' && (cs.isspace(lex.yyPeek2()) ||
-				cs.iscntrl(lex.yyPeek2())) {
+			if c == '-' && lex.yyPeek() == '-' && (cs.IsSpace(lex.yyPeek2()) ||
+				cs.IsCntrl(lex.yyPeek2())) {
 				state = MY_LEX_COMMENT
 				break
 			}
@@ -187,7 +188,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 			// match _charsername
 			if idc[0] == '_' {
-				if _, ok := validCharsets[string(idc)]; ok {
+				if _, ok := ValidCharsets[string(idc)]; ok {
 					return UNDERSCORE_CHARSET
 				}
 			}
@@ -205,7 +206,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			return int(c)
 
 		case MY_LEX_NUMBER_IDENT: // number or ident which num-start
-			for c = lex.yyGet(); cs.isdigit(c); c = lex.yyGet() {
+			for c = lex.yyGet(); cs.IsDigit(c); c = lex.yyGet() {
 			}
 
 			if ident_map[c] == 0 {
@@ -215,18 +216,18 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			if c == 'e' || c == 'E' {
-				if cs.isdigit(lex.yyPeek()) { // Allow 1E10
-					if cs.isdigit(lex.yyPeek()) { // Number must have digit after sign
+				if cs.IsDigit(lex.yyPeek()) { // Allow 1E10
+					if cs.IsDigit(lex.yyPeek()) { // Number must have digit after sign
 						lex.yySkip()
-						for tmpc := lex.yyGet(); cs.isdigit(tmpc); tmpc = lex.yyGet() {
+						for tmpc := lex.yyGet(); cs.IsDigit(tmpc); tmpc = lex.yyGet() {
 						} // until non-numberic char
 
 						return FLOAT_NUM
 					}
 				} else if c = lex.yyGet(); c == '+' || c == '-' { // Allow 1E+10
-					if cs.isdigit(lex.yyPeek()) { // Number must have digit after sign
+					if cs.IsDigit(lex.yyPeek()) { // Number must have digit after sign
 						lex.yySkip()
-						for tmpc := lex.yyGet(); cs.isdigit(tmpc); tmpc = lex.yyGet() {
+						for tmpc := lex.yyGet(); cs.IsDigit(tmpc); tmpc = lex.yyGet() {
 						} // until non-numberic char
 
 						return FLOAT_NUM
@@ -236,7 +237,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				}
 			} else if c == 'x' && (lex.ptr-lex.tok_start) == 2 && lex.buf[lex.tok_start] == '0' {
 				// 0xdddd number
-				for c = lex.yyGet(); cs.isxdigit(c); c = lex.yyGet() {
+				for c = lex.yyGet(); cs.IsXdigit(c); c = lex.yyGet() {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
@@ -246,7 +247,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				lex.yyUnget()
 			} else if c == 'b' && lex.ptr-lex.tok_start == 2 && lex.buf[lex.tok_start] == '0' {
 				// binary number 0bxxxx
-				for c = lex.yyGet(); cs.isxdigit(c); c = lex.yyGet() {
+				for c = lex.yyGet(); cs.IsXdigit(c); c = lex.yyGet() {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
@@ -314,7 +315,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 			fallthrough
 		case MY_LEX_REAL:
-			for c = lex.yyGet(); cs.isdigit(c); c = lex.yyGet() {
+			for c = lex.yyGet(); cs.IsDigit(c); c = lex.yyGet() {
 			}
 
 			if c == 'e' || c == 'E' {
@@ -323,12 +324,12 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 					c = lex.yyGet() // skip sign
 				}
 
-				if !cs.isdigit(c) {
+				if !cs.IsDigit(c) {
 					state = MY_LEX_CHAR
 					break
 				}
 
-				for tmpc := lex.yyGet(); cs.isdigit(tmpc); tmpc = lex.yyGet() {
+				for tmpc := lex.yyGet(); cs.IsDigit(tmpc); tmpc = lex.yyGet() {
 				}
 
 				return FLOAT_NUM
@@ -337,7 +338,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			return DECIMAL_NUM
 		case MY_LEX_HEX_NUMBER:
 			lex.yyGet() // skip '
-			for c = lex.yyGet(); cs.isxdigit(c); c = lex.yyGet() {
+			for c = lex.yyGet(); cs.IsXdigit(c); c = lex.yyGet() {
 			}
 
 			length = lex.ptr - lex.tok_start
@@ -428,7 +429,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				var version uint32 = MYSQL_VERSION_ID
 				lex.yySkip()
 				state = MY_LEX_START
-				if cs.isdigit(lex.yyPeek()) {
+				if cs.IsDigit(lex.yyPeek()) {
 					// TODO version = atoi
 				}
 
@@ -483,7 +484,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			lex.next_state = MY_LEX_END
 			return 0
 		case MY_LEX_REAL_OR_POINT:
-			if cs.isdigit(lex.yyPeek()) {
+			if cs.IsDigit(lex.yyPeek()) {
 				state = MY_LEX_REAL
 			} else {
 				state = MY_LEX_IDENT_SEP
@@ -501,7 +502,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			return int('@')
 
 		case MY_LEX_HOSTNAME:
-			for c = lex.yyGet(); cs.isalnum(c) || c == '.' || c == '_' || c == '$'; c = lex.yyGet() {
+			for c = lex.yyGet(); cs.IsAlnum(c) || c == '.' || c == '_' || c == '$'; c = lex.yyGet() {
 			}
 
 			return LEX_HOSTNAME
