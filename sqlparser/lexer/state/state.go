@@ -1,5 +1,7 @@
 package state
 
+import "fmt"
+
 const (
 	MY_LEX_START = iota
 	MY_LEX_CHAR
@@ -36,3 +38,49 @@ const (
 	MY_LEX_IDENT_OR_NCHAR
 	MY_LEX_STRING_OR_DELIMITER
 )
+
+var statusMap map[uint]string = map[uint]string{
+
+	MY_LEX_START:                   "MY_LEX_START",
+	MY_LEX_CHAR:                    "MY_LEX_CHAR",
+	MY_LEX_IDENT:                   "MY_LEX_IDENT",
+	MY_LEX_IDENT_SEP:               "MY_LEX_IDENT_SEP",
+	MY_LEX_IDENT_START:             "MY_LEX_IDENT_START",
+	MY_LEX_REAL:                    "MY_LEX_REAL",
+	MY_LEX_HEX_NUMBER:              "MY_LEX_HEX_NUMBER",
+	MY_LEX_BIN_NUMBER:              "MY_LEX_BIN_NUMBER",
+	MY_LEX_CMP_OP:                  "MY_LEX_CMP_OP",
+	MY_LEX_LONG_CMP_OP:             "MY_LEX_LONG_CMP_OP",
+	MY_LEX_STRING:                  "MY_LEX_STRING",
+	MY_LEX_COMMENT:                 "MY_LEX_COMMENT",
+	MY_LEX_END:                     "MY_LEX_END",
+	MY_LEX_OPERATOR_OR_IDENT:       "MY_LEX_OPERATOR_OR_IDENT",
+	MY_LEX_NUMBER_IDENT:            "MY_LEX_NUMBER_IDENT",
+	MY_LEX_INT_OR_REAL:             "MY_LEX_INT_OR_REAL",
+	MY_LEX_REAL_OR_POINT:           "MY_LEX_REAL_OR_POINT",
+	MY_LEX_BOOL:                    "MY_LEX_BOOL",
+	MY_LEX_EOL:                     "MY_LEX_EOL",
+	MY_LEX_ESCAPE:                  "MY_LEX_ESCAPE",
+	MY_LEX_LONG_COMMENT:            "MY_LEX_LONG_COMMENT",
+	MY_LEX_END_LONG_COMMENT:        "MY_LEX_END_LONG_COMMENT",
+	MY_LEX_SEMICOLON:               "MY_LEX_SEMICOLON",
+	MY_LEX_SET_VAR:                 "MY_LEX_SET_VAR",
+	MY_LEX_USER_END:                "MY_LEX_USER_END",
+	MY_LEX_HOSTNAME:                "MY_LEX_HOSTNAME",
+	MY_LEX_SKIP:                    "MY_LEX_SKIP",
+	MY_LEX_USER_VARIABLE_DELIMITER: "MY_LEX_USER_VARIABLE_DELIMITER",
+	MY_LEX_SYSTEM_VAR:              "MY_LEX_SYSTEM_VAR",
+	MY_LEX_IDENT_OR_KEYWORD:        "MY_LEX_IDENT_OR_KEYWORD",
+	MY_LEX_IDENT_OR_HEX:            "MY_LEX_IDENT_OR_HEX",
+	MY_LEX_IDENT_OR_BIN:            "MY_LEX_IDENT_OR_BIN",
+	MY_LEX_IDENT_OR_NCHAR:          "MY_LEX_IDENT_OR_NCHAR",
+	MY_LEX_STRING_OR_DELIMITER:     "MY_LEX_STRING_OR_DELIMITER",
+}
+
+func GetLexStatus(which uint) string {
+	if v, ok := statusMap[which]; ok {
+		return v
+	}
+
+	return fmt.Sprint("Unknow Status[%d]", which)
+}

@@ -15,21 +15,25 @@ type (
 
 		CType []byte
 
-		StateMap []int
-		IdentMap []int
+		StateMap []uint
+		IdentMap []uint
 	}
 )
 
 func init() {
 	validCharsets := make(map[string]*CharsetInfo)
-	validCharsets["utf8_general_cli"] = &CSUtf8GeneralCli
+	validCharsets["utf8_general_cli"] = CSUtf8GeneralCli
+
+	for _, v := range validCharsets {
+		initStateMaps(v)
+	}
 }
 
 var validCharsets map[string]*CharsetInfo
 
 func initStateMaps(cs *CharsetInfo) {
 
-	var state_map [256]int
+	var state_map [256]uint
 
 	for i := 0; i < 256; i++ {
 		if cs.isalpha(byte(i)) == true {
@@ -37,7 +41,7 @@ func initStateMaps(cs *CharsetInfo) {
 		} else if cs.isdigit(byte(i)) {
 			state_map[i] = MY_LEX_NUMBER_IDENT
 		} else if cs.isspace(byte(i)) {
-			state_map[i] = MY_LEX_IDENT
+			state_map[i] = MY_LEX_SKIP
 		} else {
 			state_map[i] = MY_LEX_CHAR
 		}
@@ -63,9 +67,9 @@ func initStateMaps(cs *CharsetInfo) {
 	state_map['`'] = MY_LEX_USER_VARIABLE_DELIMITER
 	state_map['"'] = MY_LEX_STRING_OR_DELIMITER
 
-	var ident_map [256]int
+	var ident_map [256]uint
 	for i := 0; i < 256; i++ {
-		ident_map[i] = func() int {
+		ident_map[i] = func() uint {
 			if state_map[i] == MY_LEX_IDENT || state_map[i] == MY_LEX_NUMBER_IDENT {
 				return 1
 			}
@@ -92,7 +96,7 @@ func (cs *CharsetInfo) isalpha(c byte) bool {
 }
 
 func (cs *CharsetInfo) isdigit(c byte) bool {
-	if cs.CType[c+1]&_MY_U == 0 {
+	if cs.CType[c+1]&_MY_NMR == 0 {
 		return false
 	}
 

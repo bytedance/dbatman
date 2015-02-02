@@ -37,7 +37,6 @@ type MySQLLexer struct {
 	tok_start_prev uint
 	tok_end_prev   uint
 
-	state      uint // current state
 	next_state uint // next should be state
 
 	in_comment uint
@@ -66,10 +65,10 @@ type SQLMode struct {
 // sql string.
 func NewMySQLLexer(sql string) *MySQLLexer {
 	return &MySQLLexer{
-		reader:  bufio.NewReader(strings.NewReader(sql)),
-		buf:     []byte(sql),
-		state:   MY_LEX_START,
-		charset: &CSUtf8GeneralCli,
+		reader:     bufio.NewReader(strings.NewReader(sql)),
+		buf:        []byte(sql),
+		next_state: MY_LEX_START,
+		charset:    CSUtf8GeneralCli,
 	}
 }
 
@@ -79,6 +78,9 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 	var result_state int
 	var length uint
+	var state uint
+	var c byte
+
 	cs := lex.charset
 	state_map := cs.StateMap
 	ident_map := cs.IdentMap
@@ -89,13 +91,14 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 	lex.tok_start = lex.ptr
 	lex.tok_end = lex.ptr
 
-	lex.state = lex.next_state
+	state = lex.next_state
 	lex.next_state = MY_LEX_OPERATOR_OR_IDENT
 
-	var c byte
-	var state int
-
+	DEBUG("buf:[" + string(lex.buf) + "]")
+	DEBUG("\ndbg enter:\n")
+	defer DEBUG("dbg leave\n")
 	for {
+		DEBUG("\t" + GetLexStatus(state) + "\n")
 		switch state {
 		case MY_LEX_OPERATOR_OR_IDENT, MY_LEX_START:
 			for c = lex.yyGet(); state_map[c] == MY_LEX_SKIP; c = lex.yyGet() {
@@ -103,7 +106,6 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 			lex.tok_start = lex.ptr - 1
 			state = state_map[c]
-
 		case MY_LEX_ESCAPE:
 			if lex.yyGet() == 'N' {
 				// Allow \N as shortcut for NULL
