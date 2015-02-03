@@ -102,13 +102,13 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 		DEBUG("\t" + GetLexStatus(state) + "\n")
 		switch state {
 		case MY_LEX_OPERATOR_OR_IDENT, MY_LEX_START:
-			for c = lex.yyGet(); state_map[c] == MY_LEX_SKIP; c = lex.yyGet() {
+			for c = lex.yyNext(); state_map[c] == MY_LEX_SKIP; c = lex.yyNext() {
 			}
 
 			lex.tok_start = lex.ptr - 1
 			state = state_map[c]
 		case MY_LEX_ESCAPE:
-			if lex.yyGet() == 'N' {
+			if lex.yyNext() == 'N' {
 				// Allow \N as shortcut for NULL
 				return NULL_SYM
 			}
@@ -121,7 +121,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			lex.ptr = lex.tok_start
-			c = lex.yyGet()
+			c = lex.yyNext()
 			if c != ')' {
 				lex.next_state = MY_LEX_START
 			}
@@ -157,9 +157,9 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 		case MY_LEX_IDENT:
 			var start uint
 
-			c = lex.yyGet()
+			c = lex.yyNext()
 			for result_state = int(c); ident_map[int(c)] != 0; result_state |= int(c) {
-				c = lex.yyGet()
+				c = lex.yyNext()
 			}
 
 			if result_state&0x80 != 0 {
@@ -171,14 +171,14 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			start = lex.ptr
 			idc := lex.buf[lex.tok_start:lex.ptr]
 			if lex.ignore_space {
-				for ; state_map[c] == MY_LEX_SKIP; c = lex.yyGet() {
+				for ; state_map[c] == MY_LEX_SKIP; c = lex.yyNext() {
 				}
 			}
 
 			if start == lex.ptr && c == '.' && ident_map[int(lex.yyPeek())] != 0 {
 				lex.next_state = MY_LEX_IDENT_SEP
 			} else {
-				lex.yyUnget()
+				lex.yyBack()
 				if tokval, ok := findKeywords(idc, c == '('); ok {
 					lex.next_state = MY_LEX_START
 					return tokval
@@ -197,7 +197,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 		case MY_LEX_IDENT_SEP: // Found ident before
 			// And Now '.'
-			c = lex.yyGet()
+			c = lex.yyNext()
 			lex.next_state = MY_LEX_IDENT_START
 			if ident_map[lex.yyPeek()] == 0 {
 				lex.next_state = MY_LEX_START
@@ -206,7 +206,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			return int(c)
 
 		case MY_LEX_NUMBER_IDENT: // number or ident which num-start
-			for c = lex.yyGet(); cs.IsDigit(c); c = lex.yyGet() {
+			for c = lex.yyNext(); cs.IsDigit(c); c = lex.yyNext() {
 			}
 
 			if ident_map[c] == 0 {
@@ -219,48 +219,48 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				if cs.IsDigit(lex.yyPeek()) { // Allow 1E10
 					if cs.IsDigit(lex.yyPeek()) { // Number must have digit after sign
 						lex.yySkip()
-						for tmpc := lex.yyGet(); cs.IsDigit(tmpc); tmpc = lex.yyGet() {
+						for tmpc := lex.yyNext(); cs.IsDigit(tmpc); tmpc = lex.yyNext() {
 						} // until non-numberic char
 
 						return FLOAT_NUM
 					}
-				} else if c = lex.yyGet(); c == '+' || c == '-' { // Allow 1E+10
+				} else if c = lex.yyNext(); c == '+' || c == '-' { // Allow 1E+10
 					if cs.IsDigit(lex.yyPeek()) { // Number must have digit after sign
 						lex.yySkip()
-						for tmpc := lex.yyGet(); cs.IsDigit(tmpc); tmpc = lex.yyGet() {
+						for tmpc := lex.yyNext(); cs.IsDigit(tmpc); tmpc = lex.yyNext() {
 						} // until non-numberic char
 
 						return FLOAT_NUM
 					}
 				} else {
-					lex.yyUnget()
+					lex.yyBack()
 				}
 			} else if c == 'x' && (lex.ptr-lex.tok_start) == 2 && lex.buf[lex.tok_start] == '0' {
 				// 0xdddd number
-				for c = lex.yyGet(); cs.IsXdigit(c); c = lex.yyGet() {
+				for c = lex.yyNext(); cs.IsXdigit(c); c = lex.yyNext() {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
 					return HEX_NUM
 				}
 
-				lex.yyUnget()
+				lex.yyBack()
 			} else if c == 'b' && lex.ptr-lex.tok_start == 2 && lex.buf[lex.tok_start] == '0' {
 				// binary number 0bxxxx
-				for c = lex.yyGet(); cs.IsXdigit(c); c = lex.yyGet() {
+				for c = lex.yyNext(); cs.IsXdigit(c); c = lex.yyNext() {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
 					return BIN_NUM
 				}
 
-				lex.yyUnget()
+				lex.yyBack()
 			}
 
 			fallthrough
 		case MY_LEX_IDENT_START:
 			result_state = 0
-			for c = lex.yyGet(); ident_map[int(c)] != 0; result_state |= int(c) {
+			for c = lex.yyNext(); ident_map[int(c)] != 0; result_state |= int(c) {
 			}
 
 			result_state = result_state & 0x80
@@ -281,7 +281,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			quote_char := c
 
 			lex.tok_start = lex.ptr
-			for c = lex.yyGet(); c != 0; c = lex.yyGet() {
+			for c = lex.yyNext(); c != 0; c = lex.yyNext() {
 				if c == NAMES_SEP_CHAR {
 					break
 				}
@@ -290,7 +290,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 					if lex.yyPeek() != quote_char {
 						break
 					}
-					c = lex.yyGet()
+					c = lex.yyNext()
 					double_quotes += 1
 				}
 			}
@@ -315,13 +315,13 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 			fallthrough
 		case MY_LEX_REAL:
-			for c = lex.yyGet(); cs.IsDigit(c); c = lex.yyGet() {
+			for c = lex.yyNext(); cs.IsDigit(c); c = lex.yyNext() {
 			}
 
 			if c == 'e' || c == 'E' {
-				c = lex.yyGet()
+				c = lex.yyNext()
 				if c == '-' || c == '+' {
-					c = lex.yyGet() // skip sign
+					c = lex.yyNext() // skip sign
 				}
 
 				if !cs.IsDigit(c) {
@@ -329,7 +329,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 					break
 				}
 
-				for tmpc := lex.yyGet(); cs.IsDigit(tmpc); tmpc = lex.yyGet() {
+				for tmpc := lex.yyNext(); cs.IsDigit(tmpc); tmpc = lex.yyNext() {
 				}
 
 				return FLOAT_NUM
@@ -337,8 +337,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 			return DECIMAL_NUM
 		case MY_LEX_HEX_NUMBER:
-			lex.yyGet() // skip '
-			for c = lex.yyGet(); cs.IsXdigit(c); c = lex.yyGet() {
+			lex.yyNext() // skip '
+			for c = lex.yyNext(); cs.IsXdigit(c); c = lex.yyNext() {
 			}
 
 			length = lex.ptr - lex.tok_start
@@ -347,12 +347,12 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				return ABORT_SYM
 			}
 
-			lex.yyGet() //
+			lex.yyNext() //
 			return HEX_NUM
 
 		case MY_LEX_BIN_NUMBER:
-			lex.yyGet()
-			for c = lex.yyGet(); c == '0' || c == '1'; c = lex.yyGet() {
+			lex.yyNext()
+			for c = lex.yyNext(); c == '0' || c == '1'; c = lex.yyNext() {
 			}
 
 			length = lex.ptr - lex.tok_start
@@ -360,7 +360,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				return ABORT_SYM
 			}
 
-			lex.yyGet()
+			lex.yyNext()
 
 			return BIN_NUM
 
@@ -406,17 +406,23 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 			fallthrough
 		case MY_LEX_STRING:
-			// TODO
-			return TEXT_STRING
+			b, err := lex.getQuotedText()
+			if err != nil {
+				lex.Error(err.Error())
+				return ABORT_SYM
+			} else {
+				lval.bytes = b
+				return TEXT_STRING
+			}
 		case MY_LEX_COMMENT:
-			c = lex.yyGet()
+			c = lex.yyNext()
 			n := lex.yyPeek()
 			for c != '\n' && !(c == '\r' && n != '\n') {
-				c = lex.yyGet()
+				c = lex.yyNext()
 				n = lex.yyPeek()
 			}
 
-			lex.yyUnget() // Safety against eof
+			lex.yyBack() // Safety against eof
 			state = MY_LEX_START
 		case MY_LEX_LONG_COMMENT:
 			if lex.yyPeek() != '*' {
@@ -440,7 +446,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			for lex.ptr != uint(len(lex.buf)) {
-				if c = lex.yyGet(); c != '*' || lex.yyPeek() != '/' {
+				if c = lex.yyNext(); c != '*' || lex.yyPeek() != '/' {
 					continue
 				}
 			} //
@@ -488,7 +494,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				state = MY_LEX_REAL
 			} else {
 				state = MY_LEX_IDENT_SEP
-				lex.yyUnget()
+				lex.yyBack()
 			}
 		case MY_LEX_USER_END: // end '@' of user@hostname
 			switch state_map[lex.yyPeek()] {
@@ -502,7 +508,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			return int('@')
 
 		case MY_LEX_HOSTNAME:
-			for c = lex.yyGet(); cs.IsAlnum(c) || c == '.' || c == '_' || c == '$'; c = lex.yyGet() {
+			for c = lex.yyNext(); cs.IsAlnum(c) || c == '.' || c == '_' || c == '$'; c = lex.yyNext() {
 			}
 
 			return LEX_HOSTNAME
@@ -519,9 +525,9 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			return int('@')
 		case MY_LEX_IDENT_OR_KEYWORD:
 			result_state = 0
-			c = lex.yyGet()
+			c = lex.yyNext()
 			for ; ident_map[c] != 0; result_state |= int(c) {
-				c = lex.yyGet()
+				c = lex.yyNext()
 			}
 
 			if result_state&0x80 != 0 {
@@ -540,7 +546,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			if tokval, ok := findKeywords(lex.buf[lex.tok_start:lex.ptr-1], false); ok {
-				lex.yyUnget()
+				lex.yyBack()
 				return tokval
 			}
 
@@ -552,7 +558,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 }
 
 // return current char
-func (lex *MySQLLexer) yyGet() (b byte) {
+func (lex *MySQLLexer) yyNext() (b byte) {
 
 	b = lex.yyPeek()
 	n := lex.yyPeek2()
@@ -564,7 +570,7 @@ func (lex *MySQLLexer) yyGet() (b byte) {
 	return
 }
 
-func (lex *MySQLLexer) yyUnget() {
+func (lex *MySQLLexer) yyBack() {
 	lex.ptr -= 1
 	if lex.yyPeek() == '\n' || (lex.yyPeek() == '\r' && lex.yyPeek2() != '\n') {
 		lex.yylineno -= 1
@@ -587,6 +593,11 @@ func (lex *MySQLLexer) yyPeek2() (b byte) {
 		b = EOF
 	}
 
+	return
+}
+
+func (lex *MySQLLexer) yyLookHead() (b byte) {
+	b = lex.buf[lex.ptr-1]
 	return
 }
 

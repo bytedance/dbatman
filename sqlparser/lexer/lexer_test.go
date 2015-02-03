@@ -12,7 +12,7 @@ func getLexer(str string) (lexer *MySQLLexer, lval *yySymType) {
 }
 
 func testMatchReturn(t *testing.T, str string, match int, dbg bool) {
-	setDebug(debug)
+	setDebug(dbg)
 	lexer, lval := getLexer(str)
 	ret := lexer.Lex(lval)
 	if ret != match {
