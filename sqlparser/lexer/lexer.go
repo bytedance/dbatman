@@ -29,7 +29,6 @@ type MySQLLexer struct {
 	buf []byte
 	ptr uint
 
-	yylineno uint
 	yytoklen uint
 
 	tok_start uint
@@ -95,8 +94,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 	state = lex.next_state
 	lex.next_state = MY_LEX_OPERATOR_OR_IDENT
 
-	DEBUG("buf:[" + string(lex.buf) + "]")
-	DEBUG("\ndbg enter:\n")
+	DEBUG("dbg buf:[" + string(lex.buf) + "]\ndbg enter:\n")
 	defer DEBUG("dbg leave\n")
 	for {
 		DEBUG("\t" + GetLexStatus(state) + "\n")
@@ -310,8 +308,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 		case MY_LEX_INT_OR_REAL:
 			if c != '.' {
-				// TODO
-				// return getNumberType()
+				return lex.getIntToken()
 			}
 			fallthrough
 		case MY_LEX_REAL:
@@ -560,21 +557,17 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 // return current char
 func (lex *MySQLLexer) yyNext() (b byte) {
 
-	b = lex.yyPeek()
-	n := lex.yyPeek2()
-	if b == '\n' || (b == '\r' && n != '\n') {
-		lex.yylineno += 1
+	if lex.ptr < uint(len(lex.buf)) {
+		b = lex.buf[lex.ptr]
+		lex.ptr += 1
+	} else {
+		b = EOF
 	}
-
-	lex.ptr += 1
 	return
 }
 
 func (lex *MySQLLexer) yyBack() {
 	lex.ptr -= 1
-	if lex.yyPeek() == '\n' || (lex.yyPeek() == '\r' && lex.yyPeek2() != '\n') {
-		lex.yylineno -= 1
-	}
 }
 
 func (lex *MySQLLexer) yyPeek() (b byte) {
@@ -601,14 +594,8 @@ func (lex *MySQLLexer) yyLookHead() (b byte) {
 	return
 }
 
-func (lex *MySQLLexer) yySkip() (b byte) {
-	b = lex.yyPeek()
-	n := lex.yyPeek2()
-	if b == '\n' || (b == '\r' && n != '\n') {
-		lex.yylineno += 1
-	}
-
-	lex.ptr += 1
+func (lex *MySQLLexer) yySkip() {
+	lex.yyNext()
 	return
 }
 

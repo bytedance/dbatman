@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -11,12 +12,20 @@ func getLexer(str string) (lexer *MySQLLexer, lval *yySymType) {
 	return
 }
 
+func tokenName(tok int) string {
+	if (tok-ABORT_SYM) < 0 || (tok-ABORT_SYM) > len(yyToknames) {
+		return fmt.Sprintf("Unknown Token:%d", tok)
+	}
+
+	return yyToknames[tok-ABORT_SYM]
+}
+
 func testMatchReturn(t *testing.T, str string, match int, dbg bool) {
 	setDebug(dbg)
 	lexer, lval := getLexer(str)
 	ret := lexer.Lex(lval)
 	if ret != match {
-		t.Fatalf("test failed! expect[%d] return[%d]", match, ret)
+		t.Fatalf("test failed! expect[%s] return[%s]", tokenName(match), tokenName(ret))
 	}
 }
 
@@ -37,10 +46,4 @@ func TestSingleComment(t *testing.T) {
 
 func TestSingleComment2(t *testing.T) {
 
-}
-
-func TestFloatNum(t *testing.T) {
-	testMatchReturn(t, " 10e-10", FLOAT_NUM, false)
-	testMatchReturn(t, " 10E+10", FLOAT_NUM, false)
-	testMatchReturn(t, "   10E10", FLOAT_NUM, false)
 }
