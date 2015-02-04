@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/charset"
+	"github.com/wangjild/go-mysql-proxy/sqlparser/lexer/charset"
 	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/state"
 )
 
@@ -41,7 +41,7 @@ type MySQLLexer struct {
 
 	in_comment uint
 
-	charset *CharsetInfo
+	cs *charset.CharsetInfo
 
 	stmt_prepare_mode bool
 	ignore_space      bool
@@ -68,7 +68,7 @@ func NewMySQLLexer(sql string) *MySQLLexer {
 		reader:     bufio.NewReader(strings.NewReader(sql)),
 		buf:        []byte(sql),
 		next_state: MY_LEX_START,
-		charset:    CSUtf8GeneralCli,
+		cs:         charset.CSUtf8GeneralCli,
 	}
 }
 
@@ -81,7 +81,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 	var state uint
 	var c byte
 
-	cs := lex.charset
+	cs := lex.cs
 	state_map := cs.StateMap
 	ident_map := cs.IdentMap
 
@@ -167,7 +167,14 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			start = lex.ptr
-			idc := lex.buf[lex.tok_start:lex.ptr]
+
+			var idc []byte
+			if lex.ptr == uint(len(lex.buf)) {
+				idc = lex.buf[lex.tok_start:lex.ptr]
+			} else {
+				idc = lex.buf[lex.tok_start : lex.ptr-1]
+			}
+
 			if lex.ignore_space {
 				for ; state_map[c] == MY_LEX_SKIP; c = lex.yyNext() {
 				}
@@ -186,7 +193,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 			// match _charsername
 			if idc[0] == '_' {
-				if _, ok := ValidCharsets[string(idc)]; ok {
+				if charset.IsValidCharsets(idc[1:]) {
 					return UNDERSCORE_CHARSET
 				}
 			}

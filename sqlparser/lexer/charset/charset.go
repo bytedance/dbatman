@@ -1,6 +1,7 @@
 package charset
 
 import (
+	"bytes"
 	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/state"
 )
 
@@ -30,6 +31,14 @@ func init() {
 }
 
 var ValidCharsets map[string]*CharsetInfo
+
+func IsValidCharsets(cs []byte) bool {
+	if _, ok := ValidCharsets[string(bytes.ToLower(cs))]; ok {
+		return true
+	}
+
+	return false
+}
 
 func initStateMaps(cs *CharsetInfo) {
 

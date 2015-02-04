@@ -19,6 +19,9 @@ func TestInt(t *testing.T) {
 	testMatchReturn(t, `9223372036854775808`, ULONGLONG_NUM, false)
 	testMatchReturn(t, `18446744073709551615`, ULONGLONG_NUM, false)
 	testMatchReturn(t, `18446744073709551616`, DECIMAL_NUM, false)
+}
+
+func TestNum(t *testing.T) {
 
 }
 
