@@ -61,3 +61,10 @@ func TestStringException(t *testing.T) {
 		t.Fatalf("parse text failed. return[%s]", yyToknames[r-ABORT_SYM])
 	}
 }
+
+func TestNChar(t *testing.T) {
+	testMatchReturn(t, `n'some text'`, NCHAR_STRING, false)
+	testMatchReturn(t, `N'some text'`, NCHAR_STRING, false)
+
+	testMatchReturn(t, `N'`, ABORT_SYM, false)
+}

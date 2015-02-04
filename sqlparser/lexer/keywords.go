@@ -1,21 +1,22 @@
 package lexer
 
-var Operators map[string]int = map[string]int{
-	"&&":  AND_AND_SYM,
-	"||":  OR_OR_SYM,
-	"<":   LT,
-	"<=":  LE,
-	"<>":  NE,
-	"!=":  NE,
-	"=":   EQ,
-	">":   GT_SYM,
-	">=":  GE,
-	"<<":  SHIFT_LEFT,
-	">>":  SHIFT_RIGHT,
-	"<=>": EQUAL_SYM,
-}
+import (
+	"bytes"
+)
 
 var Symbols map[string]int = map[string]int{
+	"&&":                            AND_AND_SYM,
+	"||":                            OR_OR_SYM,
+	"<":                             LT,
+	"<=":                            LE,
+	"<>":                            NE,
+	"!=":                            NE,
+	"=":                             EQ,
+	">":                             GT_SYM,
+	">=":                            GE,
+	"<<":                            SHIFT_LEFT,
+	">>":                            SHIFT_RIGHT,
+	"<=>":                           EQUAL_SYM,
 	"ACCESSIBLE":                    ACCESSIBLE_SYM,
 	"ACTION":                        ACTION,
 	"ADD":                           ADD,
@@ -608,11 +609,56 @@ var Symbols map[string]int = map[string]int{
 	"ZEROFILL":                      ZEROFILL,
 }
 
+var Functions map[string]int = map[string]int{
+	"ADDDATE":      ADDDATE_SYM,
+	"BIT_AND":      BIT_AND,
+	"BIT_OR":       BIT_OR,
+	"BIT_XOR":      BIT_XOR,
+	"CAST":         CAST_SYM,
+	"COUNT":        COUNT_SYM,
+	"CURDATE":      CURDATE,
+	"CURTIME":      CURTIME,
+	"DATE_ADD":     DATE_ADD_INTERVAL,
+	"DATE_SUB":     DATE_SUB_INTERVAL,
+	"EXTRACT":      EXTRACT_SYM,
+	"GROUP_CONCAT": GROUP_CONCAT_SYM,
+	"MAX":          MAX_SYM,
+	"MID":          SUBSTRING, /* unireg function */
+	"MIN":          MIN_SYM,
+	"NOW":          NOW_SYM,
+	"POSITION":     POSITION_SYM,
+	"SESSION_USER": USER,
+	"STD":          STD_SYM,
+	"STDDEV":       STD_SYM,
+	"STDDEV_POP":   STD_SYM,
+	"STDDEV_SAMP":  STDDEV_SAMP_SYM,
+	"SUBDATE":      SUBDATE_SYM,
+	"SUBSTR":       SUBSTRING,
+	"SUBSTRING":    SUBSTRING,
+	"SUM":          SUM_SYM,
+	"SYSDATE":      SYSDATE,
+	"SYSTEM_USER":  USER,
+	"TRIM":         TRIM,
+	"VARIANCE":     VARIANCE_SYM,
+	"VAR_POP":      VARIANCE_SYM,
+	"VAR_SAMP":     VAR_SAMP_SYM,
+}
+
 const (
 	TK_NAME_LENGTH = 24
 	EOF            = 0
 )
 
-func findKeywords(str []byte, isfun bool) (int, bool) {
-	return 0, true
+func findKeywords(b []byte, isfunc bool) (int, bool) {
+	var mp map[string]int
+	mp = Symbols
+	if isfunc {
+		mp = Functions
+	}
+
+	if v, ok := mp[string(bytes.ToUpper(b))]; ok {
+		return v, true
+	}
+
+	return 0, false
 }
