@@ -270,35 +270,24 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			return result_state
 
 		case MY_LEX_USER_VARIABLE_DELIMITER:
-			double_quotes := 0
 			quote_char := c
 
-			lex.tok_start = lex.ptr
-			for c = lex.yyNext(); c != 0; c = lex.yyNext() {
+			for c = lex.yyNext(); c != EOF; c = lex.yyNext() {
 				if c == NAMES_SEP_CHAR {
 					break
 				}
 
-				if c == quote_char {
-					if lex.yyPeek() != quote_char {
-						break
-					}
-					c = lex.yyNext()
-					double_quotes += 1
+				if c == quote_char && lex.yyPeek() != quote_char {
+					break
 				}
 			}
 
-			if double_quotes != 0 {
-
-			} else {
-
-			}
-
-			if c == quote_char {
-				lex.yySkip()
+			if c == EOF {
+				return ABORT_SYM
 			}
 
 			lex.next_state = MY_LEX_START
+			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
 			return IDENT_QUOTED
 
 		case MY_LEX_INT_OR_REAL:
@@ -512,7 +501,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 		case MY_LEX_IDENT_OR_KEYWORD:
 			result_state = 0
 			c = lex.yyNext()
-			for ; ident_map[c] != 0; result_state |= int(c) {
+			for ident_map[c] != 0 {
+				result_state |= int(c)
 				c = lex.yyNext()
 			}
 
@@ -531,11 +521,13 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				return ABORT_SYM
 			}
 
-			if tokval, ok := findKeywords(lex.buf[lex.tok_start:lex.ptr-1], false); ok {
+			val := lex.buf[lex.tok_start : lex.ptr-1]
+			if tokval, ok := findKeywords(val, false); ok {
 				lex.yyBack()
 				return tokval
 			}
 
+			lval.bytes = val
 			return result_state
 		}
 	}

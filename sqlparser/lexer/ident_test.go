@@ -21,4 +21,11 @@ func TestMultiIdentifier(t *testing.T) {
 	lexExpect(t, lex, lval, UPDATE_SYM)
 	lexExpect(t, lex, lval, DELETE_SYM)
 
+	lexExpect(t, lex, lval, IDENT_QUOTED)
+	lvalExpect(t, lval, "`SELECT`")
+
+	lexExpect(t, lex, lval, IDENT_QUOTED)
+	lvalExpect(t, lval, "`Update`")
+
+	lexExpect(t, lex, lval, END_OF_INPUT)
 }
