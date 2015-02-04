@@ -68,3 +68,34 @@ func TestNChar(t *testing.T) {
 
 	testMatchReturn(t, `N'`, ABORT_SYM, false)
 }
+
+func lexExpect(t *testing.T, lexer *MySQLLexer, lval *yySymType, expect int) {
+	if ret := lexer.Lex(lval); ret != expect {
+		t.Fatalf("expect[TEXT_STRING] return[%s]", tokenName(ret))
+	}
+}
+
+func lvalExpect(t *testing.T, lval *yySymType, expect string) {
+	if string(lval.bytes) != expect {
+		t.Fatalf("expect[%s] return[%s]", expect, string(lval.bytes))
+	}
+}
+
+func TestMultiString(t *testing.T) {
+	str := `"string1" 'string2'    'string3' n'string 4'    `
+	lex, lval := getLexer(str)
+
+	lexExpect(t, lex, lval, TEXT_STRING)
+	lvalExpect(t, lval, `"string1"`)
+
+	lexExpect(t, lex, lval, TEXT_STRING)
+	lvalExpect(t, lval, `'string2'`)
+
+	lexExpect(t, lex, lval, TEXT_STRING)
+	lvalExpect(t, lval, `'string3'`)
+
+	lexExpect(t, lex, lval, NCHAR_STRING)
+	lvalExpect(t, lval, `n'string 4'`)
+
+	lexExpect(t, lex, lval, END_OF_INPUT)
+}

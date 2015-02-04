@@ -53,3 +53,28 @@ func TestBin(t *testing.T) {
 	testMatchReturn(t, `b'0S01010111000'`, ABORT_SYM, false)
 	testMatchReturn(t, `b'12312351123`, ABORT_SYM, false)
 }
+
+func TestMultiNum(t *testing.T) {
+	str := `123     'string1' 18446744073709551616    1.20E-10 .312  x'4D7953514C' `
+	lex, lval := getLexer(str)
+
+	lexExpect(t, lex, lval, NUM)
+	lvalExpect(t, lval, `123`)
+
+	lexExpect(t, lex, lval, TEXT_STRING)
+	lvalExpect(t, lval, `'string1'`)
+
+	lexExpect(t, lex, lval, DECIMAL_NUM)
+	lvalExpect(t, lval, `18446744073709551616`)
+
+	lexExpect(t, lex, lval, FLOAT_NUM)
+	lvalExpect(t, lval, `1.20E-10`)
+
+	lexExpect(t, lex, lval, DECIMAL_NUM)
+	lvalExpect(t, lval, `.312`)
+
+	lexExpect(t, lex, lval, HEX_NUM)
+	lvalExpect(t, lval, `x'4D7953514C'`)
+
+	lexExpect(t, lex, lval, END_OF_INPUT)
+}

@@ -19,8 +19,10 @@ var (
 	UNSIGNED_LONGLONG []byte = []byte{'1', '8', '4', '4', '6', '7', '4', '4', '0', '7', '3', '7', '0', '9', '5', '5', '1', '6', '1', '5'}
 )
 
-func (lex *MySQLLexer) getIntToken() int {
+func (lex *MySQLLexer) scanInt(lval *yySymType, c *byte) int {
 	length := lex.ptr - lex.tok_start
+
+	lval.bytes = lex.buf[lex.tok_start : lex.ptr-1]
 
 	if length < LONG_LEN {
 		return NUM
@@ -100,4 +102,24 @@ func (lex *MySQLLexer) getIntToken() int {
 		return smaller
 	}
 	return bigger
+}
+
+func (lex *MySQLLexer) scanFloat(lval *yySymType, c *byte) (int, bool) {
+	cs := lex.cs
+
+	// try match (+|-)? digit+
+	if lex.yyPeek() == '+' || lex.yyPeek() == '-' {
+		lex.yySkip() // ignore this char
+	}
+
+	// at least we have 1 digit-char
+	if cs.IsDigit(lex.yyPeek()) {
+		for ; cs.IsDigit(lex.yyPeek()); lex.yySkip() {
+		}
+
+		lval.bytes = lex.buf[lex.tok_start:lex.ptr]
+		return FLOAT_NUM, true
+	}
+
+	return 0, false
 }

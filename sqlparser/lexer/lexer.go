@@ -97,7 +97,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 	DEBUG("dbg buf:[" + string(lex.buf) + "]\ndbg enter:\n")
 	defer DEBUG("dbg leave\n")
 	for {
-		DEBUG("\t" + GetLexStatus(state) + "\n")
+		DEBUG("\t" + GetLexStatus(state) + " current_buf[" + string(lex.buf[lex.ptr:]) + "]\n")
 		switch state {
 		case MY_LEX_OPERATOR_OR_IDENT, MY_LEX_START:
 			for c = lex.yyNext(); state_map[c] == MY_LEX_SKIP; c = lex.yyNext() {
@@ -145,13 +145,17 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 		case MY_LEX_IDENT_OR_HEX:
 			if lex.yyPeek() == '\'' {
 				state = MY_LEX_HEX_NUMBER
+				break
 			}
-
+			DEBUG("MY_LEX_IDENT_OR_BIN")
+			fallthrough
 		case MY_LEX_IDENT_OR_BIN:
 			if lex.yyPeek() == '\'' {
 				state = MY_LEX_BIN_NUMBER
+				break
 			}
-
+			DEBUG("MY_LEX_IDENT")
+			fallthrough
 		case MY_LEX_IDENT:
 			var start uint
 
@@ -221,24 +225,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			if c == 'e' || c == 'E' {
-				if cs.IsDigit(lex.yyPeek()) { // Allow 1E10
-					if cs.IsDigit(lex.yyPeek()) { // Number must have digit after sign
-						lex.yySkip()
-						for tmpc := lex.yyNext(); cs.IsDigit(tmpc); tmpc = lex.yyNext() {
-						} // until non-numberic char
-
-						return FLOAT_NUM
-					}
-				} else if c = lex.yyNext(); c == '+' || c == '-' { // Allow 1E+10
-					if cs.IsDigit(lex.yyPeek()) { // Number must have digit after sign
-						lex.yySkip()
-						for tmpc := lex.yyNext(); cs.IsDigit(tmpc); tmpc = lex.yyNext() {
-						} // until non-numberic char
-
-						return FLOAT_NUM
-					}
-				} else {
-					lex.yyBack()
+				if tok, ok := lex.scanFloat(lval, &c); ok {
+					return tok
 				}
 			} else if c == 'x' && (lex.ptr-lex.tok_start) == 2 && lex.buf[lex.tok_start] == '0' {
 				// 0xdddd number
@@ -315,33 +303,27 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 		case MY_LEX_INT_OR_REAL:
 			if c != '.' {
-				return lex.getIntToken()
+				return lex.scanInt(lval, &c)
 			}
+			DEBUG("\tMY_LEX_REAL\n")
 			fallthrough
 		case MY_LEX_REAL:
 			for c = lex.yyNext(); cs.IsDigit(c); c = lex.yyNext() {
 			}
 
 			if c == 'e' || c == 'E' {
-				c = lex.yyNext()
-				if c == '-' || c == '+' {
-					c = lex.yyNext() // skip sign
+				if tok, ok := lex.scanFloat(lval, &c); ok {
+					return tok
 				}
 
-				if !cs.IsDigit(c) {
-					state = MY_LEX_CHAR
-					break
-				}
-
-				for tmpc := lex.yyNext(); cs.IsDigit(tmpc); tmpc = lex.yyNext() {
-				}
-
-				return FLOAT_NUM
+				state = MY_LEX_CHAR
+				break
 			}
 
+			lval.bytes = lex.buf[lex.tok_start : lex.ptr-1]
 			return DECIMAL_NUM
 		case MY_LEX_HEX_NUMBER:
-			lex.yyNext() // skip '
+			lex.yySkip() // skip '
 			for c = lex.yyNext(); cs.IsXdigit(c); c = lex.yyNext() {
 			}
 
@@ -351,7 +333,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				return ABORT_SYM
 			}
 
-			lex.yyNext() //
+			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
 			return HEX_NUM
 
 		case MY_LEX_BIN_NUMBER:
