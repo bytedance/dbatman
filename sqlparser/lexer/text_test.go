@@ -8,7 +8,7 @@ func testTextParse(t *testing.T, str string, mode SQLMode) {
 	lexer, lval := getLexer(str)
 	lexer.sqlMode = mode
 	if r := lexer.Lex(lval); r != TEXT_STRING {
-		t.Fatalf("parse text failed. return[%s]", yyToknames[r-ABORT_SYM])
+		t.Fatalf("parse text failed. return[%s]", tokeName(r))
 	}
 
 	if string(lval.bytes) != str {

@@ -36,3 +36,7 @@ func TestBoolOp(t *testing.T) {
 
 	testMatchReturn(t, `:=`, SET_VAR, false)
 }
+
+func TestChar(t *testing.T) {
+	testMatchReturn(t, `& `, '&', false)
+}
