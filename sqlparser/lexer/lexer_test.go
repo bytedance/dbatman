@@ -20,13 +20,15 @@ func tokenName(tok int) string {
 	return yyToknames[tok-ABORT_SYM]
 }
 
-func testMatchReturn(t *testing.T, str string, match int, dbg bool) {
+func testMatchReturn(t *testing.T, str string, match int, dbg bool) (*MySQLLexer, *yySymType) {
 	setDebug(dbg)
 	lexer, lval := getLexer(str)
 	ret := lexer.Lex(lval)
 	if ret != match {
 		t.Fatalf("test failed! expect[%s] return[%s]", tokenName(match), tokenName(ret))
 	}
+
+	return lexer, lval
 }
 
 func TestNULLEscape(t *testing.T) {
@@ -45,5 +47,4 @@ func TestSingleComment(t *testing.T) {
 }
 
 func TestSingleComment2(t *testing.T) {
-
 }

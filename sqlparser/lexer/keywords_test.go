@@ -33,4 +33,6 @@ func TestBoolOp(t *testing.T) {
 	testMatchReturn(t, `<<`, SHIFT_LEFT, false)
 	testMatchReturn(t, `>>`, SHIFT_RIGHT, false)
 	testMatchReturn(t, `<=>`, EQUAL_SYM, false)
+
+	testMatchReturn(t, `:=`, SET_VAR, false)
 }

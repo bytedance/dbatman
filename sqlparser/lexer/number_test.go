@@ -22,7 +22,9 @@ func TestInt(t *testing.T) {
 }
 
 func TestNum(t *testing.T) {
-
+	testMatchReturn(t, `0x1234`, HEX_NUM, false)
+	testMatchReturn(t, `0xa4234`, HEX_NUM, false)
+	testMatchReturn(t, `0b0110`, BIN_NUM, false)
 }
 
 func TestFloatNum(t *testing.T) {
