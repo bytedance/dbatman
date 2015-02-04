@@ -1,5 +1,9 @@
 package lexer
 
+import (
+	"fmt"
+)
+
 const (
 	LONG_LEN              = 10
 	LONGLONG_LEN          = 19
@@ -83,13 +87,17 @@ func (lex *MySQLLexer) getIntToken() int {
 
 	idx := 0
 	for idx < len(cmp) && cmp[idx] == lex.buf[start] {
+		DEBUG(fmt.Sprintf("cmp:[%c] buf[%c]\n", cmp[idx], lex.buf[start]))
 		idx += 1
 		start += 1
 	}
 
-	if lex.buf[start-1] <= cmp[idx-1] {
+	if idx == len(cmp) {
 		return smaller
 	}
 
+	if lex.buf[start] <= cmp[idx] {
+		return smaller
+	}
 	return bigger
 }
