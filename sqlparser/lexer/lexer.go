@@ -74,7 +74,7 @@ func NewMySQLLexer(sql string) *MySQLLexer {
 
 // Lex returns the next token form the MySQLLexer.
 // This function is used by go yacc.
-func (lex *MySQLLexer) Lex(lval *yySymType) int {
+func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 
 	var result_state int
 	var length uint
@@ -95,7 +95,6 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 	lex.next_state = MY_LEX_OPERATOR_OR_IDENT
 
 	DEBUG("dbg buf:[" + string(lex.buf) + "]\ndbg enter:\n")
-	defer DEBUG("dbg leave\n")
 	for {
 		DEBUG("\t" + GetLexStatus(state) + " current_buf[" + string(lex.buf[lex.ptr:]) + "]\n")
 		switch state {
@@ -108,7 +107,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 		case MY_LEX_ESCAPE:
 			if lex.yyNext() == 'N' {
 				// Allow \N as shortcut for NULL
-				return NULL_SYM
+				retstate = NULL_SYM
+				goto TG_RET
 			}
 			fallthrough
 		case MY_LEX_CHAR, MY_LEX_SKIP:
@@ -127,10 +127,12 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			if c == ',' {
 				lex.tok_start = lex.ptr
 			} else if c == '?' && lex.stmt_prepare_mode && ident_map[lex.yyPeek()] != 0 {
-				return PARAM_MARKER
+				retstate = PARAM_MARKER
+				goto TG_RET
 			}
 
-			return int(c)
+			retstate = int(c)
+			goto TG_RET
 
 		case MY_LEX_IDENT_OR_NCHAR:
 			if lex.yyPeek() != '\'' {
@@ -138,10 +140,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				break
 			}
 
-			var ret int
-			ret, c = lex.scanNChar(lval)
-
-			return ret
+			retstate, c = lex.scanNChar(lval)
+			goto TG_RET
 		case MY_LEX_IDENT_OR_HEX:
 			if lex.yyPeek() == '\'' {
 				state = MY_LEX_HEX_NUMBER
@@ -188,9 +188,10 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				lex.next_state = MY_LEX_IDENT_SEP
 			} else {
 				lex.yyBack()
-				if tokval, ok := findKeywords(idc, c == '('); ok {
+				var ok bool
+				if retstate, ok = findKeywords(idc, c == '('); ok {
 					lex.next_state = MY_LEX_START
-					return tokval
+					goto TG_RET
 				}
 				lex.yySkip()
 			}
@@ -198,11 +199,13 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			// match _charsername
 			if idc[0] == '_' {
 				if charset.IsValidCharsets(idc[1:]) {
-					return UNDERSCORE_CHARSET
+					retstate = UNDERSCORE_CHARSET
+					goto TG_RET
 				}
 			}
 
-			return result_state
+			retstate = result_state
+			goto TG_RET
 
 		case MY_LEX_IDENT_SEP: // Found ident before
 			// And Now '.'
@@ -212,7 +215,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				lex.next_state = MY_LEX_START
 			}
 
-			return int(c)
+			retstate = int(c)
+			goto TG_RET
 
 		case MY_LEX_NUMBER_IDENT: // number or ident which num-start
 			for c = lex.yyNext(); cs.IsDigit(c); c = lex.yyNext() {
@@ -225,8 +229,9 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			if c == 'e' || c == 'E' {
-				if tok, ok := lex.scanFloat(lval, &c); ok {
-					return tok
+				var ok bool
+				if retstate, ok = lex.scanFloat(lval, &c); ok {
+					goto TG_RET
 				}
 			} else if c == 'x' && (lex.ptr-lex.tok_start) == 2 && lex.buf[lex.tok_start] == '0' {
 				// 0xdddd number
@@ -234,7 +239,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
-					return HEX_NUM
+					retstate = HEX_NUM
+					goto TG_RET
 				}
 
 				lex.yyBack()
@@ -244,7 +250,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
-					return BIN_NUM
+					retstate = BIN_NUM
+					goto TG_RET
 				}
 
 				lex.yyBack()
@@ -254,6 +261,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 		case MY_LEX_IDENT_START:
 			result_state = 0
 			for c = lex.yyNext(); ident_map[int(c)] != 0; result_state |= int(c) {
+				c = lex.yyNext()
 			}
 
 			result_state = result_state & 0x80
@@ -267,7 +275,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				lex.next_state = MY_LEX_IDENT_SEP
 			}
 
-			return result_state
+			retstate = result_state
+			goto TG_RET
 
 		case MY_LEX_USER_VARIABLE_DELIMITER:
 			quote_char := c
@@ -283,16 +292,19 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			if c == EOF {
-				return ABORT_SYM
+				retstate = ABORT_SYM
+				goto TG_RET
 			}
 
 			lex.next_state = MY_LEX_START
 			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
-			return IDENT_QUOTED
+			retstate = IDENT_QUOTED
+			goto TG_RET
 
 		case MY_LEX_INT_OR_REAL:
 			if c != '.' {
-				return lex.scanInt(lval, &c)
+				retstate = lex.scanInt(lval, &c)
+				goto TG_RET
 			}
 			DEBUG("\tMY_LEX_REAL\n")
 			fallthrough
@@ -301,8 +313,9 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			if c == 'e' || c == 'E' {
-				if tok, ok := lex.scanFloat(lval, &c); ok {
-					return tok
+				var ok bool
+				if retstate, ok = lex.scanFloat(lval, &c); ok {
+					goto TG_RET
 				}
 
 				state = MY_LEX_CHAR
@@ -310,7 +323,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			}
 
 			lval.bytes = lex.buf[lex.tok_start : lex.ptr-1]
-			return DECIMAL_NUM
+			retstate = DECIMAL_NUM
+			goto TG_RET
 		case MY_LEX_HEX_NUMBER:
 			lex.yySkip() // skip '
 			for c = lex.yyNext(); cs.IsXdigit(c); c = lex.yyNext() {
@@ -319,11 +333,13 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			length = lex.ptr - lex.tok_start
 
 			if (length&1) == 0 || c != '\'' {
-				return ABORT_SYM
+				retstate = ABORT_SYM
+				goto TG_RET
 			}
 
 			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
-			return HEX_NUM
+			retstate = HEX_NUM
+			goto TG_RET
 
 		case MY_LEX_BIN_NUMBER:
 			lex.yyNext()
@@ -332,21 +348,23 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 			length = lex.ptr - lex.tok_start
 			if c != '\'' {
-				return ABORT_SYM
+				retstate = ABORT_SYM
+				goto TG_RET
 			}
 
 			lex.yyNext()
 
-			return BIN_NUM
-
+			retstate = BIN_NUM
+			goto TG_RET
 		case MY_LEX_CMP_OP:
 			if state_map[lex.yyPeek()] == MY_LEX_CMP_OP || state_map[lex.yyPeek()] == MY_LEX_LONG_CMP_OP {
 				lex.yySkip()
 			}
 
-			if tokval, ok := findKeywords(lex.buf[lex.tok_start:lex.ptr], false); ok {
+			var ok bool
+			if retstate, ok = findKeywords(lex.buf[lex.tok_start:lex.ptr], false); ok {
 				lex.next_state = MY_LEX_START
-				return tokval
+				goto TG_RET
 			}
 			state = MY_LEX_CHAR
 
@@ -358,9 +376,10 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				}
 			}
 
-			if tokval, ok := findKeywords(lex.buf[lex.tok_start:lex.ptr], false); ok {
+			var ok bool
+			if retstate, ok = findKeywords(lex.buf[lex.tok_start:lex.ptr], false); ok {
 				lex.next_state = MY_LEX_START
-				return tokval
+				goto TG_RET
 			}
 			state = MY_LEX_CHAR
 
@@ -369,9 +388,9 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				state = MY_LEX_CHAR
 			} else {
 				lex.yySkip()
-				tokval, _ := findKeywords(lex.buf[lex.tok_start:lex.tok_start+2], false)
+				retstate, _ = findKeywords(lex.buf[lex.tok_start:lex.tok_start+2], false)
 				lex.next_state = MY_LEX_START
-				return tokval
+				goto TG_RET
 			}
 
 		case MY_LEX_STRING_OR_DELIMITER:
@@ -384,11 +403,12 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 			b, err := lex.getQuotedText()
 			if err != nil {
 				lex.Error(err.Error())
-				return ABORT_SYM
+				retstate = ABORT_SYM
 			} else {
 				lval.bytes = b
-				return TEXT_STRING
+				retstate = TEXT_STRING
 			}
+			goto TG_RET
 		case MY_LEX_COMMENT:
 			c = lex.yyNext()
 			n := lex.yyPeek()
@@ -445,7 +465,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				state = MY_LEX_CHAR
 			} else {
 				lex.yySkip()
-				return SET_VAR
+				retstate = SET_VAR
+				goto TG_RET
 			}
 
 		case MY_LEX_SEMICOLON:
@@ -457,13 +478,15 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 		case MY_LEX_EOL:
 			if lex.ptr >= uint(len(lex.buf)) {
 				lex.next_state = MY_LEX_END
-				return END_OF_INPUT
+				retstate = END_OF_INPUT
+				goto TG_RET
 			}
 
 			state = MY_LEX_CHAR
 		case MY_LEX_END:
 			lex.next_state = MY_LEX_END
-			return 0
+			retstate = 0
+			goto TG_RET
 		case MY_LEX_REAL_OR_POINT:
 			if cs.IsDigit(lex.yyPeek()) {
 				state = MY_LEX_REAL
@@ -480,13 +503,15 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				lex.next_state = MY_LEX_HOSTNAME
 			}
 
-			return int('@')
+			retstate = int('@')
+			goto TG_RET
 
 		case MY_LEX_HOSTNAME:
 			for c = lex.yyNext(); cs.IsAlnum(c) || c == '.' || c == '_' || c == '$'; c = lex.yyNext() {
 			}
 
-			return LEX_HOSTNAME
+			retstate = LEX_HOSTNAME
+			goto TG_RET
 		case MY_LEX_SYSTEM_VAR:
 			lex.yySkip()
 			lex.next_state = func() uint {
@@ -497,7 +522,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 				}
 			}()
 
-			return int('@')
+			retstate = int('@')
+			goto TG_RET
 		case MY_LEX_IDENT_OR_KEYWORD:
 			result_state = 0
 			c = lex.yyNext()
@@ -518,21 +544,29 @@ func (lex *MySQLLexer) Lex(lval *yySymType) int {
 
 			length = lex.ptr - lex.tok_start - 1
 			if length == 0 {
-				return ABORT_SYM
+				retstate = ABORT_SYM
+				goto TG_RET
 			}
 
 			val := lex.buf[lex.tok_start : lex.ptr-1]
-			if tokval, ok := findKeywords(val, false); ok {
+			var ok bool
+			if retstate, ok = findKeywords(val, false); ok {
 				lex.yyBack()
-				return tokval
+				goto TG_RET
 			}
 
 			lval.bytes = val
-			return result_state
+			retstate = result_state
+			goto TG_RET
 		}
 	}
 
-	return 0
+	retstate = 0
+
+TG_RET:
+
+	DEBUG(fmt.Sprintf("dbg leave with return[%s]\n", tokenName(retstate)))
+	return
 }
 
 // return current char
