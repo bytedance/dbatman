@@ -26,8 +26,7 @@ func TestSetSQL(t *testing.T) {
 
 func TestShowSQL(t *testing.T) {
 	testyyParse(`show tables like '%tablename%'`, t)
-	setDebug(true)
-	testyyParse(`show databases`, t)
+	// testyyParse(`show databases`, t)
 }
 
 func testyyParse(sql string, t *testing.T) {
