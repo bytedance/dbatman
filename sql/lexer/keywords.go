@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"bytes"
-	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
+	"github.com/wangjild/go-mysql-proxy/sql/parser"
 )
 
 var Symbols map[string]int = map[string]int{

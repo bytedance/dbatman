@@ -1,9 +1,9 @@
 package lexer
 
 import (
-	"github.com/wangjild/go-mysql-proxy/sqlparser/lexer/charset"
-	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/state"
-	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
+	"github.com/wangjild/go-mysql-proxy/sql/lexer/charset"
+	. "github.com/wangjild/go-mysql-proxy/sql/lexer/state"
+	"github.com/wangjild/go-mysql-proxy/sql/parser"
 )
 
 // Copyright 2012, Google Inc. All rights reserved.

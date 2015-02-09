@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
+	"github.com/wangjild/go-mysql-proxy/sql/parser"
 )
 
 const (

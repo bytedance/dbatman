@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
+	"github.com/wangjild/go-mysql-proxy/sql/parser"
 )
 
 func (lexer *SQLLexer) scanNChar(lval *parser.MySQLSymType) (int, byte) {
