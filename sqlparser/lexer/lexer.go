@@ -22,9 +22,9 @@ const NAMES_SEP_CHAR byte = '\377' /* Char to sep. names */
 
 const MYSQL_VERSION_ID = 50109
 
-// MySQLLexer is the struct used to generate SQL
+// SQLLexer is the struct used to generate SQL
 // tokens for the parser.
-type MySQLLexer struct {
+type SQLLexer struct {
 	reader *bufio.Reader
 
 	buf []byte
@@ -62,10 +62,10 @@ type SQLMode struct {
 	MODE_IGNORE_SPACE         bool
 }
 
-// NewStringMySQLLexer creates a new MySQLLexer for the
+// NewStringSQLLexer creates a new SQLLexer for the
 // sql string.
-func NewMySQLLexer(sql string) *MySQLLexer {
-	return &MySQLLexer{
+func NewSQLLexer(sql string) *SQLLexer {
+	return &SQLLexer{
 		reader:     bufio.NewReader(strings.NewReader(sql)),
 		buf:        []byte(sql),
 		next_state: MY_LEX_START,
@@ -73,9 +73,9 @@ func NewMySQLLexer(sql string) *MySQLLexer {
 	}
 }
 
-// Lex returns the next token form the MySQLLexer.
+// Lex returns the next token form the SQLLexer.
 // This function is used by go yacc.
-func (lex *MySQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
+func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 
 	var result_state int
 	var length uint
@@ -525,7 +525,7 @@ TG_RET:
 }
 
 // return current char
-func (lex *MySQLLexer) yyNext() (b byte) {
+func (lex *SQLLexer) yyNext() (b byte) {
 
 	if lex.ptr < uint(len(lex.buf)) {
 		b = lex.buf[lex.ptr]
@@ -536,11 +536,11 @@ func (lex *MySQLLexer) yyNext() (b byte) {
 	return
 }
 
-func (lex *MySQLLexer) yyBack() {
+func (lex *SQLLexer) yyBack() {
 	lex.ptr -= 1
 }
 
-func (lex *MySQLLexer) yyPeek() (b byte) {
+func (lex *SQLLexer) yyPeek() (b byte) {
 	if lex.ptr < uint(len(lex.buf)) {
 		b = lex.buf[lex.ptr]
 	} else {
@@ -549,7 +549,7 @@ func (lex *MySQLLexer) yyPeek() (b byte) {
 	return
 }
 
-func (lex *MySQLLexer) yyPeek2() (b byte) {
+func (lex *SQLLexer) yyPeek2() (b byte) {
 	if lex.ptr+1 < uint(len(lex.buf)) {
 		b = lex.buf[lex.ptr+1]
 	} else {
@@ -559,18 +559,18 @@ func (lex *MySQLLexer) yyPeek2() (b byte) {
 	return
 }
 
-func (lex *MySQLLexer) yyLookHead() (b byte) {
+func (lex *SQLLexer) yyLookHead() (b byte) {
 	b = lex.buf[lex.ptr-1]
 	return
 }
 
-func (lex *MySQLLexer) yySkip() {
+func (lex *SQLLexer) yySkip() {
 	lex.yyNext()
 	return
 }
 
 // Error is called by go yacc if there's a parsing error.
-func (lexer *MySQLLexer) Error(err string) {
+func (lexer *SQLLexer) Error(err string) {
 	buf := bytes.NewBuffer(make([]byte, 0, 32))
 	if lexer.errorToken != nil {
 		fmt.Fprintf(buf, "%s at position %v near %s", err, lexer.ptr, lexer.errorToken)

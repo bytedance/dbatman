@@ -20,7 +20,7 @@ var (
 	UNSIGNED_LONGLONG []byte = []byte{'1', '8', '4', '4', '6', '7', '4', '4', '0', '7', '3', '7', '0', '9', '5', '5', '1', '6', '1', '5'}
 )
 
-func (lex *MySQLLexer) scanInt(lval *parser.MySQLSymType, c *byte) int {
+func (lex *SQLLexer) scanInt(lval *parser.MySQLSymType, c *byte) int {
 	length := lex.ptr - lex.tok_start
 
 	lval.Bytes = lex.buf[lex.tok_start : lex.ptr-1]
@@ -105,7 +105,7 @@ func (lex *MySQLLexer) scanInt(lval *parser.MySQLSymType, c *byte) int {
 	return bigger
 }
 
-func (lex *MySQLLexer) scanFloat(lval *parser.MySQLSymType, c *byte) (int, bool) {
+func (lex *SQLLexer) scanFloat(lval *parser.MySQLSymType, c *byte) (int, bool) {
 	cs := lex.cs
 
 	// try match (+|-)? digit+

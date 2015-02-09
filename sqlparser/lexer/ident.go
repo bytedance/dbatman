@@ -7,7 +7,7 @@ import (
 	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
 )
 
-func (lex *MySQLLexer) getIdentifier() (int, []byte) {
+func (lex *SQLLexer) getIdentifier() (int, []byte) {
 
 	ident_map := lex.cs.IdentMap
 

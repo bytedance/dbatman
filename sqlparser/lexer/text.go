@@ -36,7 +36,7 @@ DOUBLE_QUOTED_TEXT
 
 var StringFormatError error = errors.New("text string format error")
 
-func (lexer *MySQLLexer) getQuotedText() ([]byte, error) {
+func (lexer *SQLLexer) getQuotedText() ([]byte, error) {
 	var dq bool
 	var sep byte
 

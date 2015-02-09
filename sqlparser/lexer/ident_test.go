@@ -6,20 +6,20 @@ import (
 )
 
 func TestIdentifier(t *testing.T) {
-	testMatchReturn(t, "`test ` ", parser.IDENT_QUOTED, false)
+	testMatchReturn(t, "`test ` ", IDENT_QUOTED, false)
 }
 
 func TestMultiIdentifier(t *testing.T) {
 	str := "SELECT INSERT 'string     ' UPDATE DELEte `SELECT` `Update`"
 	lex, lval := getLexer(str)
 
-	lexExpect(t, lex, lval, parser.SELECT_SYM)
-	lexExpect(t, lex, lval, parser.INSERT)
+	lexExpect(t, lex, lval, SELECT_SYM)
+	lexExpect(t, lex, lval, INSERT)
 
-	lexExpect(t, lex, lval, parser.TEXT_STRING)
+	lexExpect(t, lex, lval, TEXT_STRING)
 	lvalExpect(t, lval, "'string     '")
 
-	lexExpect(t, lex, lval, parser.UPDATE_SYM)
+	lexExpect(t, lex, lval, UPDATE_SYM)
 	lexExpect(t, lex, lval, DELETE_SYM)
 
 	lexExpect(t, lex, lval, IDENT_QUOTED)

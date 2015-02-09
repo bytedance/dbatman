@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
+	. "github.com/wangjild/go-mysql-proxy/sqlparser/parser"
 	"testing"
 )
 
@@ -12,8 +12,8 @@ func testTextParse(t *testing.T, str string, mode SQLMode) {
 		t.Fatalf("parse text failed. return[%s]", tokenName(r))
 	}
 
-	if string(lval.bytes) != str {
-		t.Fatalf("orgin[%s] not match parsed[%s]", str, string(lval.bytes))
+	if string(lval.Bytes) != str {
+		t.Fatalf("orgin[%s] not match parsed[%s]", str, string(lval.Bytes))
 	}
 }
 
@@ -54,12 +54,12 @@ func TestStringException(t *testing.T) {
 	str := `'\'`
 	lexer, lval := getLexer(str)
 	if r := lexer.Lex(lval); r != ABORT_SYM {
-		t.Fatalf("parse text failed. return[%s]", yyToknames[r-ABORT_SYM])
+		t.Fatalf("parse text failed. return[%s]", MySQLToknames[r-ABORT_SYM])
 	}
 
 	lexer, lval = getLexer(`"\`)
 	if r := lexer.Lex(lval); r != ABORT_SYM {
-		t.Fatalf("parse text failed. return[%s]", yyToknames[r-ABORT_SYM])
+		t.Fatalf("parse text failed. return[%s]", MySQLToknames[r-ABORT_SYM])
 	}
 }
 
@@ -70,13 +70,13 @@ func TestNChar(t *testing.T) {
 	testMatchReturn(t, `N'`, ABORT_SYM, false)
 }
 
-func lexExpect(t *testing.T, lexer *MySQLLexer, lval *parser.MySQLSymType, expect int) {
+func lexExpect(t *testing.T, lexer *MySQLLexer, lval *MySQLSymType, expect int) {
 	if ret := lexer.Lex(lval); ret != expect {
 		t.Fatalf("expect[%s] return[%s]", tokenName(expect), tokenName(ret))
 	}
 }
 
-func lvalExpect(t *testing.T, lval *parser.MySQLSymType, expect string) {
+func lvalExpect(t *testing.T, lval *MySQLSymType, expect string) {
 	if string(lval.bytes) != expect {
 		t.Fatalf("expect[%s] return[%s]", expect, string(lval.bytes))
 	}

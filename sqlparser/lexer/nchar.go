@@ -4,7 +4,7 @@ import (
 	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
 )
 
-func (lexer *MySQLLexer) scanNChar(lval *parser.MySQLSymType) (int, byte) {
+func (lexer *SQLLexer) scanNChar(lval *parser.MySQLSymType) (int, byte) {
 
 	// found N'string'
 	lexer.yyNext() // Skip '
