@@ -2,25 +2,26 @@ package lexer
 
 import (
 	"fmt"
+	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
 	"testing"
 )
 
-func getLexer(str string) (lexer *MySQLLexer, lval *yySymType) {
-	lval = new(yySymType)
+func getLexer(str string) (lexer *MySQLLexer, lval *parser.MySQLSymType) {
+	lval = new(parser.MySQLSymType)
 	lexer = NewMySQLLexer(str)
 
 	return
 }
 
 func tokenName(tok int) string {
-	if (tok-ABORT_SYM) < 0 || (tok-ABORT_SYM) > len(yyToknames) {
+	if (tok-ABORT_SYM) < 0 || (tok-ABORT_SYM) > len(MySQLToknames) {
 		return fmt.Sprintf("Unknown Token:%d", tok)
 	}
 
-	return yyToknames[tok-ABORT_SYM]
+	return MySQLToknames[tok-ABORT_SYM]
 }
 
-func testMatchReturn(t *testing.T, str string, match int, dbg bool) (*MySQLLexer, *yySymType) {
+func testMatchReturn(t *testing.T, str string, match int, dbg bool) (*MySQLLexer, *parser.MySQLSymType) {
 	setDebug(dbg)
 	lexer, lval := getLexer(str)
 	ret := lexer.Lex(lval)

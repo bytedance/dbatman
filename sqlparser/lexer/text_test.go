@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
 	"testing"
 )
 
@@ -69,13 +70,13 @@ func TestNChar(t *testing.T) {
 	testMatchReturn(t, `N'`, ABORT_SYM, false)
 }
 
-func lexExpect(t *testing.T, lexer *MySQLLexer, lval *yySymType, expect int) {
+func lexExpect(t *testing.T, lexer *MySQLLexer, lval *parser.MySQLSymType, expect int) {
 	if ret := lexer.Lex(lval); ret != expect {
 		t.Fatalf("expect[%s] return[%s]", tokenName(expect), tokenName(ret))
 	}
 }
 
-func lvalExpect(t *testing.T, lval *yySymType, expect string) {
+func lvalExpect(t *testing.T, lval *parser.MySQLSymType, expect string) {
 	if string(lval.bytes) != expect {
 		t.Fatalf("expect[%s] return[%s]", expect, string(lval.bytes))
 	}

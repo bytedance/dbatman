@@ -1,6 +1,10 @@
 package lexer
 
-func (lexer *MySQLLexer) scanNChar(lval *yySymType) (int, byte) {
+import (
+	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
+)
+
+func (lexer *MySQLLexer) scanNChar(lval *parser.MySQLSymType) (int, byte) {
 
 	// found N'string'
 	lexer.yyNext() // Skip '
@@ -11,10 +15,10 @@ func (lexer *MySQLLexer) scanNChar(lval *yySymType) (int, byte) {
 	}
 
 	if c != '\'' {
-		return ABORT_SYM, c
+		return parser.ABORT_SYM, c
 	}
 
-	lval.bytes = lexer.buf[lexer.tok_start:lexer.ptr]
+	lval.Bytes = lexer.buf[lexer.tok_start:lexer.ptr]
 
-	return NCHAR_STRING, c
+	return parser.NCHAR_STRING, c
 }

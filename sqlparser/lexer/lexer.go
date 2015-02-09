@@ -3,6 +3,7 @@ package lexer
 import (
 	"github.com/wangjild/go-mysql-proxy/sqlparser/lexer/charset"
 	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer/state"
+	"github.com/wangjild/go-mysql-proxy/sqlparser/parser"
 )
 
 // Copyright 2012, Google Inc. All rights reserved.
@@ -74,7 +75,7 @@ func NewMySQLLexer(sql string) *MySQLLexer {
 
 // Lex returns the next token form the MySQLLexer.
 // This function is used by go yacc.
-func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
+func (lex *MySQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 
 	var result_state int
 	var length uint
@@ -107,7 +108,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 		case MY_LEX_ESCAPE:
 			if lex.yyNext() == 'N' {
 				// Allow \N as shortcut for NULL
-				retstate = NULL_SYM
+				retstate = parser.NULL_SYM
 				goto TG_RET
 			}
 			fallthrough
@@ -127,7 +128,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 			if c == ',' {
 				lex.tok_start = lex.ptr
 			} else if c == '?' && lex.stmt_prepare_mode && ident_map[lex.yyPeek()] != 0 {
-				retstate = PARAM_MARKER
+				retstate = parser.PARAM_MARKER
 				goto TG_RET
 			}
 
@@ -158,7 +159,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 			fallthrough
 		case MY_LEX_IDENT:
 
-			retstate, lval.bytes = lex.getIdentifier()
+			retstate, lval.Bytes = lex.getIdentifier()
 			goto TG_RET
 
 		case MY_LEX_IDENT_SEP: // Found ident before
@@ -193,7 +194,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
-					retstate = HEX_NUM
+					retstate = parser.HEX_NUM
 					goto TG_RET
 				}
 
@@ -204,7 +205,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
-					retstate = BIN_NUM
+					retstate = parser.BIN_NUM
 					goto TG_RET
 				}
 
@@ -220,9 +221,9 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 
 			result_state = result_state & 0x80
 			if result_state != 0 {
-				result_state = IDENT_QUOTED
+				result_state = parser.IDENT_QUOTED
 			} else {
-				result_state = IDENT
+				result_state = parser.IDENT
 			}
 
 			if c == '.' && ident_map[int(lex.yyPeek())] != 0 {
@@ -246,13 +247,13 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 			}
 
 			if c == EOF {
-				retstate = ABORT_SYM
+				retstate = parser.ABORT_SYM
 				goto TG_RET
 			}
 
 			lex.next_state = MY_LEX_START
-			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
-			retstate = IDENT_QUOTED
+			lval.Bytes = lex.buf[lex.tok_start:lex.ptr]
+			retstate = parser.IDENT_QUOTED
 			goto TG_RET
 
 		case MY_LEX_INT_OR_REAL:
@@ -276,8 +277,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 				break
 			}
 
-			lval.bytes = lex.buf[lex.tok_start : lex.ptr-1]
-			retstate = DECIMAL_NUM
+			lval.Bytes = lex.buf[lex.tok_start : lex.ptr-1]
+			retstate = parser.DECIMAL_NUM
 			goto TG_RET
 		case MY_LEX_HEX_NUMBER:
 			lex.yySkip() // skip '
@@ -287,12 +288,12 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 			length = lex.ptr - lex.tok_start
 
 			if (length&1) == 0 || c != '\'' {
-				retstate = ABORT_SYM
+				retstate = parser.ABORT_SYM
 				goto TG_RET
 			}
 
-			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
-			retstate = HEX_NUM
+			lval.Bytes = lex.buf[lex.tok_start:lex.ptr]
+			retstate = parser.HEX_NUM
 			goto TG_RET
 
 		case MY_LEX_BIN_NUMBER:
@@ -302,13 +303,13 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 
 			length = lex.ptr - lex.tok_start
 			if c != '\'' {
-				retstate = ABORT_SYM
+				retstate = parser.ABORT_SYM
 				goto TG_RET
 			}
 
 			lex.yyNext()
 
-			retstate = BIN_NUM
+			retstate = parser.BIN_NUM
 			goto TG_RET
 		case MY_LEX_CMP_OP:
 			if state_map[lex.yyPeek()] == MY_LEX_CMP_OP || state_map[lex.yyPeek()] == MY_LEX_LONG_CMP_OP {
@@ -357,10 +358,10 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 			b, err := lex.getQuotedText()
 			if err != nil {
 				lex.Error(err.Error())
-				retstate = ABORT_SYM
+				retstate = parser.ABORT_SYM
 			} else {
-				lval.bytes = b
-				retstate = TEXT_STRING
+				lval.Bytes = b
+				retstate = parser.TEXT_STRING
 			}
 			goto TG_RET
 		case MY_LEX_COMMENT:
@@ -419,7 +420,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 				state = MY_LEX_CHAR
 			} else {
 				lex.yySkip()
-				retstate = SET_VAR
+				retstate = parser.SET_VAR
 				goto TG_RET
 			}
 
@@ -432,7 +433,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 		case MY_LEX_EOL:
 			if lex.ptr >= uint(len(lex.buf)) {
 				lex.next_state = MY_LEX_END
-				retstate = END_OF_INPUT
+				retstate = parser.END_OF_INPUT
 				goto TG_RET
 			}
 
@@ -464,7 +465,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 			for c = lex.yyNext(); cs.IsAlnum(c) || c == '.' || c == '_' || c == '$'; c = lex.yyNext() {
 			}
 
-			retstate = LEX_HOSTNAME
+			retstate = parser.LEX_HOSTNAME
 			goto TG_RET
 		case MY_LEX_SYSTEM_VAR:
 			lex.yySkip()
@@ -487,9 +488,9 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 			}
 
 			if result_state&0x80 != 0 {
-				result_state = IDENT_QUOTED
+				result_state = parser.IDENT_QUOTED
 			} else {
-				result_state = IDENT
+				result_state = parser.IDENT
 			}
 
 			if c == '.' {
@@ -498,7 +499,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 
 			length = lex.ptr - lex.tok_start - 1
 			if length == 0 {
-				retstate = ABORT_SYM
+				retstate = parser.ABORT_SYM
 				goto TG_RET
 			}
 
@@ -509,7 +510,7 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 				goto TG_RET
 			}
 
-			lval.bytes = val
+			lval.Bytes = val
 			retstate = result_state
 			goto TG_RET
 		}

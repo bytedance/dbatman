@@ -2,7 +2,7 @@
 
 %{
 
-package lexer
+package parser
 
 import (
 )
@@ -11,7 +11,7 @@ import (
 
 
 %union {
-    bytes []byte
+    Bytes []byte
 }
 
 /*
