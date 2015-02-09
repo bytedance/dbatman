@@ -1,13 +1,15 @@
-package parser
+package ast
 
 import (
+	. "github.com/wangjild/go-mysql-proxy/sqlparser/lexer"
+	. "github.com/wangjild/go-mysql-proxy/sqlparser/parser"
 	"testing"
 )
 
 func TestParse(t *testing.T) {
 	sql := " select * from tablename;"
-	lexer := NewMySQLLexer(sql)
-	if ret := yyParse(lexer); ret != 0 {
+	lexer := NewSQLLexer(sql)
+	if ret := MySQLParse(lexer); ret != 0 {
 		t.Fatalf("yyParse return[%d]", ret)
 	}
 }
@@ -34,8 +36,8 @@ func TestSelectSQL(t *testing.T) {
 }
 
 func testyyParse(sql string, t *testing.T) {
-	lexer := NewMySQLLexer(sql)
-	if ret := yyParse(lexer); ret != 0 {
+	lexer := NewSQLLexer(sql)
+	if ret := MySQLParse(lexer); ret != 0 {
 		t.Fatalf("yyParse return[%d]", ret)
 	}
 }
