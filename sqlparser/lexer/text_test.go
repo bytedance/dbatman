@@ -71,7 +71,7 @@ func TestNChar(t *testing.T) {
 
 func lexExpect(t *testing.T, lexer *MySQLLexer, lval *yySymType, expect int) {
 	if ret := lexer.Lex(lval); ret != expect {
-		t.Fatalf("expect[TEXT_STRING] return[%s]", tokenName(ret))
+		t.Fatalf("expect[%s] return[%s]", tokenName(expect), tokenName(ret))
 	}
 }
 

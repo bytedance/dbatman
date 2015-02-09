@@ -29,3 +29,22 @@ func TestMultiIdentifier(t *testing.T) {
 
 	lexExpect(t, lex, lval, END_OF_INPUT)
 }
+
+func TestMultiIdentifier1(t *testing.T) {
+	str := "s insert `s` `` s"
+	lex, lval := getLexer(str)
+
+	lexExpect(t, lex, lval, IDENT)
+	lvalExpect(t, lval, `s`)
+
+	lexExpect(t, lex, lval, INSERT)
+
+	lexExpect(t, lex, lval, IDENT_QUOTED)
+	lvalExpect(t, lval, "`s`")
+
+	lexExpect(t, lex, lval, IDENT_QUOTED)
+	lvalExpect(t, lval, "``")
+
+	lexExpect(t, lex, lval, IDENT)
+	lvalExpect(t, lval, `s`)
+}

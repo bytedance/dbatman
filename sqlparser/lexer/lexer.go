@@ -157,54 +157,8 @@ func (lex *MySQLLexer) Lex(lval *yySymType) (retstate int) {
 			DEBUG("MY_LEX_IDENT")
 			fallthrough
 		case MY_LEX_IDENT:
-			var start uint
 
-			c = lex.yyNext()
-			for result_state = int(c); ident_map[int(c)] != 0; result_state |= int(c) {
-				c = lex.yyNext()
-			}
-
-			if result_state&0x80 != 0 {
-				result_state = IDENT_QUOTED
-			} else {
-				result_state = IDENT
-			}
-
-			start = lex.ptr
-
-			var idc []byte
-			if lex.ptr == uint(len(lex.buf)) {
-				idc = lex.buf[lex.tok_start:lex.ptr]
-			} else {
-				idc = lex.buf[lex.tok_start : lex.ptr-1]
-			}
-
-			if lex.ignore_space {
-				for ; state_map[c] == MY_LEX_SKIP; c = lex.yyNext() {
-				}
-			}
-
-			if start == lex.ptr && c == '.' && ident_map[int(lex.yyPeek())] != 0 {
-				lex.next_state = MY_LEX_IDENT_SEP
-			} else {
-				lex.yyBack()
-				var ok bool
-				if retstate, ok = findKeywords(idc, c == '('); ok {
-					lex.next_state = MY_LEX_START
-					goto TG_RET
-				}
-				lex.yySkip()
-			}
-
-			// match _charsername
-			if idc[0] == '_' {
-				if charset.IsValidCharsets(idc[1:]) {
-					retstate = UNDERSCORE_CHARSET
-					goto TG_RET
-				}
-			}
-
-			retstate = result_state
+			retstate, lval.bytes = lex.getIdentifier()
 			goto TG_RET
 
 		case MY_LEX_IDENT_SEP: // Found ident before

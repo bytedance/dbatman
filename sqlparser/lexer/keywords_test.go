@@ -40,3 +40,13 @@ func TestBoolOp(t *testing.T) {
 func TestChar(t *testing.T) {
 	testMatchReturn(t, `& `, '&', false)
 }
+
+func TestMultiKeywords(t *testing.T) {
+	lexer, lval := getLexer(`SELECT SHOW Databases SELECT `)
+
+	lexExpect(t, lexer, lval, SELECT_SYM)
+	lexExpect(t, lexer, lval, SHOW)
+	lexExpect(t, lexer, lval, DATABASES)
+
+	lexExpect(t, lexer, lval, SELECT_SYM)
+}
