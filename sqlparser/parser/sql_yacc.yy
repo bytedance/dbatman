@@ -5,6 +5,7 @@
 package parser
 
 import (
+    . "github.com/wangjild/go-mysql-proxy/sql/ast"
 )
 
 %}
