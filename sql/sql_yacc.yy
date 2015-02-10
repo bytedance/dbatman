@@ -702,7 +702,7 @@ import (
 %type <statement> describe explain help use
 
 %type <Bytes> ident IDENT_sys keyword keyword_sp
-%type <Table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb
+%type <Table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb sp_name
 
 %type <empty> '.'
 
@@ -937,8 +937,8 @@ clear_privileges:
  ;
 
 sp_name:
-  ident '.' ident
-| ident;
+  ident '.' ident { $$ = &TableInfo{Qualifier: $1, Name: $2} }
+| ident { $$ = &TableInfo{Qualifier: "", Name: $1} };
 
 sp_a_chistics:
  
@@ -967,7 +967,7 @@ sp_suid:
 | SQL_SYM SECURITY_SYM INVOKER_SYM;
 
 call:
-  CALL_SYM sp_name opt_sp_cparam_list;
+  CALL_SYM sp_name opt_sp_cparam_list { $$ = &Call{SpName:$2} };
 
 opt_sp_cparam_list:
  
@@ -1060,7 +1060,7 @@ sp_hcond:
 | SQLEXCEPTION_SYM;
 
 signal_stmt:
-  SIGNAL_SYM signal_value opt_set_signal_information;
+  SIGNAL_SYM signal_value opt_set_signal_information { $$ = &Signal{} } ;
 
 signal_value:
   ident
@@ -1098,10 +1098,10 @@ signal_condition_information_item_name:
 | MYSQL_ERRNO_SYM;
 
 resignal_stmt:
-  RESIGNAL_SYM opt_signal_value opt_set_signal_information;
+  RESIGNAL_SYM opt_signal_value opt_set_signal_information { $$ = &Resignal{} }; 
 
 get_diagnostics:
-  GET_SYM which_area DIAGNOSTICS_SYM diagnostics_information;
+  GET_SYM which_area DIAGNOSTICS_SYM diagnostics_information { $$ = &Diagnostics{} } ;
 
 which_area:
  

@@ -11,3 +11,9 @@ type Replace struct {
 }
 
 func (*Replace) Statement() {}
+
+type Call struct {
+	SpName *TableInfo
+}
+
+func (*Call) Statement() {}
