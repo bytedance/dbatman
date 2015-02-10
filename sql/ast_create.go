@@ -4,7 +4,9 @@ type Create interface {
 	IStatement
 }
 
-type CreateTable struct{}
+type CreateTable struct {
+	Table *TableInfo
+}
 
 func (*CreateTable) Statement() {}
 

@@ -854,7 +854,7 @@ master_file_def:
 | RELAY_LOG_POS_SYM EQ ulong_num;
 
 create:
-  CREATE opt_table_options TABLE_SYM opt_if_not_exists table_ident create2 { $$ = &CreateTable{} }
+  CREATE opt_table_options TABLE_SYM opt_if_not_exists table_ident create2 { $$ = &CreateTable{Table: $5} }
 | CREATE opt_unique INDEX_SYM ident key_alg ON table_ident '(' key_list ')' normal_key_options opt_index_lock_algorithm { $$ = &CreateIndex{} }
 | CREATE fulltext INDEX_SYM ident init_key_options ON table_ident '(' key_list ')' fulltext_key_options opt_index_lock_algorithm { $$ = &CreateIndex{} }
 | CREATE spatial INDEX_SYM ident init_key_options ON table_ident '(' key_list ')' spatial_key_options opt_index_lock_algorithm { $$ = &CreateIndex{} }
