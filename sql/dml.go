@@ -1,4 +1,4 @@
-package ast
+package sql
 
 type Insert struct {
 	Table *TableInfo

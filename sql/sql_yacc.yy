@@ -5,7 +5,6 @@
 package parser
 
 import (
-    . "github.com/wangjild/go-mysql-proxy/sql/ast"
 )
 
 %}
@@ -13,7 +12,7 @@ import (
 
 %union {
     Bytes []byte
-    Statement IStatement
+    statement Statement
     Table *TableInfo
     empty struct{}
 }
@@ -675,7 +674,32 @@ import (
 %left  INTERVAL_SYM
 
 %start query
-%type <Statement> insert
+%type <statement> verb_clause statement
+
+
+/* DDL */
+%type <statement> alter create drop rename truncate
+
+/* DML */
+%type <statement> select insert update delete replace call do handler load
+
+/* Transaction */
+%type <statement> commit lock release rollback savepoint start unlock xa 
+
+/* DAL */
+%type <statement> analyze binlog_base64_event check checksum optimize repair flush grant install uninstall kill keycache partition_entry preload reset revoke set show 
+
+/* Replication Statement */
+%type <statement> change purge slave 
+
+/* Prepare */
+%type <statement> deallocate execute prepare
+
+/* Compound-Statement */
+%type <statement> get_diagnostics resignal_stmt signal_stmt
+
+/* MySQL Utility Statement */
+%type <statement> describe explain help use
 
 %type <Bytes> ident IDENT_sys keyword keyword_sp
 %type <Table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb
@@ -686,7 +710,7 @@ import (
 
 
 query:
-  END_OF_INPUT 
+  END_OF_INPUT { SetParseTree(MySQLlex, nil) } 
 | verb_clause ';' opt_end_of_input { SetParseTree(MySQLlex, $1) } 
 | verb_clause END_OF_INPUT { SetParseTree(MySQLlex, $1) }
 ; 
@@ -696,79 +720,80 @@ opt_end_of_input:
 | END_OF_INPUT;
 
 verb_clause:
-  statement
-| begin;
+  statement { $$ = $1}
+| begin { $$ = &Begin{} };
 
 statement:
-  alter
-| analyze
-| binlog_base64_event
-| call
-| change
-| check
-| checksum
-| commit
-| create
-| deallocate
-| delete
-| describe
-| do
-| drop
-| execute
-| flush
-| get_diagnostics
-| grant
-| handler
-| help
-| insert
-| install
-| kill
-| load
-| lock
-| optimize
-| keycache
-| partition_entry
-| preload
-| prepare
-| purge
-| release
-| rename
-| repair
-| replace
-| reset
-| resignal_stmt
-| revoke
-| rollback
-| savepoint
-| select
-| set
-| signal_stmt
-| show
-| slave
-| start
-| truncate
-| uninstall
-| unlock
-| update
-| use
-| xa;
+  alter {$$ = $1}
+| analyze {$$ = $1} 
+| binlog_base64_event {$$ = $1}
+| call {$$ = $1} 
+| change {$$ = $1}
+| check {$$ = $1}
+| checksum {$$ = $1}
+| commit {$$ = $1}
+| create {$$ = $1}
+| deallocate {$$ = $1}
+| delete {$$ = $1}
+| describe {$$ = $1}
+| do {$$ = $1}
+| drop {$$ = $1}
+| execute {$$ = $1}
+| flush {$$ = $1}
+| get_diagnostics {$$ = $1}
+| grant {$$ = $1}
+| handler {$$ = $1}
+| help {$$ = $1}
+| insert {$$ = $1}
+| install {$$ = $1}
+| kill {$$ = $1}
+| load {$$ = $1}
+| lock {$$ = $1}
+| optimize {$$ = $1}
+| keycache {$$ = $1}
+| partition_entry {$$ = $1}
+| preload {$$ = $1}
+| prepare {$$ = $1}
+| purge {$$ = $1}
+| release {$$ = $1}
+| rename {$$ = $1}
+| repair {$$ = $1}
+| replace {$$ = $1}
+| reset {$$ = $1}
+| resignal_stmt {$$ = $1}
+| revoke {$$ = $1}
+| rollback {$$ = $1}
+| savepoint {$$ = $1}
+| select {$$ = $1}
+| set {$$ = $1}
+| signal_stmt {$$ = $1}
+| show {$$ = $1}
+| slave {$$ = $1}
+| start {$$ = $1}
+| truncate {$$ = $1}
+| uninstall {$$ = $1}
+| unlock {$$ = $1}
+| update {$$ = $1}
+| use {$$ = $1}
+| xa {$$ = $1}
+;
 
 deallocate:
-  deallocate_or_drop PREPARE_SYM ident;
+  deallocate_or_drop PREPARE_SYM ident { $$ = &Deallocate{} };
 
 deallocate_or_drop:
   DEALLOCATE_SYM
 | DROP;
 
 prepare:
-  PREPARE_SYM ident FROM prepare_src;
+  PREPARE_SYM ident FROM prepare_src { $$ = &Prepare{} };
 
 prepare_src:
   TEXT_STRING_sys
 | '@' ident_or_text;
 
 execute:
-  EXECUTE_SYM ident execute_using;
+  EXECUTE_SYM ident execute_using { $$ = &Execute{} };
 
 execute_using:
  
@@ -782,10 +807,10 @@ execute_var_ident:
   '@' ident_or_text;
 
 help:
-  HELP_SYM ident_or_text;
+  HELP_SYM ident_or_text { $$ = &Help{} };
 
 change:
-  CHANGE MASTER_SYM TO_SYM master_defs;
+  CHANGE MASTER_SYM TO_SYM master_defs { $$ = &Change{} };
 
 master_defs:
   master_def
@@ -829,16 +854,17 @@ master_file_def:
 | RELAY_LOG_POS_SYM EQ ulong_num;
 
 create:
-  CREATE opt_table_options TABLE_SYM opt_if_not_exists table_ident create2
-| CREATE opt_unique INDEX_SYM ident key_alg ON table_ident '(' key_list ')' normal_key_options opt_index_lock_algorithm
-| CREATE fulltext INDEX_SYM ident init_key_options ON table_ident '(' key_list ')' fulltext_key_options opt_index_lock_algorithm
-| CREATE spatial INDEX_SYM ident init_key_options ON table_ident '(' key_list ')' spatial_key_options opt_index_lock_algorithm
-| CREATE DATABASE opt_if_not_exists ident opt_create_database_options
-| CREATE view_or_trigger_or_sp_or_event
-| CREATE USER clear_privileges grant_list
-| CREATE LOGFILE_SYM GROUP_SYM logfile_group_info
-| CREATE TABLESPACE tablespace_info
-| CREATE server_def;
+  CREATE opt_table_options TABLE_SYM opt_if_not_exists table_ident create2 { $$ = &CreateTable{} }
+| CREATE opt_unique INDEX_SYM ident key_alg ON table_ident '(' key_list ')' normal_key_options opt_index_lock_algorithm { $$ = &CreateIndex{} }
+| CREATE fulltext INDEX_SYM ident init_key_options ON table_ident '(' key_list ')' fulltext_key_options opt_index_lock_algorithm { $$ = &CreateIndex{} }
+| CREATE spatial INDEX_SYM ident init_key_options ON table_ident '(' key_list ')' spatial_key_options opt_index_lock_algorithm { $$ = &CreateIndex{} }
+| CREATE DATABASE opt_if_not_exists ident opt_create_database_options { $$ = &CreateDatabase{} }
+| CREATE view_or_trigger_or_sp_or_event { $$ = &CreateView{} }
+| CREATE USER clear_privileges grant_list { $$ = &CreateUser{} }
+| CREATE LOGFILE_SYM GROUP_SYM logfile_group_info { $$ = &CreateLog{} }
+| CREATE TABLESPACE tablespace_info { $$ = &CreateTablespace{} }
+| CREATE server_def { $$ = &CreateServer{} }
+;
 
 server_def:
   SERVER_SYM ident_or_text FOREIGN DATA_SYM WRAPPER_SYM ident_or_text OPTIONS_SYM '(' server_options_list ')';

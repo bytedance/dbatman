@@ -1,10 +1,9 @@
-package lexer
+package sql
 
 import (
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/sql/lexer/charset"
-	. "github.com/wangjild/go-mysql-proxy/sql/lexer/state"
-	"github.com/wangjild/go-mysql-proxy/sql/parser"
+	"github.com/wangjild/go-mysql-proxy/sql/charset"
+	. "github.com/wangjild/go-mysql-proxy/sql/state"
 )
 
 func (lex *SQLLexer) getIdentifier() (int, []byte) {
@@ -21,9 +20,9 @@ func (lex *SQLLexer) getIdentifier() (int, []byte) {
 	}
 
 	if rs&0x80 != 0 {
-		rs = parser.IDENT_QUOTED
+		rs = IDENT_QUOTED
 	} else {
-		rs = parser.IDENT
+		rs = IDENT
 	}
 
 	idc := lex.buf[lex.tok_start:lex.ptr]
@@ -44,7 +43,7 @@ func (lex *SQLLexer) getIdentifier() (int, []byte) {
 	}
 
 	if idc[0] == '_' && charset.IsValidCharsets(idc[1:]) {
-		return parser.UNDERSCORE_CHARSET, idc
+		return UNDERSCORE_CHARSET, idc
 	}
 
 	return rs, idc

@@ -1,7 +1,6 @@
-package lexer
+package sql
 
 import (
-	. "github.com/wangjild/go-mysql-proxy/sql/parser"
 	"testing"
 )
 

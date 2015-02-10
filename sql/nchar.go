@@ -1,8 +1,6 @@
-package lexer
+package sql
 
-import (
-	"github.com/wangjild/go-mysql-proxy/sql/parser"
-)
+import ()
 
 func (lexer *SQLLexer) scanNChar(lval *parser.MySQLSymType) (int, byte) {
 

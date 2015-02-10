@@ -1,8 +1,7 @@
-package lexer
+package sql
 
 import (
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/sql/parser"
 )
 
 const (
@@ -20,13 +19,13 @@ var (
 	UNSIGNED_LONGLONG []byte = []byte{'1', '8', '4', '4', '6', '7', '4', '4', '0', '7', '3', '7', '0', '9', '5', '5', '1', '6', '1', '5'}
 )
 
-func (lex *SQLLexer) scanInt(lval *parser.MySQLSymType, c *byte) int {
+func (lex *SQLLexer) scanInt(lval *MySQLSymType, c *byte) int {
 	length := lex.ptr - lex.tok_start
 
 	lval.Bytes = lex.buf[lex.tok_start : lex.ptr-1]
 
 	if length < LONG_LEN {
-		return parser.NUM
+		return NUM
 	}
 
 	neg := false
@@ -47,7 +46,7 @@ func (lex *SQLLexer) scanInt(lval *parser.MySQLSymType, c *byte) int {
 	}
 
 	if length < LONG_LEN {
-		return parser.NUM
+		return NUM
 	}
 
 	var cmp []byte
@@ -56,35 +55,35 @@ func (lex *SQLLexer) scanInt(lval *parser.MySQLSymType, c *byte) int {
 	if neg {
 		if length == LONG_LEN {
 			cmp = SIGNED_LONG[1:len(SIGNED_LONG)]
-			smaller = parser.NUM
-			bigger = parser.LONG_NUM
+			smaller = NUM
+			bigger = LONG_NUM
 		} else if length < SIGNED_LONGLONG_LEN {
-			return parser.LONG_NUM
+			return LONG_NUM
 		} else if length > SIGNED_LONGLONG_LEN {
-			return parser.DECIMAL_NUM
+			return DECIMAL_NUM
 		} else {
 			cmp = SIGNED_LONGLONG[1:len(SIGNED_LONGLONG)]
-			smaller = parser.LONG_NUM
-			bigger = parser.DECIMAL_NUM
+			smaller = LONG_NUM
+			bigger = DECIMAL_NUM
 		}
 	} else {
 		if length == LONG_LEN {
 			cmp = LONG
-			smaller = parser.NUM
-			bigger = parser.LONG_NUM
+			smaller = NUM
+			bigger = LONG_NUM
 		} else if length < LONGLONG_LEN {
-			return parser.LONG_NUM
+			return LONG_NUM
 		} else if length > LONGLONG_LEN {
 			if length > UNSIGNED_LONGLONG_LEN {
-				return parser.DECIMAL_NUM
+				return DECIMAL_NUM
 			}
 			cmp = UNSIGNED_LONGLONG
-			smaller = parser.ULONGLONG_NUM
-			bigger = parser.DECIMAL_NUM
+			smaller = ULONGLONG_NUM
+			bigger = DECIMAL_NUM
 		} else {
 			cmp = LONGLONG
-			smaller = parser.LONG_NUM
-			bigger = parser.ULONGLONG_NUM
+			smaller = LONG_NUM
+			bigger = ULONGLONG_NUM
 		}
 	}
 
@@ -105,7 +104,7 @@ func (lex *SQLLexer) scanInt(lval *parser.MySQLSymType, c *byte) int {
 	return bigger
 }
 
-func (lex *SQLLexer) scanFloat(lval *parser.MySQLSymType, c *byte) (int, bool) {
+func (lex *SQLLexer) scanFloat(lval *MySQLSymType, c *byte) (int, bool) {
 	cs := lex.cs
 
 	// try match (+|-)? digit+
@@ -119,7 +118,7 @@ func (lex *SQLLexer) scanFloat(lval *parser.MySQLSymType, c *byte) (int, bool) {
 		}
 
 		lval.Bytes = lex.buf[lex.tok_start:lex.ptr]
-		return parser.FLOAT_NUM, true
+		return FLOAT_NUM, true
 	}
 
 	return 0, false

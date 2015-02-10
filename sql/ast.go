@@ -1,4 +1,4 @@
-package ast
+package sql
 
 type IStatement interface {
 	Statement()
