@@ -1,6 +1,8 @@
 package sql
 
-type Select struct{}
+type Select struct {
+	Str string
+}
 
 func (*Select) Statement() {}
 

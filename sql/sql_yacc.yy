@@ -2506,7 +2506,7 @@ opt_ignore_leaves:
 | IGNORE_SYM LEAVES;
 
 select:
-  select_init { $$ = &Select{} };
+  select_init { $$ = &Select{ Str : "Hello" } };
 
 select_init:
   SELECT_SYM select_init2
