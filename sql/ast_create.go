@@ -1,7 +1,7 @@
 package sql
 
 type Create interface {
-	Statement
+	IStatement
 }
 
 type CreateTable struct{}

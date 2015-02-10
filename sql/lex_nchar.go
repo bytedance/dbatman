@@ -2,7 +2,7 @@ package sql
 
 import ()
 
-func (lexer *SQLLexer) scanNChar(lval *parser.MySQLSymType) (int, byte) {
+func (lexer *SQLLexer) scanNChar(lval *MySQLSymType) (int, byte) {
 
 	// found N'string'
 	lexer.yyNext() // Skip '
@@ -13,10 +13,10 @@ func (lexer *SQLLexer) scanNChar(lval *parser.MySQLSymType) (int, byte) {
 	}
 
 	if c != '\'' {
-		return parser.ABORT_SYM, c
+		return ABORT_SYM, c
 	}
 
 	lval.Bytes = lexer.buf[lexer.tok_start:lexer.ptr]
 
-	return parser.NCHAR_STRING, c
+	return NCHAR_STRING, c
 }

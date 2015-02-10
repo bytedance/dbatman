@@ -22,7 +22,7 @@ const NAMES_SEP_CHAR byte = '\377' /* Char to sep. names */
 const MYSQL_VERSION_ID = 50109
 
 // SQLLexer is the struct used to generate SQL
-// tokens for the parser.
+// tokens for the
 type SQLLexer struct {
 	reader *bufio.Reader
 
@@ -49,7 +49,7 @@ type SQLLexer struct {
 
 	errorToken *string
 
-	ParseTree string
+	ParseTree IStatement
 	LastError string
 }
 
@@ -74,7 +74,7 @@ func NewSQLLexer(sql string) *SQLLexer {
 
 // Lex returns the next token form the SQLLexer.
 // This function is used by go yacc.
-func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
+func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 	var result_state int
 	var length uint
@@ -107,7 +107,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 		case MY_LEX_ESCAPE:
 			if lex.yyNext() == 'N' {
 				// Allow \N as shortcut for NULL
-				retstate = parser.NULL_SYM
+				retstate = NULL_SYM
 				goto TG_RET
 			}
 			fallthrough
@@ -127,7 +127,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 			if c == ',' {
 				lex.tok_start = lex.ptr
 			} else if c == '?' && lex.stmt_prepare_mode && ident_map[lex.yyPeek()] != 0 {
-				retstate = parser.PARAM_MARKER
+				retstate = PARAM_MARKER
 				goto TG_RET
 			}
 
@@ -193,7 +193,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
-					retstate = parser.HEX_NUM
+					retstate = HEX_NUM
 					goto TG_RET
 				}
 
@@ -204,7 +204,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 				}
 
 				if lex.ptr-lex.tok_start >= 4 && ident_map[c] == 0 {
-					retstate = parser.BIN_NUM
+					retstate = BIN_NUM
 					goto TG_RET
 				}
 
@@ -220,9 +220,9 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 
 			result_state = result_state & 0x80
 			if result_state != 0 {
-				result_state = parser.IDENT_QUOTED
+				result_state = IDENT_QUOTED
 			} else {
-				result_state = parser.IDENT
+				result_state = IDENT
 			}
 
 			if c == '.' && ident_map[int(lex.yyPeek())] != 0 {
@@ -246,13 +246,13 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 			}
 
 			if c == EOF {
-				retstate = parser.ABORT_SYM
+				retstate = ABORT_SYM
 				goto TG_RET
 			}
 
 			lex.next_state = MY_LEX_START
 			lval.Bytes = lex.buf[lex.tok_start:lex.ptr]
-			retstate = parser.IDENT_QUOTED
+			retstate = IDENT_QUOTED
 			goto TG_RET
 
 		case MY_LEX_INT_OR_REAL:
@@ -277,7 +277,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 			}
 
 			lval.Bytes = lex.buf[lex.tok_start : lex.ptr-1]
-			retstate = parser.DECIMAL_NUM
+			retstate = DECIMAL_NUM
 			goto TG_RET
 		case MY_LEX_HEX_NUMBER:
 			lex.yySkip() // skip '
@@ -287,12 +287,12 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 			length = lex.ptr - lex.tok_start
 
 			if (length&1) == 0 || c != '\'' {
-				retstate = parser.ABORT_SYM
+				retstate = ABORT_SYM
 				goto TG_RET
 			}
 
 			lval.Bytes = lex.buf[lex.tok_start:lex.ptr]
-			retstate = parser.HEX_NUM
+			retstate = HEX_NUM
 			goto TG_RET
 
 		case MY_LEX_BIN_NUMBER:
@@ -302,13 +302,13 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 
 			length = lex.ptr - lex.tok_start
 			if c != '\'' {
-				retstate = parser.ABORT_SYM
+				retstate = ABORT_SYM
 				goto TG_RET
 			}
 
 			lex.yyNext()
 
-			retstate = parser.BIN_NUM
+			retstate = BIN_NUM
 			goto TG_RET
 		case MY_LEX_CMP_OP:
 			if state_map[lex.yyPeek()] == MY_LEX_CMP_OP || state_map[lex.yyPeek()] == MY_LEX_LONG_CMP_OP {
@@ -357,10 +357,10 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 			b, err := lex.getQuotedText()
 			if err != nil {
 				lex.Error(err.Error())
-				retstate = parser.ABORT_SYM
+				retstate = ABORT_SYM
 			} else {
 				lval.Bytes = b
-				retstate = parser.TEXT_STRING
+				retstate = TEXT_STRING
 			}
 			goto TG_RET
 		case MY_LEX_COMMENT:
@@ -419,7 +419,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 				state = MY_LEX_CHAR
 			} else {
 				lex.yySkip()
-				retstate = parser.SET_VAR
+				retstate = SET_VAR
 				goto TG_RET
 			}
 
@@ -432,7 +432,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 		case MY_LEX_EOL:
 			if lex.ptr >= uint(len(lex.buf)) {
 				lex.next_state = MY_LEX_END
-				retstate = parser.END_OF_INPUT
+				retstate = END_OF_INPUT
 				goto TG_RET
 			}
 
@@ -464,7 +464,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 			for c = lex.yyNext(); cs.IsAlnum(c) || c == '.' || c == '_' || c == '$'; c = lex.yyNext() {
 			}
 
-			retstate = parser.LEX_HOSTNAME
+			retstate = LEX_HOSTNAME
 			goto TG_RET
 		case MY_LEX_SYSTEM_VAR:
 			lex.yySkip()
@@ -487,9 +487,9 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 			}
 
 			if result_state&0x80 != 0 {
-				result_state = parser.IDENT_QUOTED
+				result_state = IDENT_QUOTED
 			} else {
-				result_state = parser.IDENT
+				result_state = IDENT
 			}
 
 			if c == '.' {
@@ -498,7 +498,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 
 			length = lex.ptr - lex.tok_start - 1
 			if length == 0 {
-				retstate = parser.ABORT_SYM
+				retstate = ABORT_SYM
 				goto TG_RET
 			}
 
@@ -519,7 +519,7 @@ func (lex *SQLLexer) Lex(lval *parser.MySQLSymType) (retstate int) {
 
 TG_RET:
 
-	DEBUG(fmt.Sprintf("dbg leave with return[%s]\n", parser.TokenName(retstate)))
+	DEBUG(fmt.Sprintf("dbg leave with return[%s]\n", TokenName(retstate)))
 	return
 }
 

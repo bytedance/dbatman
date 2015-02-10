@@ -6,11 +6,11 @@ type IStatement interface {
 
 type (
 	TableInfo struct {
-		Quolifier []byte
+		Qualifier []byte
 		Name      []byte
 	}
 )
 
-func SetParseTree(yylex interface{}, stmt Statement) {
-	yylex.(*Tokenizer).ParseTree = stmt
+func SetParseTree(yylex interface{}, stmt IStatement) {
+	yylex.(*SQLLexer).ParseTree = stmt
 }

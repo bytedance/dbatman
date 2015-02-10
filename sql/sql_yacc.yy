@@ -2,7 +2,7 @@
 
 %{
 
-package parser
+package sql
 
 import (
 )
@@ -12,7 +12,7 @@ import (
 
 %union {
     Bytes []byte
-    statement Statement
+    statement IStatement
     Table *TableInfo
     empty struct{}
 }
@@ -699,7 +699,7 @@ import (
 %type <statement> get_diagnostics resignal_stmt signal_stmt
 
 /* MySQL Utility Statement */
-%type <statement> describe explain help use
+%type <statement> describe help use
 
 %type <Bytes> ident IDENT_sys keyword keyword_sp
 %type <Table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb sp_name
@@ -937,8 +937,8 @@ clear_privileges:
  ;
 
 sp_name:
-  ident '.' ident { $$ = &TableInfo{Qualifier: $1, Name: $2} }
-| ident { $$ = &TableInfo{Qualifier: "", Name: $1} };
+  ident '.' ident { $$ = &TableInfo{Qualifier: $1, Name: $3} }
+| ident { $$ = &TableInfo{Name: $1} };
 
 sp_a_chistics:
  
@@ -1467,7 +1467,7 @@ have_partitioning:
  ;
 
 partition_entry:
-  PARTITION_SYM partition;
+  PARTITION_SYM partition { $$ = &Partition{} };
 
 partition:
   BY part_type_def opt_num_parts opt_sub_part part_defs;
@@ -2161,20 +2161,21 @@ string_list:
 | string_list ',' text_string;
 
 alter:
-  ALTER opt_ignore TABLE_SYM table_ident alter_commands
-| ALTER DATABASE ident_or_empty create_database_options
-| ALTER DATABASE ident UPGRADE_SYM DATA_SYM DIRECTORY_SYM NAME_SYM
-| ALTER PROCEDURE_SYM sp_name sp_a_chistics
-| ALTER FUNCTION_SYM sp_name sp_a_chistics
-| ALTER view_algorithm definer_opt view_tail
-| ALTER definer_opt view_tail
-| ALTER definer_opt EVENT_SYM sp_name ev_alter_on_schedule_completion opt_ev_rename_to opt_ev_status opt_ev_comment opt_ev_sql_stmt
-| ALTER TABLESPACE alter_tablespace_info
-| ALTER LOGFILE_SYM GROUP_SYM alter_logfile_group_info
-| ALTER TABLESPACE change_tablespace_info
-| ALTER TABLESPACE change_tablespace_access
-| ALTER SERVER_SYM ident_or_text OPTIONS_SYM '(' server_options_list ')'
-| ALTER USER clear_privileges alter_user_list;
+  ALTER opt_ignore TABLE_SYM table_ident alter_commands { $$ = &AlterTable{} }
+| ALTER DATABASE ident_or_empty create_database_options { $$ = &AlterDatabase{} }
+| ALTER DATABASE ident UPGRADE_SYM DATA_SYM DIRECTORY_SYM NAME_SYM { $$ = &AlterDatabase{} }
+| ALTER PROCEDURE_SYM sp_name sp_a_chistics { $$ = &AlterProcedure{} }
+| ALTER FUNCTION_SYM sp_name sp_a_chistics { $$ = &AlterFunction{} }
+| ALTER view_algorithm definer_opt view_tail { $$ = &AlterView{} }
+| ALTER definer_opt view_tail { $$ = &AlterView{} }
+| ALTER definer_opt EVENT_SYM sp_name ev_alter_on_schedule_completion opt_ev_rename_to opt_ev_status opt_ev_comment opt_ev_sql_stmt { $$ = &AlterEvent{} }
+| ALTER TABLESPACE alter_tablespace_info { $$ = &AlterTablespace{} }
+| ALTER LOGFILE_SYM GROUP_SYM alter_logfile_group_info { $$ = &AlterLogfile{} }
+| ALTER TABLESPACE change_tablespace_info { $$ = &AlterTablespace{} }
+| ALTER TABLESPACE change_tablespace_access { $$ = &AlterTablespace{} }
+| ALTER SERVER_SYM ident_or_text OPTIONS_SYM '(' server_options_list ')' { $$ = &AlterServer{} }
+| ALTER USER clear_privileges alter_user_list { $$ = &AlterUser{} }
+; 
 
 alter_user_list:
   user PASSWORD EXPIRE_SYM
@@ -2316,11 +2317,12 @@ opt_to:
 | AS;
 
 slave:
-  START_SYM SLAVE opt_slave_thread_option_list slave_until slave_connection_opts
-| STOP_SYM SLAVE opt_slave_thread_option_list;
+  START_SYM SLAVE opt_slave_thread_option_list slave_until slave_connection_opts { $$ = &StartSlave{} }
+| STOP_SYM SLAVE opt_slave_thread_option_list { $$ = &StopSlave{} }
+;
 
 start:
-  START_SYM TRANSACTION_SYM opt_start_transaction_option_list;
+  START_SYM TRANSACTION_SYM opt_start_transaction_option_list { $$ = &Start{} };
 
 opt_start_transaction_option_list:
  
@@ -2378,7 +2380,7 @@ slave_until_opts:
 | SQL_AFTER_MTS_GAPS;
 
 checksum:
-  CHECKSUM_SYM table_or_tables table_list opt_checksum_type;
+  CHECKSUM_SYM table_or_tables table_list opt_checksum_type { $$ = &CheckSum{} } ;
 
 opt_checksum_type:
  
@@ -2386,7 +2388,7 @@ opt_checksum_type:
 | EXTENDED_SYM;
 
 repair:
-  REPAIR opt_no_write_to_binlog table_or_tables table_list opt_mi_repair_type;
+  REPAIR opt_no_write_to_binlog table_or_tables table_list opt_mi_repair_type { $$ = &Repair{} };
 
 opt_mi_repair_type:
  
@@ -2402,13 +2404,13 @@ mi_repair_type:
 | USE_FRM;
 
 analyze:
-  ANALYZE_SYM opt_no_write_to_binlog table_or_tables table_list;
+  ANALYZE_SYM opt_no_write_to_binlog table_or_tables table_list { $$ = &Analyze{} };
 
 binlog_base64_event:
-  BINLOG_SYM TEXT_STRING_sys;
+  BINLOG_SYM TEXT_STRING_sys { $$ = &Binlog{} };
 
 check:
-  CHECK_SYM table_or_tables table_list opt_mi_check_type;
+  CHECK_SYM table_or_tables table_list opt_mi_check_type { $$ = &Check{} } ;
 
 opt_mi_check_type:
  
@@ -2427,7 +2429,7 @@ mi_check_type:
 | FOR_SYM UPGRADE_SYM;
 
 optimize:
-  OPTIMIZE opt_no_write_to_binlog table_or_tables table_list;
+  OPTIMIZE opt_no_write_to_binlog table_or_tables table_list { $$ = &Optimize{} }; 
 
 opt_no_write_to_binlog:
  
@@ -2435,8 +2437,9 @@ opt_no_write_to_binlog:
 | LOCAL_SYM;
 
 rename:
-  RENAME table_or_tables table_to_table_list
-| RENAME USER clear_privileges rename_list;
+  RENAME table_or_tables table_to_table_list { $$ = &RenameTable{} }
+| RENAME USER clear_privileges rename_list { $$ = &RenameUser{} }
+; 
 
 rename_list:
   user TO_SYM user
@@ -2450,7 +2453,7 @@ table_to_table:
   table_ident TO_SYM table_ident;
 
 keycache:
-  CACHE_SYM INDEX_SYM keycache_list_or_parts IN_SYM key_cache_name;
+  CACHE_SYM INDEX_SYM keycache_list_or_parts IN_SYM key_cache_name { $$ = &CacheIndex{} };
 
 keycache_list_or_parts:
   keycache_list
@@ -2471,7 +2474,8 @@ key_cache_name:
 | DEFAULT;
 
 preload:
-  LOAD INDEX_SYM INTO CACHE_SYM preload_list_or_parts;
+  LOAD INDEX_SYM INTO CACHE_SYM preload_list_or_parts { $$ = &LoadIndex{} }
+;
 
 preload_list_or_parts:
   preload_keys_parts
@@ -2502,7 +2506,7 @@ opt_ignore_leaves:
 | IGNORE_SYM LEAVES;
 
 select:
-  select_init;
+  select_init { $$ = &Select{} };
 
 select_init:
   SELECT_SYM select_init2
@@ -3199,22 +3203,23 @@ into_destination:
 | select_var_list_init;
 
 do:
-  DO_SYM expr_list;
+  DO_SYM expr_list { $$ = &Do{} };
 
 drop:
-  DROP opt_temporary table_or_tables if_exists table_list opt_restrict
-| DROP INDEX_SYM ident ON table_ident opt_index_lock_algorithm
-| DROP DATABASE if_exists ident
-| DROP FUNCTION_SYM if_exists ident '.' ident
-| DROP FUNCTION_SYM if_exists ident
-| DROP PROCEDURE_SYM if_exists sp_name
-| DROP USER clear_privileges user_list
-| DROP VIEW_SYM if_exists table_list opt_restrict
-| DROP EVENT_SYM if_exists sp_name
-| DROP TRIGGER_SYM if_exists sp_name
-| DROP TABLESPACE tablespace_name drop_ts_options_list
-| DROP LOGFILE_SYM GROUP_SYM logfile_group_name drop_ts_options_list
-| DROP SERVER_SYM if_exists ident_or_text;
+  DROP opt_temporary table_or_tables if_exists table_list opt_restrict { $$ = &DropTables{} }
+| DROP INDEX_SYM ident ON table_ident opt_index_lock_algorithm { $$ = &DropIndex{} }
+| DROP DATABASE if_exists ident { $$ = &DropDatabase{} }
+| DROP FUNCTION_SYM if_exists ident '.' ident { $$ = &DropFunction{} }
+| DROP FUNCTION_SYM if_exists ident { $$ = &DropFunction{} }
+| DROP PROCEDURE_SYM if_exists sp_name { $$ = &DropProcedure{} }
+| DROP USER clear_privileges user_list { $$ = &DropUser{} }
+| DROP VIEW_SYM if_exists table_list opt_restrict { $$ = &DropView{} }
+| DROP EVENT_SYM if_exists sp_name { $$ = &DropEvent{} }
+| DROP TRIGGER_SYM if_exists sp_name { $$ = &DropTrigger{} }
+| DROP TABLESPACE tablespace_name drop_ts_options_list { $$ = &DropTablespace{} }
+| DROP LOGFILE_SYM GROUP_SYM logfile_group_name drop_ts_options_list { $$ = &DropLogfile{} }
+| DROP SERVER_SYM if_exists ident_or_text { $$ = &DropServer{} }
+;
 
 table_list:
   table_name
@@ -3257,12 +3262,12 @@ drop_ts_option:
 insert:
   INSERT insert_lock_option opt_ignore into_table insert_field_spec opt_insert_update
   {
-    $$ = &Insert{TableInfo: $4}
+    $$ = &Insert{Table: $4}
   }
 ;
 
 replace:
-  REPLACE replace_lock_option into_table insert_field_spec;
+  REPLACE replace_lock_option into_table insert_field_spec { $$ = &Replace{} };
 
 insert_lock_option:
  
@@ -3336,7 +3341,7 @@ opt_insert_update:
 | ON DUPLICATE_SYM KEY_SYM UPDATE_SYM insert_update_list;
 
 update:
-  UPDATE_SYM opt_low_priority opt_ignore join_table_list SET update_list where_clause opt_order_clause delete_limit_clause;
+  UPDATE_SYM opt_low_priority opt_ignore join_table_list SET update_list where_clause opt_order_clause delete_limit_clause { $$ = &Update{} };
 
 update_list:
   update_list ',' update_elem
@@ -3357,7 +3362,8 @@ opt_low_priority:
 | LOW_PRIORITY;
 
 delete:
-  DELETE_SYM opt_delete_options single_multi;
+  DELETE_SYM opt_delete_options single_multi { $$ = &Delete{} }
+;
 
 single_multi:
   FROM table_ident opt_use_partition where_clause opt_order_clause delete_limit_clause
@@ -3386,7 +3392,8 @@ opt_delete_option:
 | IGNORE_SYM;
 
 truncate:
-  TRUNCATE_SYM opt_table_sym table_name;
+  TRUNCATE_SYM opt_table_sym table_name { $$ = &TruncateTable{} }
+;
 
 opt_table_sym:
  
@@ -3416,7 +3423,7 @@ opt_profile_args:
 | FOR_SYM QUERY_SYM NUM;
 
 show:
-  SHOW show_param;
+  SHOW show_param { $$ = &Show{} };
 
 show_param:
   DATABASES wild_and_where
@@ -3502,8 +3509,9 @@ wild_and_where:
 | WHERE expr;
 
 describe:
-  describe_command table_ident opt_describe_column
-| describe_command opt_extended_describe explanable_command;
+  describe_command table_ident opt_describe_column { $$ = &Describe{} }
+| describe_command opt_extended_describe explanable_command { $$ = &Describe{} }
+;
 
 explanable_command:
   select
@@ -3528,7 +3536,7 @@ opt_describe_column:
 | ident;
 
 flush:
-  FLUSH_SYM opt_no_write_to_binlog flush_options;
+  FLUSH_SYM opt_no_write_to_binlog flush_options { $$ = &Flush{} };
 
 flush_options:
   table_or_tables opt_table_list opt_flush_lock
@@ -3563,7 +3571,7 @@ opt_table_list:
 | table_list;
 
 reset:
-  RESET_SYM reset_options;
+  RESET_SYM reset_options { $$ = Reset{} };
 
 reset_options:
   reset_options ',' reset_option
@@ -3579,7 +3587,7 @@ slave_reset_options:
 | ALL;
 
 purge:
-  PURGE purge_options;
+  PURGE purge_options { $$ = &Purge{} };
 
 purge_options:
   master_or_binary LOGS_SYM purge_option;
@@ -3589,7 +3597,7 @@ purge_option:
 | BEFORE_SYM expr;
 
 kill:
-  KILL_SYM kill_option expr;
+  KILL_SYM kill_option expr { $$ = &Kill{} };
 
 kill_option:
  
@@ -3597,10 +3605,14 @@ kill_option:
 | QUERY_SYM;
 
 use:
-  USE_SYM ident;
+  USE_SYM ident { $$ = &Use{} };
 
 load:
-  LOAD data_or_xml load_data_lock opt_local INFILE TEXT_STRING_filesystem opt_duplicate INTO TABLE_SYM table_ident opt_use_partition opt_load_data_charset opt_xml_rows_identified_by opt_field_term opt_line_term opt_ignore_lines opt_field_or_var_spec opt_load_data_set_spec;
+  LOAD data_or_xml load_data_lock opt_local INFILE TEXT_STRING_filesystem opt_duplicate INTO TABLE_SYM table_ident opt_use_partition opt_load_data_charset opt_xml_rows_identified_by opt_field_term opt_line_term opt_ignore_lines opt_field_or_var_spec opt_load_data_set_spec
+  {
+    $$ = &Load{}
+  }  
+;
 
 data_or_xml:
   DATA_SYM
@@ -4159,7 +4171,7 @@ keyword_sp:
 ;
 
 set:
-  SET start_option_value_list;
+  SET start_option_value_list { $$ = &Set{} };
 
 start_option_value_list:
   option_value_no_option_type option_value_list_continued
@@ -4252,7 +4264,7 @@ set_expr_or_default:
 | BINARY;
 
 lock:
-  LOCK_SYM table_or_tables table_lock_list;
+  LOCK_SYM table_or_tables table_lock_list { $$ = &Lock{} };
 
 table_or_tables:
   TABLE_SYM
@@ -4272,12 +4284,14 @@ lock_option:
 | READ_SYM LOCAL_SYM;
 
 unlock:
-  UNLOCK_SYM table_or_tables;
+  UNLOCK_SYM table_or_tables { $$ = &Unlock{} };
 
 handler:
-  HANDLER_SYM table_ident OPEN_SYM opt_table_alias
-| HANDLER_SYM table_ident_nodb CLOSE_SYM
-| HANDLER_SYM table_ident_nodb READ_SYM handler_read_or_scan where_clause opt_limit_clause;
+  HANDLER_SYM table_ident OPEN_SYM opt_table_alias { $$ = &Handler{} }
+| HANDLER_SYM table_ident_nodb CLOSE_SYM { $$ = &Handler{} }
+| HANDLER_SYM table_ident_nodb READ_SYM handler_read_or_scan where_clause opt_limit_clause { $$ = &Handler{} }
+
+;
 
 handler_read_or_scan:
   handler_scan_function
@@ -4302,7 +4316,7 @@ handler_rkey_mode:
 | LT;
 
 revoke:
-  REVOKE clear_privileges revoke_command;
+  REVOKE clear_privileges revoke_command { $$ = &Revoke{} };
 
 revoke_command:
   grant_privileges ON opt_table grant_ident FROM grant_list
@@ -4312,7 +4326,7 @@ revoke_command:
 | PROXY_SYM ON user FROM grant_list;
 
 grant:
-  GRANT clear_privileges grant_command;
+  GRANT clear_privileges grant_command { $$ = &Grant{} };
 
 grant_command:
   grant_privileges ON opt_table grant_ident TO_SYM grant_list require_clause grant_options
@@ -4461,17 +4475,19 @@ opt_savepoint:
 | SAVEPOINT_SYM;
 
 commit:
-  COMMIT_SYM opt_work opt_chain opt_release;
+  COMMIT_SYM opt_work opt_chain opt_release { $$ = &Commit{} };
 
 rollback:
-  ROLLBACK_SYM opt_work opt_chain opt_release
-| ROLLBACK_SYM opt_work TO_SYM opt_savepoint ident;
+  ROLLBACK_SYM opt_work opt_chain opt_release { $$ = &Rollback{} }
+| ROLLBACK_SYM opt_work TO_SYM opt_savepoint ident { $$ = &Rollback{} }
+;
 
 savepoint:
-  SAVEPOINT_SYM ident;
+  SAVEPOINT_SYM ident { $$ = &SavePoint{} }
+;
 
 release:
-  RELEASE_SYM SAVEPOINT_SYM ident;
+  RELEASE_SYM SAVEPOINT_SYM ident { $$ = &Release{} };
 
 union_clause:
  
@@ -4629,12 +4645,13 @@ sp_tail:
   PROCEDURE_SYM remember_name sp_name '(' sp_pdparam_list ')' sp_c_chistics sp_proc_stmt;
 
 xa:
-  XA_SYM begin_or_start xid opt_join_or_resume
-| XA_SYM END xid opt_suspend
-| XA_SYM PREPARE_SYM xid
-| XA_SYM COMMIT_SYM xid opt_one_phase
-| XA_SYM ROLLBACK_SYM xid
-| XA_SYM RECOVER_SYM;
+  XA_SYM begin_or_start xid opt_join_or_resume { $$ = &XA{} }
+| XA_SYM END xid opt_suspend { $$ = &XA{} }
+| XA_SYM PREPARE_SYM xid { $$ = &XA{} }
+| XA_SYM COMMIT_SYM xid opt_one_phase { $$ = &XA{} }
+| XA_SYM ROLLBACK_SYM xid { $$ = &XA{} }
+| XA_SYM RECOVER_SYM { $$ = &XA{} }
+;
 
 xid:
   text_string
@@ -4663,9 +4680,10 @@ opt_migrate:
 | FOR_SYM MIGRATE_SYM;
 
 install:
-  INSTALL_SYM PLUGIN_SYM ident SONAME_SYM TEXT_STRING_sys;
+  INSTALL_SYM PLUGIN_SYM ident SONAME_SYM TEXT_STRING_sys { $$ = &Install{} }
+;
 
 uninstall:
-  UNINSTALL_SYM PLUGIN_SYM ident;
-
+  UNINSTALL_SYM PLUGIN_SYM ident { $$ = &Uninstall{} }
+;
 %%
