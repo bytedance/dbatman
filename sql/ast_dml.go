@@ -1,7 +1,6 @@
 package sql
 
 type Select struct {
-	Str string
 }
 
 func (*Select) Statement() {}
