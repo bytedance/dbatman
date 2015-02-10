@@ -10,3 +10,7 @@ type (
 		Name      []byte
 	}
 )
+
+func SetParseTree(yylex interface{}, stmt Statement) {
+	yylex.(*Tokenizer).ParseTree = stmt
+}
