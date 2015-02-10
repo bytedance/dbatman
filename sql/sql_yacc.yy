@@ -3571,7 +3571,7 @@ opt_table_list:
 | table_list;
 
 reset:
-  RESET_SYM reset_options { $$ = Reset{} };
+  RESET_SYM reset_options { $$ = &Reset{} };
 
 reset_options:
   reset_options ',' reset_option
@@ -3768,16 +3768,16 @@ field_ident:
 | '.' ident;
 
 table_ident:
-  ident { $$ = &Table{Qualifier: "", Name: $1} }
-| ident '.' ident { $$ = &Table{Qualifier: $1, Name: $2} }
-| '.' ident { $$ = &Table{Qualifier: "", Name: $2} } ;
+  ident { $$ = &TableInfo{Name: $1} }
+| ident '.' ident { $$ = &TableInfo{Qualifier: $1, Name: $3} }
+| '.' ident { $$ = &TableInfo{Name: $2} } ;
 
 table_ident_opt_wild:
   ident opt_wild
 | ident '.' ident opt_wild;
 
 table_ident_nodb:
-  ident { $$ = &Table{Quolifier: "", Name: $1} };
+  ident { $$ = &TableInfo{Name: $1} };
 
 IDENT_sys:
   IDENT { $$ = $1 }

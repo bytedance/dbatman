@@ -43,3 +43,7 @@ func (*DropServer) Statement() {}
 type DropEvent struct{}
 
 func (*DropEvent) Statement() {}
+
+type DropUser struct{}
+
+func (*DropUser) Statement() {}

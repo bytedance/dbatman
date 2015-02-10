@@ -33,3 +33,11 @@ func (*Call) Statement() {}
 type Do struct{}
 
 func (*Do) Statement() {}
+
+type Load struct{}
+
+func (*Load) Statement() {}
+
+type Handler struct{}
+
+func (*Handler) Statement() {}

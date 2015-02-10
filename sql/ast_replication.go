@@ -4,6 +4,10 @@ type Change struct{}
 
 func (*Change) Statement() {}
 
+type Purge struct{}
+
+func (*Purge) Statement() {}
+
 type StartSlave struct{}
 
 func (*StartSlave) Statement() {}

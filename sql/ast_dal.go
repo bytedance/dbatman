@@ -39,3 +39,31 @@ func (*LoadIndex) Statement() {}
 type Binlog struct{}
 
 func (*Binlog) Statement() {}
+
+type Flush struct{}
+
+func (*Flush) Statement() {}
+
+type Kill struct{}
+
+func (*Kill) Statement() {}
+
+type Reset struct{}
+
+func (*Reset) Statement() {}
+
+type Install struct{}
+
+func (*Install) Statement() {}
+
+type Uninstall struct{}
+
+func (*Uninstall) Statement() {}
+
+type Revoke struct{}
+
+func (*Revoke) Statement() {}
+
+type Grant struct{}
+
+func (*Grant) Statement() {}
