@@ -11,8 +11,8 @@ func testTextParse(t *testing.T, str string, mode SQLMode) {
 		t.Fatalf("parse text failed. return[%s]", TokenName(r))
 	}
 
-	if string(lval.Bytes) != str {
-		t.Fatalf("orgin[%s] not match parsed[%s]", str, string(lval.Bytes))
+	if string(lval.bytes) != str {
+		t.Fatalf("orgin[%s] not match parsed[%s]", str, string(lval.bytes))
 	}
 }
 
@@ -76,8 +76,8 @@ func lexExpect(t *testing.T, lexer *SQLLexer, lval *MySQLSymType, expect int) {
 }
 
 func lvalExpect(t *testing.T, lval *MySQLSymType, expect string) {
-	if string(lval.Bytes) != expect {
-		t.Fatalf("expect[%s] return[%s]", expect, string(lval.Bytes))
+	if string(lval.bytes) != expect {
+		t.Fatalf("expect[%s] return[%s]", expect, string(lval.bytes))
 	}
 }
 

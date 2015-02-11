@@ -11,9 +11,10 @@ import (
 
 
 %union {
-    Bytes []byte
+    bytes []byte
     statement IStatement
-    Table *TableInfo
+    table *TableInfo
+    spname *Spname
     empty struct{}
 }
 
@@ -35,623 +36,623 @@ import (
 */
 
 %token  ABORT_SYM                     /* INTERNAL (used in lex) */
-%token<Bytes>  ACCESSIBLE_SYM
-%token<Bytes>  ACTION                        /* SQL-2003-N */
-%token<Bytes>  ADD                           /* SQL-2003-R */
-%token<Bytes>  ADDDATE_SYM                   /* MYSQL-FUNC */
-%token<Bytes>  AFTER_SYM                     /* SQL-2003-N */
-%token<Bytes>  AGAINST
-%token<Bytes>  AGGREGATE_SYM
-%token<Bytes>  ALGORITHM_SYM
-%token<Bytes>  ALL                           /* SQL-2003-R */
-%token<Bytes>  ALTER                         /* SQL-2003-R */
-%token<Bytes>  ANALYSE_SYM
-%token<Bytes>  ANALYZE_SYM
-%token<Bytes>  AND_AND_SYM                   /* OPERATOR */
-%token<Bytes>  AND_SYM                       /* SQL-2003-R */
-%token<Bytes>  ANY_SYM                       /* SQL-2003-R */
-%token<Bytes>  AS                            /* SQL-2003-R */
-%token<Bytes>  ASC                           /* SQL-2003-N */
-%token<Bytes>  ASCII_SYM                     /* MYSQL-FUNC */
-%token<Bytes>  ASENSITIVE_SYM                /* FUTURE-USE */
-%token<Bytes>  AT_SYM                        /* SQL-2003-R */
-%token<Bytes>  AUTOEXTEND_SIZE_SYM
-%token<Bytes>  AUTO_INC
-%token<Bytes>  AVG_ROW_LENGTH
-%token<Bytes>  AVG_SYM                       /* SQL-2003-N */
-%token<Bytes>  BACKUP_SYM
-%token<Bytes>  BEFORE_SYM                    /* SQL-2003-N */
-%token<Bytes>  BEGIN_SYM                     /* SQL-2003-R */
-%token<Bytes>  BETWEEN_SYM                   /* SQL-2003-R */
-%token<Bytes>  BIGINT                        /* SQL-2003-R */
-%token<Bytes>  BINARY                        /* SQL-2003-R */
-%token<Bytes>  BINLOG_SYM
-%token<Bytes>  BIN_NUM
-%token<Bytes>  BIT_AND                       /* MYSQL-FUNC */
-%token<Bytes>  BIT_OR                        /* MYSQL-FUNC */
-%token<Bytes>  BIT_SYM                       /* MYSQL-FUNC */
-%token<Bytes>  BIT_XOR                       /* MYSQL-FUNC */
-%token<Bytes>  BLOB_SYM                      /* SQL-2003-R */
-%token<Bytes>  BLOCK_SYM
-%token<Bytes>  BOOLEAN_SYM                   /* SQL-2003-R */
-%token<Bytes>  BOOL_SYM
-%token<Bytes>  BOTH                          /* SQL-2003-R */
-%token<Bytes>  BTREE_SYM
-%token<Bytes>  BY                            /* SQL-2003-R */
-%token<Bytes>  BYTE_SYM
-%token<Bytes>  CACHE_SYM
-%token<Bytes>  CALL_SYM                      /* SQL-2003-R */
-%token<Bytes>  CASCADE                       /* SQL-2003-N */
-%token<Bytes>  CASCADED                      /* SQL-2003-R */
-%token<Bytes>  CASE_SYM                      /* SQL-2003-R */
-%token<Bytes>  CAST_SYM                      /* SQL-2003-R */
-%token<Bytes>  CATALOG_NAME_SYM              /* SQL-2003-N */
-%token<Bytes>  CHAIN_SYM                     /* SQL-2003-N */
-%token<Bytes>  CHANGE
-%token<Bytes>  CHANGED
-%token<Bytes>  CHARSET
-%token<Bytes>  CHAR_SYM                      /* SQL-2003-R */
-%token<Bytes>  CHECKSUM_SYM
-%token<Bytes>  CHECK_SYM                     /* SQL-2003-R */
-%token<Bytes>  CIPHER_SYM
-%token<Bytes>  CLASS_ORIGIN_SYM              /* SQL-2003-N */
-%token<Bytes>  CLIENT_SYM
-%token<Bytes>  CLOSE_SYM                     /* SQL-2003-R */
-%token<Bytes>  COALESCE                      /* SQL-2003-N */
-%token<Bytes>  CODE_SYM
-%token<Bytes>  COLLATE_SYM                   /* SQL-2003-R */
-%token<Bytes>  COLLATION_SYM                 /* SQL-2003-N */
-%token<Bytes>  COLUMNS
-%token<Bytes>  COLUMN_SYM                    /* SQL-2003-R */
-%token<Bytes>  COLUMN_FORMAT_SYM
-%token<Bytes>  COLUMN_NAME_SYM               /* SQL-2003-N */
-%token<Bytes>  COMMENT_SYM
-%token<Bytes>  COMMITTED_SYM                 /* SQL-2003-N */
-%token<Bytes>  COMMIT_SYM                    /* SQL-2003-R */
-%token<Bytes>  COMPACT_SYM
-%token<Bytes>  COMPLETION_SYM
-%token<Bytes>  COMPRESSED_SYM
-%token<Bytes>  CONCURRENT
-%token<Bytes>  CONDITION_SYM                 /* SQL-2003-R, SQL-2008-R */
-%token<Bytes>  CONNECTION_SYM
-%token<Bytes>  CONSISTENT_SYM
-%token<Bytes>  CONSTRAINT                    /* SQL-2003-R */
-%token<Bytes>  CONSTRAINT_CATALOG_SYM        /* SQL-2003-N */
-%token<Bytes>  CONSTRAINT_NAME_SYM           /* SQL-2003-N */
-%token<Bytes>  CONSTRAINT_SCHEMA_SYM         /* SQL-2003-N */
-%token<Bytes>  CONTAINS_SYM                  /* SQL-2003-N */
-%token<Bytes>  CONTEXT_SYM
-%token<Bytes>  CONTINUE_SYM                  /* SQL-2003-R */
-%token<Bytes>  CONVERT_SYM                   /* SQL-2003-N */
-%token<Bytes>  COUNT_SYM                     /* SQL-2003-N */
-%token<Bytes>  CPU_SYM
-%token<Bytes>  CREATE                        /* SQL-2003-R */
-%token<Bytes>  CROSS                         /* SQL-2003-R */
-%token<Bytes>  CUBE_SYM                      /* SQL-2003-R */
-%token<Bytes>  CURDATE                       /* MYSQL-FUNC */
-%token<Bytes>  CURRENT_SYM                   /* SQL-2003-R */
-%token<Bytes>  CURRENT_USER                  /* SQL-2003-R */
-%token<Bytes>  CURSOR_SYM                    /* SQL-2003-R */
-%token<Bytes>  CURSOR_NAME_SYM               /* SQL-2003-N */
-%token<Bytes>  CURTIME                       /* MYSQL-FUNC */
-%token<Bytes>  DATABASE
-%token<Bytes>  DATABASES
-%token<Bytes>  DATAFILE_SYM
-%token<Bytes>  DATA_SYM                      /* SQL-2003-N */
-%token<Bytes>  DATETIME
-%token<Bytes>  DATE_ADD_INTERVAL             /* MYSQL-FUNC */
-%token<Bytes>  DATE_SUB_INTERVAL             /* MYSQL-FUNC */
-%token<Bytes>  DATE_SYM                      /* SQL-2003-R */
-%token<Bytes>  DAY_HOUR_SYM
-%token<Bytes>  DAY_MICROSECOND_SYM
-%token<Bytes>  DAY_MINUTE_SYM
-%token<Bytes>  DAY_SECOND_SYM
-%token<Bytes>  DAY_SYM                       /* SQL-2003-R */
-%token<Bytes>  DEALLOCATE_SYM                /* SQL-2003-R */
-%token<Bytes>  DECIMAL_NUM
-%token<Bytes>  DECIMAL_SYM                   /* SQL-2003-R */
-%token<Bytes>  DECLARE_SYM                   /* SQL-2003-R */
-%token<Bytes>  DEFAULT                       /* SQL-2003-R */
-%token<Bytes>  DEFAULT_AUTH_SYM              /* INTERNAL */
-%token<Bytes>  DEFINER_SYM
-%token<Bytes>  DELAYED_SYM
-%token<Bytes>  DELAY_KEY_WRITE_SYM
-%token<Bytes>  DELETE_SYM                    /* SQL-2003-R */
-%token<Bytes>  DESC                          /* SQL-2003-N */
-%token<Bytes>  DESCRIBE                      /* SQL-2003-R */
-%token<Bytes>  DES_KEY_FILE
-%token<Bytes>  DETERMINISTIC_SYM             /* SQL-2003-R */
-%token<Bytes>  DIAGNOSTICS_SYM               /* SQL-2003-N */
-%token<Bytes>  DIRECTORY_SYM
-%token<Bytes>  DISABLE_SYM
-%token<Bytes>  DISCARD
-%token<Bytes>  DISK_SYM
-%token<Bytes>  DISTINCT                      /* SQL-2003-R */
-%token<Bytes>  DIV_SYM
-%token<Bytes>  DOUBLE_SYM                    /* SQL-2003-R */
-%token<Bytes>  DO_SYM
-%token<Bytes>  DROP                          /* SQL-2003-R */
-%token<Bytes>  DUAL_SYM
-%token<Bytes>  DUMPFILE
-%token<Bytes>  DUPLICATE_SYM
-%token<Bytes>  DYNAMIC_SYM                   /* SQL-2003-R */
-%token<Bytes>  EACH_SYM                      /* SQL-2003-R */
-%token<Bytes>  ELSE                          /* SQL-2003-R */
-%token<Bytes>  ELSEIF_SYM
-%token<Bytes>  ENABLE_SYM
-%token<Bytes>  ENCLOSED
-%token<Bytes>  END                           /* SQL-2003-R */
-%token<Bytes>  ENDS_SYM
-%token<Bytes>  END_OF_INPUT                  /* INTERNAL */
-%token<Bytes>  ENGINES_SYM
-%token<Bytes>  ENGINE_SYM
-%token<Bytes>  ENUM
-%token<Bytes>  EQ                            /* OPERATOR */
-%token<Bytes>  EQUAL_SYM                     /* OPERATOR */
-%token<Bytes>  ERROR_SYM
-%token<Bytes>  ERRORS
-%token<Bytes>  ESCAPED
-%token<Bytes>  ESCAPE_SYM                    /* SQL-2003-R */
-%token<Bytes>  EVENTS_SYM
-%token<Bytes>  EVENT_SYM
-%token<Bytes>  EVERY_SYM                     /* SQL-2003-N */
-%token<Bytes>  EXCHANGE_SYM
-%token<Bytes>  EXECUTE_SYM                   /* SQL-2003-R */
-%token<Bytes>  EXISTS                        /* SQL-2003-R */
-%token<Bytes>  EXIT_SYM
-%token<Bytes>  EXPANSION_SYM
-%token<Bytes>  EXPIRE_SYM
-%token<Bytes>  EXPORT_SYM
-%token<Bytes>  EXTENDED_SYM
-%token<Bytes>  EXTENT_SIZE_SYM
-%token<Bytes>  EXTRACT_SYM                   /* SQL-2003-N */
-%token<Bytes>  FALSE_SYM                     /* SQL-2003-R */
-%token<Bytes>  FAST_SYM
-%token<Bytes>  FAULTS_SYM
-%token<Bytes>  FETCH_SYM                     /* SQL-2003-R */
-%token<Bytes>  FILE_SYM
-%token<Bytes>  FIRST_SYM                     /* SQL-2003-N */
-%token<Bytes>  FIXED_SYM
-%token<Bytes>  FLOAT_NUM
-%token<Bytes>  FLOAT_SYM                     /* SQL-2003-R */
-%token<Bytes>  FLUSH_SYM
-%token<Bytes>  FORCE_SYM
-%token<Bytes>  FOREIGN                       /* SQL-2003-R */
-%token<Bytes>  FOR_SYM                       /* SQL-2003-R */
-%token<Bytes>  FORMAT_SYM
-%token<Bytes>  FOUND_SYM                     /* SQL-2003-R */
-%token<Bytes>  FROM
-%token<Bytes>  FULL                          /* SQL-2003-R */
-%token<Bytes>  FULLTEXT_SYM
-%token<Bytes>  FUNCTION_SYM                  /* SQL-2003-R */
-%token<Bytes>  GE
-%token<Bytes>  GENERAL
-%token<Bytes>  GEOMETRYCOLLECTION
-%token<Bytes>  GEOMETRY_SYM
-%token<Bytes>  GET_FORMAT                    /* MYSQL-FUNC */
-%token<Bytes>  GET_SYM                       /* SQL-2003-R */
-%token<Bytes>  GLOBAL_SYM                    /* SQL-2003-R */
-%token<Bytes>  GRANT                         /* SQL-2003-R */
-%token<Bytes>  GRANTS
-%token<Bytes>  GROUP_SYM                     /* SQL-2003-R */
-%token<Bytes>  GROUP_CONCAT_SYM
-%token<Bytes>  GT_SYM                        /* OPERATOR */
-%token<Bytes>  HANDLER_SYM
-%token<Bytes>  HASH_SYM
-%token<Bytes>  HAVING                        /* SQL-2003-R */
-%token<Bytes>  HELP_SYM
-%token<Bytes>  HEX_NUM
-%token<Bytes>  HIGH_PRIORITY
-%token<Bytes>  HOST_SYM
-%token<Bytes>  HOSTS_SYM
-%token<Bytes>  HOUR_MICROSECOND_SYM
-%token<Bytes>  HOUR_MINUTE_SYM
-%token<Bytes>  HOUR_SECOND_SYM
-%token<Bytes>  HOUR_SYM                      /* SQL-2003-R */
-%token<Bytes>  IDENT
-%token<Bytes>  IDENTIFIED_SYM
-%token<Bytes>  IDENT_QUOTED
-%token<Bytes>  IF
-%token<Bytes>  IGNORE_SYM
-%token<Bytes>  IGNORE_SERVER_IDS_SYM
-%token<Bytes>  IMPORT
-%token<Bytes>  INDEXES
-%token<Bytes>  INDEX_SYM
-%token<Bytes>  INFILE
-%token<Bytes>  INITIAL_SIZE_SYM
-%token<Bytes>  INNER_SYM                     /* SQL-2003-R */
-%token<Bytes>  INOUT_SYM                     /* SQL-2003-R */
-%token<Bytes>  INSENSITIVE_SYM               /* SQL-2003-R */
-%token<Bytes>  INSERT                        /* SQL-2003-R */
-%token<Bytes>  INSERT_METHOD
-%token<Bytes>  INSTALL_SYM
-%token<Bytes>  INTERVAL_SYM                  /* SQL-2003-R */
-%token<Bytes>  INTO                          /* SQL-2003-R */
-%token<Bytes>  INT_SYM                       /* SQL-2003-R */
-%token<Bytes>  INVOKER_SYM
-%token<Bytes>  IN_SYM                        /* SQL-2003-R */
-%token<Bytes>  IO_AFTER_GTIDS                /* MYSQL, FUTURE-USE */
-%token<Bytes>  IO_BEFORE_GTIDS               /* MYSQL, FUTURE-USE */
-%token<Bytes>  IO_SYM
-%token<Bytes>  IPC_SYM
-%token<Bytes>  IS                            /* SQL-2003-R */
-%token<Bytes>  ISOLATION                     /* SQL-2003-R */
-%token<Bytes>  ISSUER_SYM
-%token<Bytes>  ITERATE_SYM
-%token<Bytes>  JOIN_SYM                      /* SQL-2003-R */
-%token<Bytes>  KEYS
-%token<Bytes>  KEY_BLOCK_SIZE
-%token<Bytes>  KEY_SYM                       /* SQL-2003-N */
-%token<Bytes>  KILL_SYM
-%token<Bytes>  LANGUAGE_SYM                  /* SQL-2003-R */
-%token<Bytes>  LAST_SYM                      /* SQL-2003-N */
-%token<Bytes>  LE                            /* OPERATOR */
-%token<Bytes>  LEADING                       /* SQL-2003-R */
-%token<Bytes>  LEAVES
-%token<Bytes>  LEAVE_SYM
-%token<Bytes>  LEFT                          /* SQL-2003-R */
-%token<Bytes>  LESS_SYM
-%token<Bytes>  LEVEL_SYM
-%token<Bytes>  LEX_HOSTNAME
-%token<Bytes>  LIKE                          /* SQL-2003-R */
-%token<Bytes>  LIMIT
-%token<Bytes>  LINEAR_SYM
-%token<Bytes>  LINES
-%token<Bytes>  LINESTRING
-%token<Bytes>  LIST_SYM
-%token<Bytes>  LOAD
-%token<Bytes>  LOCAL_SYM                     /* SQL-2003-R */
-%token<Bytes>  LOCATOR_SYM                   /* SQL-2003-N */
-%token<Bytes>  LOCKS_SYM
-%token<Bytes>  LOCK_SYM
-%token<Bytes>  LOGFILE_SYM
-%token<Bytes>  LOGS_SYM
-%token<Bytes>  LONGBLOB
-%token<Bytes>  LONGTEXT
-%token<Bytes>  LONG_NUM
-%token<Bytes>  LONG_SYM
-%token<Bytes>  LOOP_SYM
-%token<Bytes>  LOW_PRIORITY
-%token<Bytes>  LT                            /* OPERATOR */
-%token<Bytes>  MASTER_AUTO_POSITION_SYM
-%token<Bytes>  MASTER_BIND_SYM
-%token<Bytes>  MASTER_CONNECT_RETRY_SYM
-%token<Bytes>  MASTER_DELAY_SYM
-%token<Bytes>  MASTER_HOST_SYM
-%token<Bytes>  MASTER_LOG_FILE_SYM
-%token<Bytes>  MASTER_LOG_POS_SYM
-%token<Bytes>  MASTER_PASSWORD_SYM
-%token<Bytes>  MASTER_PORT_SYM
-%token<Bytes>  MASTER_RETRY_COUNT_SYM
-%token<Bytes>  MASTER_SERVER_ID_SYM
-%token<Bytes>  MASTER_SSL_CAPATH_SYM
-%token<Bytes>  MASTER_SSL_CA_SYM
-%token<Bytes>  MASTER_SSL_CERT_SYM
-%token<Bytes>  MASTER_SSL_CIPHER_SYM
-%token<Bytes>  MASTER_SSL_CRL_SYM
-%token<Bytes>  MASTER_SSL_CRLPATH_SYM
-%token<Bytes>  MASTER_SSL_KEY_SYM
-%token<Bytes>  MASTER_SSL_SYM
-%token<Bytes>  MASTER_SSL_VERIFY_SERVER_CERT_SYM
-%token<Bytes>  MASTER_SYM
-%token<Bytes>  MASTER_USER_SYM
-%token<Bytes>  MASTER_HEARTBEAT_PERIOD_SYM
-%token<Bytes>  MATCH                         /* SQL-2003-R */
-%token<Bytes>  MAX_CONNECTIONS_PER_HOUR
-%token<Bytes>  MAX_QUERIES_PER_HOUR
-%token<Bytes>  MAX_ROWS
-%token<Bytes>  MAX_SIZE_SYM
-%token<Bytes>  MAX_SYM                       /* SQL-2003-N */
-%token<Bytes>  MAX_UPDATES_PER_HOUR
-%token<Bytes>  MAX_USER_CONNECTIONS_SYM
-%token<Bytes>  MAX_VALUE_SYM                 /* SQL-2003-N */
-%token<Bytes>  MEDIUMBLOB
-%token<Bytes>  MEDIUMINT
-%token<Bytes>  MEDIUMTEXT
-%token<Bytes>  MEDIUM_SYM
-%token<Bytes>  MEMORY_SYM
-%token<Bytes>  MERGE_SYM                     /* SQL-2003-R */
-%token<Bytes>  MESSAGE_TEXT_SYM              /* SQL-2003-N */
-%token<Bytes>  MICROSECOND_SYM               /* MYSQL-FUNC */
-%token<Bytes>  MIGRATE_SYM
-%token<Bytes>  MINUTE_MICROSECOND_SYM
-%token<Bytes>  MINUTE_SECOND_SYM
-%token<Bytes>  MINUTE_SYM                    /* SQL-2003-R */
-%token<Bytes>  MIN_ROWS
-%token<Bytes>  MIN_SYM                       /* SQL-2003-N */
-%token<Bytes>  MODE_SYM
-%token<Bytes>  MODIFIES_SYM                  /* SQL-2003-R */
-%token<Bytes>  MODIFY_SYM
-%token<Bytes>  MOD_SYM                       /* SQL-2003-N */
-%token<Bytes>  MONTH_SYM                     /* SQL-2003-R */
-%token<Bytes>  MULTILINESTRING
-%token<Bytes>  MULTIPOINT
-%token<Bytes>  MULTIPOLYGON
-%token<Bytes>  MUTEX_SYM
-%token<Bytes>  MYSQL_ERRNO_SYM
-%token<Bytes>  NAMES_SYM                     /* SQL-2003-N */
-%token<Bytes>  NAME_SYM                      /* SQL-2003-N */
-%token<Bytes>  NATIONAL_SYM                  /* SQL-2003-R */
-%token<Bytes>  NATURAL                       /* SQL-2003-R */
-%token<Bytes>  NCHAR_STRING
-%token<Bytes>  NCHAR_SYM                     /* SQL-2003-R */
-%token<Bytes>  NDBCLUSTER_SYM
-%token<Bytes>  NE                            /* OPERATOR */
-%token<Bytes>  NEG
-%token<Bytes>  NEW_SYM                       /* SQL-2003-R */
-%token<Bytes>  NEXT_SYM                      /* SQL-2003-N */
-%token<Bytes>  NODEGROUP_SYM
-%token<Bytes>  NONE_SYM                      /* SQL-2003-R */
-%token<Bytes>  NOT2_SYM
-%token<Bytes>  NOT_SYM                       /* SQL-2003-R */
-%token<Bytes>  NOW_SYM
-%token<Bytes>  NO_SYM                        /* SQL-2003-R */
-%token<Bytes>  NO_WAIT_SYM
-%token<Bytes>  NO_WRITE_TO_BINLOG
-%token<Bytes>  NULL_SYM                      /* SQL-2003-R */
-%token<Bytes>  NUM
-%token<Bytes>  NUMBER_SYM                    /* SQL-2003-N */
-%token<Bytes>  NUMERIC_SYM                   /* SQL-2003-R */
-%token<Bytes>  NVARCHAR_SYM
-%token<Bytes>  OFFSET_SYM
-%token<Bytes>  OLD_PASSWORD
-%token<Bytes>  ON                            /* SQL-2003-R */
-%token<Bytes>  ONE_SYM
-%token<Bytes>  ONLY_SYM                      /* SQL-2003-R */
-%token<Bytes>  OPEN_SYM                      /* SQL-2003-R */
-%token<Bytes>  OPTIMIZE
-%token<Bytes>  OPTIONS_SYM
-%token<Bytes>  OPTION                        /* SQL-2003-N */
-%token<Bytes>  OPTIONALLY
-%token<Bytes>  OR2_SYM
-%token<Bytes>  ORDER_SYM                     /* SQL-2003-R */
-%token<Bytes>  OR_OR_SYM                     /* OPERATOR */
-%token<Bytes>  OR_SYM                        /* SQL-2003-R */
-%token<Bytes>  OUTER
-%token<Bytes>  OUTFILE
-%token<Bytes>  OUT_SYM                       /* SQL-2003-R */
-%token<Bytes>  OWNER_SYM
-%token<Bytes>  PACK_KEYS_SYM
-%token<Bytes>  PAGE_SYM
-%token<Bytes>  PARAM_MARKER
-%token<Bytes>  PARSER_SYM
-%token<Bytes>  PARTIAL                       /* SQL-2003-N */
-%token<Bytes>  PARTITION_SYM                 /* SQL-2003-R */
-%token<Bytes>  PARTITIONS_SYM
-%token<Bytes>  PARTITIONING_SYM
-%token<Bytes>  PASSWORD
-%token<Bytes>  PHASE_SYM
-%token<Bytes>  PLUGIN_DIR_SYM                /* INTERNAL */
-%token<Bytes>  PLUGIN_SYM
-%token<Bytes>  PLUGINS_SYM
-%token<Bytes>  POINT_SYM
-%token<Bytes>  POLYGON
-%token<Bytes>  PORT_SYM
-%token<Bytes>  POSITION_SYM                  /* SQL-2003-N */
-%token<Bytes>  PRECISION                     /* SQL-2003-R */
-%token<Bytes>  PREPARE_SYM                   /* SQL-2003-R */
-%token<Bytes>  PRESERVE_SYM
-%token<Bytes>  PREV_SYM
-%token<Bytes>  PRIMARY_SYM                   /* SQL-2003-R */
-%token<Bytes>  PRIVILEGES                    /* SQL-2003-N */
-%token<Bytes>  PROCEDURE_SYM                 /* SQL-2003-R */
-%token<Bytes>  PROCESS
-%token<Bytes>  PROCESSLIST_SYM
-%token<Bytes>  PROFILE_SYM
-%token<Bytes>  PROFILES_SYM
-%token<Bytes>  PROXY_SYM
-%token<Bytes>  PURGE
-%token<Bytes>  QUARTER_SYM
-%token<Bytes>  QUERY_SYM
-%token<Bytes>  QUICK
-%token<Bytes>  RANGE_SYM                     /* SQL-2003-R */
-%token<Bytes>  READS_SYM                     /* SQL-2003-R */
-%token<Bytes>  READ_ONLY_SYM
-%token<Bytes>  READ_SYM                      /* SQL-2003-N */
-%token<Bytes>  READ_WRITE_SYM
-%token<Bytes>  REAL                          /* SQL-2003-R */
-%token<Bytes>  REBUILD_SYM
-%token<Bytes>  RECOVER_SYM
-%token<Bytes>  REDOFILE_SYM
-%token<Bytes>  REDO_BUFFER_SIZE_SYM
-%token<Bytes>  REDUNDANT_SYM
-%token<Bytes>  REFERENCES                    /* SQL-2003-R */
-%token<Bytes>  REGEXP
-%token<Bytes>  RELAY
-%token<Bytes>  RELAYLOG_SYM
-%token<Bytes>  RELAY_LOG_FILE_SYM
-%token<Bytes>  RELAY_LOG_POS_SYM
-%token<Bytes>  RELAY_THREAD
-%token<Bytes>  RELEASE_SYM                   /* SQL-2003-R */
-%token<Bytes>  RELOAD
-%token<Bytes>  REMOVE_SYM
-%token<Bytes>  RENAME
-%token<Bytes>  REORGANIZE_SYM
-%token<Bytes>  REPAIR
-%token<Bytes>  REPEATABLE_SYM                /* SQL-2003-N */
-%token<Bytes>  REPEAT_SYM                    /* MYSQL-FUNC */
-%token<Bytes>  REPLACE                       /* MYSQL-FUNC */
-%token<Bytes>  REPLICATION
-%token<Bytes>  REQUIRE_SYM
-%token<Bytes>  RESET_SYM
-%token<Bytes>  RESIGNAL_SYM                  /* SQL-2003-R */
-%token<Bytes>  RESOURCES
-%token<Bytes>  RESTORE_SYM
-%token<Bytes>  RESTRICT
-%token<Bytes>  RESUME_SYM
-%token<Bytes>  RETURNED_SQLSTATE_SYM         /* SQL-2003-N */
-%token<Bytes>  RETURNS_SYM                   /* SQL-2003-R */
-%token<Bytes>  RETURN_SYM                    /* SQL-2003-R */
-%token<Bytes>  REVERSE_SYM
-%token<Bytes>  REVOKE                        /* SQL-2003-R */
-%token<Bytes>  RIGHT                         /* SQL-2003-R */
-%token<Bytes>  ROLLBACK_SYM                  /* SQL-2003-R */
-%token<Bytes>  ROLLUP_SYM                    /* SQL-2003-R */
-%token<Bytes>  ROUTINE_SYM                   /* SQL-2003-N */
-%token<Bytes>  ROWS_SYM                      /* SQL-2003-R */
-%token<Bytes>  ROW_FORMAT_SYM
-%token<Bytes>  ROW_SYM                       /* SQL-2003-R */
-%token<Bytes>  ROW_COUNT_SYM                 /* SQL-2003-N */
-%token<Bytes>  RTREE_SYM
-%token<Bytes>  SAVEPOINT_SYM                 /* SQL-2003-R */
-%token<Bytes>  SCHEDULE_SYM
-%token<Bytes>  SCHEMA_NAME_SYM               /* SQL-2003-N */
-%token<Bytes>  SECOND_MICROSECOND_SYM
-%token<Bytes>  SECOND_SYM                    /* SQL-2003-R */
-%token<Bytes>  SECURITY_SYM                  /* SQL-2003-N */
-%token<Bytes>  SELECT_SYM                    /* SQL-2003-R */
-%token<Bytes>  SENSITIVE_SYM                 /* FUTURE-USE */
-%token<Bytes>  SEPARATOR_SYM
-%token<Bytes>  SERIALIZABLE_SYM              /* SQL-2003-N */
-%token<Bytes>  SERIAL_SYM
-%token<Bytes>  SESSION_SYM                   /* SQL-2003-N */
-%token<Bytes>  SERVER_SYM
-%token<Bytes>  SERVER_OPTIONS
-%token<Bytes>  SET                           /* SQL-2003-R */
-%token<Bytes>  SET_VAR
-%token<Bytes>  SHARE_SYM
-%token<Bytes>  SHIFT_LEFT                    /* OPERATOR */
-%token<Bytes>  SHIFT_RIGHT                   /* OPERATOR */
-%token<Bytes>  SHOW
-%token<Bytes>  SHUTDOWN
-%token<Bytes>  SIGNAL_SYM                    /* SQL-2003-R */
-%token<Bytes>  SIGNED_SYM
-%token<Bytes>  SIMPLE_SYM                    /* SQL-2003-N */
-%token<Bytes>  SLAVE
-%token<Bytes>  SLOW
-%token<Bytes>  SMALLINT                      /* SQL-2003-R */
-%token<Bytes>  SNAPSHOT_SYM
-%token<Bytes>  SOCKET_SYM
-%token<Bytes>  SONAME_SYM
-%token<Bytes>  SOUNDS_SYM
-%token<Bytes>  SOURCE_SYM
-%token<Bytes>  SPATIAL_SYM
-%token<Bytes>  SPECIFIC_SYM                  /* SQL-2003-R */
-%token<Bytes>  SQLEXCEPTION_SYM              /* SQL-2003-R */
-%token<Bytes>  SQLSTATE_SYM                  /* SQL-2003-R */
-%token<Bytes>  SQLWARNING_SYM                /* SQL-2003-R */
-%token<Bytes>  SQL_AFTER_GTIDS               /* MYSQL */
-%token<Bytes>  SQL_AFTER_MTS_GAPS            /* MYSQL */
-%token<Bytes>  SQL_BEFORE_GTIDS              /* MYSQL */
-%token<Bytes>  SQL_BIG_RESULT
-%token<Bytes>  SQL_BUFFER_RESULT
-%token<Bytes>  SQL_CACHE_SYM
-%token<Bytes>  SQL_CALC_FOUND_ROWS
-%token<Bytes>  SQL_NO_CACHE_SYM
-%token<Bytes>  SQL_SMALL_RESULT
-%token<Bytes>  SQL_SYM                       /* SQL-2003-R */
-%token<Bytes>  SQL_THREAD
-%token<Bytes>  SSL_SYM
-%token<Bytes>  STARTING
-%token<Bytes>  STARTS_SYM
-%token<Bytes>  START_SYM                     /* SQL-2003-R */
-%token<Bytes>  STATS_AUTO_RECALC_SYM
-%token<Bytes>  STATS_PERSISTENT_SYM
-%token<Bytes>  STATS_SAMPLE_PAGES_SYM
-%token<Bytes>  STATUS_SYM
-%token<Bytes>  STDDEV_SAMP_SYM               /* SQL-2003-N */
-%token<Bytes>  STD_SYM
-%token<Bytes>  STOP_SYM
-%token<Bytes>  STORAGE_SYM
-%token<Bytes>  STRAIGHT_JOIN
-%token<Bytes>  STRING_SYM
-%token<Bytes>  SUBCLASS_ORIGIN_SYM           /* SQL-2003-N */
-%token<Bytes>  SUBDATE_SYM
-%token<Bytes>  SUBJECT_SYM
-%token<Bytes>  SUBPARTITIONS_SYM
-%token<Bytes>  SUBPARTITION_SYM
-%token<Bytes>  SUBSTRING                     /* SQL-2003-N */
-%token<Bytes>  SUM_SYM                       /* SQL-2003-N */
-%token<Bytes>  SUPER_SYM
-%token<Bytes>  SUSPEND_SYM
-%token<Bytes>  SWAPS_SYM
-%token<Bytes>  SWITCHES_SYM
-%token<Bytes>  SYSDATE
-%token<Bytes>  TABLES
-%token<Bytes>  TABLESPACE
-%token<Bytes>  TABLE_REF_PRIORITY
-%token<Bytes>  TABLE_SYM                     /* SQL-2003-R */
-%token<Bytes>  TABLE_CHECKSUM_SYM
-%token<Bytes>  TABLE_NAME_SYM                /* SQL-2003-N */
-%token<Bytes>  TEMPORARY                     /* SQL-2003-N */
-%token<Bytes>  TEMPTABLE_SYM
-%token<Bytes>  TERMINATED
-%token<Bytes>  TEXT_STRING
-%token<Bytes>  TEXT_SYM
-%token<Bytes>  THAN_SYM
-%token<Bytes>  THEN_SYM                      /* SQL-2003-R */
-%token<Bytes>  TIMESTAMP                     /* SQL-2003-R */
-%token<Bytes>  TIMESTAMP_ADD
-%token<Bytes>  TIMESTAMP_DIFF
-%token<Bytes>  TIME_SYM                      /* SQL-2003-R */
-%token<Bytes>  TINYBLOB
-%token<Bytes>  TINYINT
-%token<Bytes>  TINYTEXT
-%token<Bytes>  TO_SYM                        /* SQL-2003-R */
-%token<Bytes>  TRAILING                      /* SQL-2003-R */
-%token<Bytes>  TRANSACTION_SYM
-%token<Bytes>  TRIGGERS_SYM
-%token<Bytes>  TRIGGER_SYM                   /* SQL-2003-R */
-%token<Bytes>  TRIM                          /* SQL-2003-N */
-%token<Bytes>  TRUE_SYM                      /* SQL-2003-R */
-%token<Bytes>  TRUNCATE_SYM
-%token<Bytes>  TYPES_SYM
-%token<Bytes>  TYPE_SYM                      /* SQL-2003-N */
-%token<Bytes>  UDF_RETURNS_SYM
-%token<Bytes>  ULONGLONG_NUM
-%token<Bytes>  UNCOMMITTED_SYM               /* SQL-2003-N */
-%token<Bytes>  UNDEFINED_SYM
-%token<Bytes>  UNDERSCORE_CHARSET
-%token<Bytes>  UNDOFILE_SYM
-%token<Bytes>  UNDO_BUFFER_SIZE_SYM
-%token<Bytes>  UNDO_SYM                      /* FUTURE-USE */
-%token<Bytes>  UNICODE_SYM
-%token<Bytes>  UNINSTALL_SYM
-%token<Bytes>  UNION_SYM                     /* SQL-2003-R */
-%token<Bytes>  UNIQUE_SYM
-%token<Bytes>  UNKNOWN_SYM                   /* SQL-2003-R */
-%token<Bytes>  UNLOCK_SYM
-%token<Bytes>  UNSIGNED
-%token<Bytes>  UNTIL_SYM
-%token<Bytes>  UPDATE_SYM                    /* SQL-2003-R */
-%token<Bytes>  UPGRADE_SYM
-%token<Bytes>  USAGE                         /* SQL-2003-N */
-%token<Bytes>  USER                          /* SQL-2003-R */
-%token<Bytes>  USE_FRM
-%token<Bytes>  USE_SYM
-%token<Bytes>  USING                         /* SQL-2003-R */
-%token<Bytes>  UTC_DATE_SYM
-%token<Bytes>  UTC_TIMESTAMP_SYM
-%token<Bytes>  UTC_TIME_SYM
-%token<Bytes>  VALUES                        /* SQL-2003-R */
-%token<Bytes>  VALUE_SYM                     /* SQL-2003-R */
-%token<Bytes>  VARBINARY
-%token<Bytes>  VARCHAR                       /* SQL-2003-R */
-%token<Bytes>  VARIABLES
-%token<Bytes>  VARIANCE_SYM
-%token<Bytes>  VARYING                       /* SQL-2003-R */
-%token<Bytes>  VAR_SAMP_SYM
-%token<Bytes>  VIEW_SYM                      /* SQL-2003-N */
-%token<Bytes>  WAIT_SYM
-%token<Bytes>  WARNINGS
-%token<Bytes>  WEEK_SYM
-%token<Bytes>  WEIGHT_STRING_SYM
-%token<Bytes>  WHEN_SYM                      /* SQL-2003-R */
-%token<Bytes>  WHERE                         /* SQL-2003-R */
-%token<Bytes>  WHILE_SYM
-%token<Bytes>  WITH                          /* SQL-2003-R */
-%token<Bytes>  WITH_CUBE_SYM                 /* INTERNAL */
-%token<Bytes>  WITH_ROLLUP_SYM               /* INTERNAL */
-%token<Bytes>  WORK_SYM                      /* SQL-2003-N */
-%token<Bytes>  WRAPPER_SYM
-%token<Bytes>  WRITE_SYM                     /* SQL-2003-N */
-%token<Bytes>  X509_SYM
-%token<Bytes>  XA_SYM
-%token<Bytes>  XML_SYM
-%token<Bytes>  XOR
-%token<Bytes>  YEAR_MONTH_SYM
-%token<Bytes>  YEAR_SYM                      /* SQL-2003-R */
-%token<Bytes>  ZEROFILL
+%token<bytes>  ACCESSIBLE_SYM
+%token<bytes>  ACTION                        /* SQL-2003-N */
+%token<bytes>  ADD                           /* SQL-2003-R */
+%token<bytes>  ADDDATE_SYM                   /* MYSQL-FUNC */
+%token<bytes>  AFTER_SYM                     /* SQL-2003-N */
+%token<bytes>  AGAINST
+%token<bytes>  AGGREGATE_SYM
+%token<bytes>  ALGORITHM_SYM
+%token<bytes>  ALL                           /* SQL-2003-R */
+%token<bytes>  ALTER                         /* SQL-2003-R */
+%token<bytes>  ANALYSE_SYM
+%token<bytes>  ANALYZE_SYM
+%token<bytes>  AND_AND_SYM                   /* OPERATOR */
+%token<bytes>  AND_SYM                       /* SQL-2003-R */
+%token<bytes>  ANY_SYM                       /* SQL-2003-R */
+%token<bytes>  AS                            /* SQL-2003-R */
+%token<bytes>  ASC                           /* SQL-2003-N */
+%token<bytes>  ASCII_SYM                     /* MYSQL-FUNC */
+%token<bytes>  ASENSITIVE_SYM                /* FUTURE-USE */
+%token<bytes>  AT_SYM                        /* SQL-2003-R */
+%token<bytes>  AUTOEXTEND_SIZE_SYM
+%token<bytes>  AUTO_INC
+%token<bytes>  AVG_ROW_LENGTH
+%token<bytes>  AVG_SYM                       /* SQL-2003-N */
+%token<bytes>  BACKUP_SYM
+%token<bytes>  BEFORE_SYM                    /* SQL-2003-N */
+%token<bytes>  BEGIN_SYM                     /* SQL-2003-R */
+%token<bytes>  BETWEEN_SYM                   /* SQL-2003-R */
+%token<bytes>  BIGINT                        /* SQL-2003-R */
+%token<bytes>  BINARY                        /* SQL-2003-R */
+%token<bytes>  BINLOG_SYM
+%token<bytes>  BIN_NUM
+%token<bytes>  BIT_AND                       /* MYSQL-FUNC */
+%token<bytes>  BIT_OR                        /* MYSQL-FUNC */
+%token<bytes>  BIT_SYM                       /* MYSQL-FUNC */
+%token<bytes>  BIT_XOR                       /* MYSQL-FUNC */
+%token<bytes>  BLOB_SYM                      /* SQL-2003-R */
+%token<bytes>  BLOCK_SYM
+%token<bytes>  BOOLEAN_SYM                   /* SQL-2003-R */
+%token<bytes>  BOOL_SYM
+%token<bytes>  BOTH                          /* SQL-2003-R */
+%token<bytes>  BTREE_SYM
+%token<bytes>  BY                            /* SQL-2003-R */
+%token<bytes>  BYTE_SYM
+%token<bytes>  CACHE_SYM
+%token<bytes>  CALL_SYM                      /* SQL-2003-R */
+%token<bytes>  CASCADE                       /* SQL-2003-N */
+%token<bytes>  CASCADED                      /* SQL-2003-R */
+%token<bytes>  CASE_SYM                      /* SQL-2003-R */
+%token<bytes>  CAST_SYM                      /* SQL-2003-R */
+%token<bytes>  CATALOG_NAME_SYM              /* SQL-2003-N */
+%token<bytes>  CHAIN_SYM                     /* SQL-2003-N */
+%token<bytes>  CHANGE
+%token<bytes>  CHANGED
+%token<bytes>  CHARSET
+%token<bytes>  CHAR_SYM                      /* SQL-2003-R */
+%token<bytes>  CHECKSUM_SYM
+%token<bytes>  CHECK_SYM                     /* SQL-2003-R */
+%token<bytes>  CIPHER_SYM
+%token<bytes>  CLASS_ORIGIN_SYM              /* SQL-2003-N */
+%token<bytes>  CLIENT_SYM
+%token<bytes>  CLOSE_SYM                     /* SQL-2003-R */
+%token<bytes>  COALESCE                      /* SQL-2003-N */
+%token<bytes>  CODE_SYM
+%token<bytes>  COLLATE_SYM                   /* SQL-2003-R */
+%token<bytes>  COLLATION_SYM                 /* SQL-2003-N */
+%token<bytes>  COLUMNS
+%token<bytes>  COLUMN_SYM                    /* SQL-2003-R */
+%token<bytes>  COLUMN_FORMAT_SYM
+%token<bytes>  COLUMN_NAME_SYM               /* SQL-2003-N */
+%token<bytes>  COMMENT_SYM
+%token<bytes>  COMMITTED_SYM                 /* SQL-2003-N */
+%token<bytes>  COMMIT_SYM                    /* SQL-2003-R */
+%token<bytes>  COMPACT_SYM
+%token<bytes>  COMPLETION_SYM
+%token<bytes>  COMPRESSED_SYM
+%token<bytes>  CONCURRENT
+%token<bytes>  CONDITION_SYM                 /* SQL-2003-R, SQL-2008-R */
+%token<bytes>  CONNECTION_SYM
+%token<bytes>  CONSISTENT_SYM
+%token<bytes>  CONSTRAINT                    /* SQL-2003-R */
+%token<bytes>  CONSTRAINT_CATALOG_SYM        /* SQL-2003-N */
+%token<bytes>  CONSTRAINT_NAME_SYM           /* SQL-2003-N */
+%token<bytes>  CONSTRAINT_SCHEMA_SYM         /* SQL-2003-N */
+%token<bytes>  CONTAINS_SYM                  /* SQL-2003-N */
+%token<bytes>  CONTEXT_SYM
+%token<bytes>  CONTINUE_SYM                  /* SQL-2003-R */
+%token<bytes>  CONVERT_SYM                   /* SQL-2003-N */
+%token<bytes>  COUNT_SYM                     /* SQL-2003-N */
+%token<bytes>  CPU_SYM
+%token<bytes>  CREATE                        /* SQL-2003-R */
+%token<bytes>  CROSS                         /* SQL-2003-R */
+%token<bytes>  CUBE_SYM                      /* SQL-2003-R */
+%token<bytes>  CURDATE                       /* MYSQL-FUNC */
+%token<bytes>  CURRENT_SYM                   /* SQL-2003-R */
+%token<bytes>  CURRENT_USER                  /* SQL-2003-R */
+%token<bytes>  CURSOR_SYM                    /* SQL-2003-R */
+%token<bytes>  CURSOR_NAME_SYM               /* SQL-2003-N */
+%token<bytes>  CURTIME                       /* MYSQL-FUNC */
+%token<bytes>  DATABASE
+%token<bytes>  DATABASES
+%token<bytes>  DATAFILE_SYM
+%token<bytes>  DATA_SYM                      /* SQL-2003-N */
+%token<bytes>  DATETIME
+%token<bytes>  DATE_ADD_INTERVAL             /* MYSQL-FUNC */
+%token<bytes>  DATE_SUB_INTERVAL             /* MYSQL-FUNC */
+%token<bytes>  DATE_SYM                      /* SQL-2003-R */
+%token<bytes>  DAY_HOUR_SYM
+%token<bytes>  DAY_MICROSECOND_SYM
+%token<bytes>  DAY_MINUTE_SYM
+%token<bytes>  DAY_SECOND_SYM
+%token<bytes>  DAY_SYM                       /* SQL-2003-R */
+%token<bytes>  DEALLOCATE_SYM                /* SQL-2003-R */
+%token<bytes>  DECIMAL_NUM
+%token<bytes>  DECIMAL_SYM                   /* SQL-2003-R */
+%token<bytes>  DECLARE_SYM                   /* SQL-2003-R */
+%token<bytes>  DEFAULT                       /* SQL-2003-R */
+%token<bytes>  DEFAULT_AUTH_SYM              /* INTERNAL */
+%token<bytes>  DEFINER_SYM
+%token<bytes>  DELAYED_SYM
+%token<bytes>  DELAY_KEY_WRITE_SYM
+%token<bytes>  DELETE_SYM                    /* SQL-2003-R */
+%token<bytes>  DESC                          /* SQL-2003-N */
+%token<bytes>  DESCRIBE                      /* SQL-2003-R */
+%token<bytes>  DES_KEY_FILE
+%token<bytes>  DETERMINISTIC_SYM             /* SQL-2003-R */
+%token<bytes>  DIAGNOSTICS_SYM               /* SQL-2003-N */
+%token<bytes>  DIRECTORY_SYM
+%token<bytes>  DISABLE_SYM
+%token<bytes>  DISCARD
+%token<bytes>  DISK_SYM
+%token<bytes>  DISTINCT                      /* SQL-2003-R */
+%token<bytes>  DIV_SYM
+%token<bytes>  DOUBLE_SYM                    /* SQL-2003-R */
+%token<bytes>  DO_SYM
+%token<bytes>  DROP                          /* SQL-2003-R */
+%token<bytes>  DUAL_SYM
+%token<bytes>  DUMPFILE
+%token<bytes>  DUPLICATE_SYM
+%token<bytes>  DYNAMIC_SYM                   /* SQL-2003-R */
+%token<bytes>  EACH_SYM                      /* SQL-2003-R */
+%token<bytes>  ELSE                          /* SQL-2003-R */
+%token<bytes>  ELSEIF_SYM
+%token<bytes>  ENABLE_SYM
+%token<bytes>  ENCLOSED
+%token<bytes>  END                           /* SQL-2003-R */
+%token<bytes>  ENDS_SYM
+%token<bytes>  END_OF_INPUT                  /* INTERNAL */
+%token<bytes>  ENGINES_SYM
+%token<bytes>  ENGINE_SYM
+%token<bytes>  ENUM
+%token<bytes>  EQ                            /* OPERATOR */
+%token<bytes>  EQUAL_SYM                     /* OPERATOR */
+%token<bytes>  ERROR_SYM
+%token<bytes>  ERRORS
+%token<bytes>  ESCAPED
+%token<bytes>  ESCAPE_SYM                    /* SQL-2003-R */
+%token<bytes>  EVENTS_SYM
+%token<bytes>  EVENT_SYM
+%token<bytes>  EVERY_SYM                     /* SQL-2003-N */
+%token<bytes>  EXCHANGE_SYM
+%token<bytes>  EXECUTE_SYM                   /* SQL-2003-R */
+%token<bytes>  EXISTS                        /* SQL-2003-R */
+%token<bytes>  EXIT_SYM
+%token<bytes>  EXPANSION_SYM
+%token<bytes>  EXPIRE_SYM
+%token<bytes>  EXPORT_SYM
+%token<bytes>  EXTENDED_SYM
+%token<bytes>  EXTENT_SIZE_SYM
+%token<bytes>  EXTRACT_SYM                   /* SQL-2003-N */
+%token<bytes>  FALSE_SYM                     /* SQL-2003-R */
+%token<bytes>  FAST_SYM
+%token<bytes>  FAULTS_SYM
+%token<bytes>  FETCH_SYM                     /* SQL-2003-R */
+%token<bytes>  FILE_SYM
+%token<bytes>  FIRST_SYM                     /* SQL-2003-N */
+%token<bytes>  FIXED_SYM
+%token<bytes>  FLOAT_NUM
+%token<bytes>  FLOAT_SYM                     /* SQL-2003-R */
+%token<bytes>  FLUSH_SYM
+%token<bytes>  FORCE_SYM
+%token<bytes>  FOREIGN                       /* SQL-2003-R */
+%token<bytes>  FOR_SYM                       /* SQL-2003-R */
+%token<bytes>  FORMAT_SYM
+%token<bytes>  FOUND_SYM                     /* SQL-2003-R */
+%token<bytes>  FROM
+%token<bytes>  FULL                          /* SQL-2003-R */
+%token<bytes>  FULLTEXT_SYM
+%token<bytes>  FUNCTION_SYM                  /* SQL-2003-R */
+%token<bytes>  GE
+%token<bytes>  GENERAL
+%token<bytes>  GEOMETRYCOLLECTION
+%token<bytes>  GEOMETRY_SYM
+%token<bytes>  GET_FORMAT                    /* MYSQL-FUNC */
+%token<bytes>  GET_SYM                       /* SQL-2003-R */
+%token<bytes>  GLOBAL_SYM                    /* SQL-2003-R */
+%token<bytes>  GRANT                         /* SQL-2003-R */
+%token<bytes>  GRANTS
+%token<bytes>  GROUP_SYM                     /* SQL-2003-R */
+%token<bytes>  GROUP_CONCAT_SYM
+%token<bytes>  GT_SYM                        /* OPERATOR */
+%token<bytes>  HANDLER_SYM
+%token<bytes>  HASH_SYM
+%token<bytes>  HAVING                        /* SQL-2003-R */
+%token<bytes>  HELP_SYM
+%token<bytes>  HEX_NUM
+%token<bytes>  HIGH_PRIORITY
+%token<bytes>  HOST_SYM
+%token<bytes>  HOSTS_SYM
+%token<bytes>  HOUR_MICROSECOND_SYM
+%token<bytes>  HOUR_MINUTE_SYM
+%token<bytes>  HOUR_SECOND_SYM
+%token<bytes>  HOUR_SYM                      /* SQL-2003-R */
+%token<bytes>  IDENT
+%token<bytes>  IDENTIFIED_SYM
+%token<bytes>  IDENT_QUOTED
+%token<bytes>  IF
+%token<bytes>  IGNORE_SYM
+%token<bytes>  IGNORE_SERVER_IDS_SYM
+%token<bytes>  IMPORT
+%token<bytes>  INDEXES
+%token<bytes>  INDEX_SYM
+%token<bytes>  INFILE
+%token<bytes>  INITIAL_SIZE_SYM
+%token<bytes>  INNER_SYM                     /* SQL-2003-R */
+%token<bytes>  INOUT_SYM                     /* SQL-2003-R */
+%token<bytes>  INSENSITIVE_SYM               /* SQL-2003-R */
+%token<bytes>  INSERT                        /* SQL-2003-R */
+%token<bytes>  INSERT_METHOD
+%token<bytes>  INSTALL_SYM
+%token<bytes>  INTERVAL_SYM                  /* SQL-2003-R */
+%token<bytes>  INTO                          /* SQL-2003-R */
+%token<bytes>  INT_SYM                       /* SQL-2003-R */
+%token<bytes>  INVOKER_SYM
+%token<bytes>  IN_SYM                        /* SQL-2003-R */
+%token<bytes>  IO_AFTER_GTIDS                /* MYSQL, FUTURE-USE */
+%token<bytes>  IO_BEFORE_GTIDS               /* MYSQL, FUTURE-USE */
+%token<bytes>  IO_SYM
+%token<bytes>  IPC_SYM
+%token<bytes>  IS                            /* SQL-2003-R */
+%token<bytes>  ISOLATION                     /* SQL-2003-R */
+%token<bytes>  ISSUER_SYM
+%token<bytes>  ITERATE_SYM
+%token<bytes>  JOIN_SYM                      /* SQL-2003-R */
+%token<bytes>  KEYS
+%token<bytes>  KEY_BLOCK_SIZE
+%token<bytes>  KEY_SYM                       /* SQL-2003-N */
+%token<bytes>  KILL_SYM
+%token<bytes>  LANGUAGE_SYM                  /* SQL-2003-R */
+%token<bytes>  LAST_SYM                      /* SQL-2003-N */
+%token<bytes>  LE                            /* OPERATOR */
+%token<bytes>  LEADING                       /* SQL-2003-R */
+%token<bytes>  LEAVES
+%token<bytes>  LEAVE_SYM
+%token<bytes>  LEFT                          /* SQL-2003-R */
+%token<bytes>  LESS_SYM
+%token<bytes>  LEVEL_SYM
+%token<bytes>  LEX_HOSTNAME
+%token<bytes>  LIKE                          /* SQL-2003-R */
+%token<bytes>  LIMIT
+%token<bytes>  LINEAR_SYM
+%token<bytes>  LINES
+%token<bytes>  LINESTRING
+%token<bytes>  LIST_SYM
+%token<bytes>  LOAD
+%token<bytes>  LOCAL_SYM                     /* SQL-2003-R */
+%token<bytes>  LOCATOR_SYM                   /* SQL-2003-N */
+%token<bytes>  LOCKS_SYM
+%token<bytes>  LOCK_SYM
+%token<bytes>  LOGFILE_SYM
+%token<bytes>  LOGS_SYM
+%token<bytes>  LONGBLOB
+%token<bytes>  LONGTEXT
+%token<bytes>  LONG_NUM
+%token<bytes>  LONG_SYM
+%token<bytes>  LOOP_SYM
+%token<bytes>  LOW_PRIORITY
+%token<bytes>  LT                            /* OPERATOR */
+%token<bytes>  MASTER_AUTO_POSITION_SYM
+%token<bytes>  MASTER_BIND_SYM
+%token<bytes>  MASTER_CONNECT_RETRY_SYM
+%token<bytes>  MASTER_DELAY_SYM
+%token<bytes>  MASTER_HOST_SYM
+%token<bytes>  MASTER_LOG_FILE_SYM
+%token<bytes>  MASTER_LOG_POS_SYM
+%token<bytes>  MASTER_PASSWORD_SYM
+%token<bytes>  MASTER_PORT_SYM
+%token<bytes>  MASTER_RETRY_COUNT_SYM
+%token<bytes>  MASTER_SERVER_ID_SYM
+%token<bytes>  MASTER_SSL_CAPATH_SYM
+%token<bytes>  MASTER_SSL_CA_SYM
+%token<bytes>  MASTER_SSL_CERT_SYM
+%token<bytes>  MASTER_SSL_CIPHER_SYM
+%token<bytes>  MASTER_SSL_CRL_SYM
+%token<bytes>  MASTER_SSL_CRLPATH_SYM
+%token<bytes>  MASTER_SSL_KEY_SYM
+%token<bytes>  MASTER_SSL_SYM
+%token<bytes>  MASTER_SSL_VERIFY_SERVER_CERT_SYM
+%token<bytes>  MASTER_SYM
+%token<bytes>  MASTER_USER_SYM
+%token<bytes>  MASTER_HEARTBEAT_PERIOD_SYM
+%token<bytes>  MATCH                         /* SQL-2003-R */
+%token<bytes>  MAX_CONNECTIONS_PER_HOUR
+%token<bytes>  MAX_QUERIES_PER_HOUR
+%token<bytes>  MAX_ROWS
+%token<bytes>  MAX_SIZE_SYM
+%token<bytes>  MAX_SYM                       /* SQL-2003-N */
+%token<bytes>  MAX_UPDATES_PER_HOUR
+%token<bytes>  MAX_USER_CONNECTIONS_SYM
+%token<bytes>  MAX_VALUE_SYM                 /* SQL-2003-N */
+%token<bytes>  MEDIUMBLOB
+%token<bytes>  MEDIUMINT
+%token<bytes>  MEDIUMTEXT
+%token<bytes>  MEDIUM_SYM
+%token<bytes>  MEMORY_SYM
+%token<bytes>  MERGE_SYM                     /* SQL-2003-R */
+%token<bytes>  MESSAGE_TEXT_SYM              /* SQL-2003-N */
+%token<bytes>  MICROSECOND_SYM               /* MYSQL-FUNC */
+%token<bytes>  MIGRATE_SYM
+%token<bytes>  MINUTE_MICROSECOND_SYM
+%token<bytes>  MINUTE_SECOND_SYM
+%token<bytes>  MINUTE_SYM                    /* SQL-2003-R */
+%token<bytes>  MIN_ROWS
+%token<bytes>  MIN_SYM                       /* SQL-2003-N */
+%token<bytes>  MODE_SYM
+%token<bytes>  MODIFIES_SYM                  /* SQL-2003-R */
+%token<bytes>  MODIFY_SYM
+%token<bytes>  MOD_SYM                       /* SQL-2003-N */
+%token<bytes>  MONTH_SYM                     /* SQL-2003-R */
+%token<bytes>  MULTILINESTRING
+%token<bytes>  MULTIPOINT
+%token<bytes>  MULTIPOLYGON
+%token<bytes>  MUTEX_SYM
+%token<bytes>  MYSQL_ERRNO_SYM
+%token<bytes>  NAMES_SYM                     /* SQL-2003-N */
+%token<bytes>  NAME_SYM                      /* SQL-2003-N */
+%token<bytes>  NATIONAL_SYM                  /* SQL-2003-R */
+%token<bytes>  NATURAL                       /* SQL-2003-R */
+%token<bytes>  NCHAR_STRING
+%token<bytes>  NCHAR_SYM                     /* SQL-2003-R */
+%token<bytes>  NDBCLUSTER_SYM
+%token<bytes>  NE                            /* OPERATOR */
+%token<bytes>  NEG
+%token<bytes>  NEW_SYM                       /* SQL-2003-R */
+%token<bytes>  NEXT_SYM                      /* SQL-2003-N */
+%token<bytes>  NODEGROUP_SYM
+%token<bytes>  NONE_SYM                      /* SQL-2003-R */
+%token<bytes>  NOT2_SYM
+%token<bytes>  NOT_SYM                       /* SQL-2003-R */
+%token<bytes>  NOW_SYM
+%token<bytes>  NO_SYM                        /* SQL-2003-R */
+%token<bytes>  NO_WAIT_SYM
+%token<bytes>  NO_WRITE_TO_BINLOG
+%token<bytes>  NULL_SYM                      /* SQL-2003-R */
+%token<bytes>  NUM
+%token<bytes>  NUMBER_SYM                    /* SQL-2003-N */
+%token<bytes>  NUMERIC_SYM                   /* SQL-2003-R */
+%token<bytes>  NVARCHAR_SYM
+%token<bytes>  OFFSET_SYM
+%token<bytes>  OLD_PASSWORD
+%token<bytes>  ON                            /* SQL-2003-R */
+%token<bytes>  ONE_SYM
+%token<bytes>  ONLY_SYM                      /* SQL-2003-R */
+%token<bytes>  OPEN_SYM                      /* SQL-2003-R */
+%token<bytes>  OPTIMIZE
+%token<bytes>  OPTIONS_SYM
+%token<bytes>  OPTION                        /* SQL-2003-N */
+%token<bytes>  OPTIONALLY
+%token<bytes>  OR2_SYM
+%token<bytes>  ORDER_SYM                     /* SQL-2003-R */
+%token<bytes>  OR_OR_SYM                     /* OPERATOR */
+%token<bytes>  OR_SYM                        /* SQL-2003-R */
+%token<bytes>  OUTER
+%token<bytes>  OUTFILE
+%token<bytes>  OUT_SYM                       /* SQL-2003-R */
+%token<bytes>  OWNER_SYM
+%token<bytes>  PACK_KEYS_SYM
+%token<bytes>  PAGE_SYM
+%token<bytes>  PARAM_MARKER
+%token<bytes>  PARSER_SYM
+%token<bytes>  PARTIAL                       /* SQL-2003-N */
+%token<bytes>  PARTITION_SYM                 /* SQL-2003-R */
+%token<bytes>  PARTITIONS_SYM
+%token<bytes>  PARTITIONING_SYM
+%token<bytes>  PASSWORD
+%token<bytes>  PHASE_SYM
+%token<bytes>  PLUGIN_DIR_SYM                /* INTERNAL */
+%token<bytes>  PLUGIN_SYM
+%token<bytes>  PLUGINS_SYM
+%token<bytes>  POINT_SYM
+%token<bytes>  POLYGON
+%token<bytes>  PORT_SYM
+%token<bytes>  POSITION_SYM                  /* SQL-2003-N */
+%token<bytes>  PRECISION                     /* SQL-2003-R */
+%token<bytes>  PREPARE_SYM                   /* SQL-2003-R */
+%token<bytes>  PRESERVE_SYM
+%token<bytes>  PREV_SYM
+%token<bytes>  PRIMARY_SYM                   /* SQL-2003-R */
+%token<bytes>  PRIVILEGES                    /* SQL-2003-N */
+%token<bytes>  PROCEDURE_SYM                 /* SQL-2003-R */
+%token<bytes>  PROCESS
+%token<bytes>  PROCESSLIST_SYM
+%token<bytes>  PROFILE_SYM
+%token<bytes>  PROFILES_SYM
+%token<bytes>  PROXY_SYM
+%token<bytes>  PURGE
+%token<bytes>  QUARTER_SYM
+%token<bytes>  QUERY_SYM
+%token<bytes>  QUICK
+%token<bytes>  RANGE_SYM                     /* SQL-2003-R */
+%token<bytes>  READS_SYM                     /* SQL-2003-R */
+%token<bytes>  READ_ONLY_SYM
+%token<bytes>  READ_SYM                      /* SQL-2003-N */
+%token<bytes>  READ_WRITE_SYM
+%token<bytes>  REAL                          /* SQL-2003-R */
+%token<bytes>  REBUILD_SYM
+%token<bytes>  RECOVER_SYM
+%token<bytes>  REDOFILE_SYM
+%token<bytes>  REDO_BUFFER_SIZE_SYM
+%token<bytes>  REDUNDANT_SYM
+%token<bytes>  REFERENCES                    /* SQL-2003-R */
+%token<bytes>  REGEXP
+%token<bytes>  RELAY
+%token<bytes>  RELAYLOG_SYM
+%token<bytes>  RELAY_LOG_FILE_SYM
+%token<bytes>  RELAY_LOG_POS_SYM
+%token<bytes>  RELAY_THREAD
+%token<bytes>  RELEASE_SYM                   /* SQL-2003-R */
+%token<bytes>  RELOAD
+%token<bytes>  REMOVE_SYM
+%token<bytes>  RENAME
+%token<bytes>  REORGANIZE_SYM
+%token<bytes>  REPAIR
+%token<bytes>  REPEATABLE_SYM                /* SQL-2003-N */
+%token<bytes>  REPEAT_SYM                    /* MYSQL-FUNC */
+%token<bytes>  REPLACE                       /* MYSQL-FUNC */
+%token<bytes>  REPLICATION
+%token<bytes>  REQUIRE_SYM
+%token<bytes>  RESET_SYM
+%token<bytes>  RESIGNAL_SYM                  /* SQL-2003-R */
+%token<bytes>  RESOURCES
+%token<bytes>  RESTORE_SYM
+%token<bytes>  RESTRICT
+%token<bytes>  RESUME_SYM
+%token<bytes>  RETURNED_SQLSTATE_SYM         /* SQL-2003-N */
+%token<bytes>  RETURNS_SYM                   /* SQL-2003-R */
+%token<bytes>  RETURN_SYM                    /* SQL-2003-R */
+%token<bytes>  REVERSE_SYM
+%token<bytes>  REVOKE                        /* SQL-2003-R */
+%token<bytes>  RIGHT                         /* SQL-2003-R */
+%token<bytes>  ROLLBACK_SYM                  /* SQL-2003-R */
+%token<bytes>  ROLLUP_SYM                    /* SQL-2003-R */
+%token<bytes>  ROUTINE_SYM                   /* SQL-2003-N */
+%token<bytes>  ROWS_SYM                      /* SQL-2003-R */
+%token<bytes>  ROW_FORMAT_SYM
+%token<bytes>  ROW_SYM                       /* SQL-2003-R */
+%token<bytes>  ROW_COUNT_SYM                 /* SQL-2003-N */
+%token<bytes>  RTREE_SYM
+%token<bytes>  SAVEPOINT_SYM                 /* SQL-2003-R */
+%token<bytes>  SCHEDULE_SYM
+%token<bytes>  SCHEMA_NAME_SYM               /* SQL-2003-N */
+%token<bytes>  SECOND_MICROSECOND_SYM
+%token<bytes>  SECOND_SYM                    /* SQL-2003-R */
+%token<bytes>  SECURITY_SYM                  /* SQL-2003-N */
+%token<bytes>  SELECT_SYM                    /* SQL-2003-R */
+%token<bytes>  SENSITIVE_SYM                 /* FUTURE-USE */
+%token<bytes>  SEPARATOR_SYM
+%token<bytes>  SERIALIZABLE_SYM              /* SQL-2003-N */
+%token<bytes>  SERIAL_SYM
+%token<bytes>  SESSION_SYM                   /* SQL-2003-N */
+%token<bytes>  SERVER_SYM
+%token<bytes>  SERVER_OPTIONS
+%token<bytes>  SET                           /* SQL-2003-R */
+%token<bytes>  SET_VAR
+%token<bytes>  SHARE_SYM
+%token<bytes>  SHIFT_LEFT                    /* OPERATOR */
+%token<bytes>  SHIFT_RIGHT                   /* OPERATOR */
+%token<bytes>  SHOW
+%token<bytes>  SHUTDOWN
+%token<bytes>  SIGNAL_SYM                    /* SQL-2003-R */
+%token<bytes>  SIGNED_SYM
+%token<bytes>  SIMPLE_SYM                    /* SQL-2003-N */
+%token<bytes>  SLAVE
+%token<bytes>  SLOW
+%token<bytes>  SMALLINT                      /* SQL-2003-R */
+%token<bytes>  SNAPSHOT_SYM
+%token<bytes>  SOCKET_SYM
+%token<bytes>  SONAME_SYM
+%token<bytes>  SOUNDS_SYM
+%token<bytes>  SOURCE_SYM
+%token<bytes>  SPATIAL_SYM
+%token<bytes>  SPECIFIC_SYM                  /* SQL-2003-R */
+%token<bytes>  SQLEXCEPTION_SYM              /* SQL-2003-R */
+%token<bytes>  SQLSTATE_SYM                  /* SQL-2003-R */
+%token<bytes>  SQLWARNING_SYM                /* SQL-2003-R */
+%token<bytes>  SQL_AFTER_GTIDS               /* MYSQL */
+%token<bytes>  SQL_AFTER_MTS_GAPS            /* MYSQL */
+%token<bytes>  SQL_BEFORE_GTIDS              /* MYSQL */
+%token<bytes>  SQL_BIG_RESULT
+%token<bytes>  SQL_BUFFER_RESULT
+%token<bytes>  SQL_CACHE_SYM
+%token<bytes>  SQL_CALC_FOUND_ROWS
+%token<bytes>  SQL_NO_CACHE_SYM
+%token<bytes>  SQL_SMALL_RESULT
+%token<bytes>  SQL_SYM                       /* SQL-2003-R */
+%token<bytes>  SQL_THREAD
+%token<bytes>  SSL_SYM
+%token<bytes>  STARTING
+%token<bytes>  STARTS_SYM
+%token<bytes>  START_SYM                     /* SQL-2003-R */
+%token<bytes>  STATS_AUTO_RECALC_SYM
+%token<bytes>  STATS_PERSISTENT_SYM
+%token<bytes>  STATS_SAMPLE_PAGES_SYM
+%token<bytes>  STATUS_SYM
+%token<bytes>  STDDEV_SAMP_SYM               /* SQL-2003-N */
+%token<bytes>  STD_SYM
+%token<bytes>  STOP_SYM
+%token<bytes>  STORAGE_SYM
+%token<bytes>  STRAIGHT_JOIN
+%token<bytes>  STRING_SYM
+%token<bytes>  SUBCLASS_ORIGIN_SYM           /* SQL-2003-N */
+%token<bytes>  SUBDATE_SYM
+%token<bytes>  SUBJECT_SYM
+%token<bytes>  SUBPARTITIONS_SYM
+%token<bytes>  SUBPARTITION_SYM
+%token<bytes>  SUBSTRING                     /* SQL-2003-N */
+%token<bytes>  SUM_SYM                       /* SQL-2003-N */
+%token<bytes>  SUPER_SYM
+%token<bytes>  SUSPEND_SYM
+%token<bytes>  SWAPS_SYM
+%token<bytes>  SWITCHES_SYM
+%token<bytes>  SYSDATE
+%token<bytes>  TABLES
+%token<bytes>  TABLESPACE
+%token<bytes>  TABLE_REF_PRIORITY
+%token<bytes>  TABLE_SYM                     /* SQL-2003-R */
+%token<bytes>  TABLE_CHECKSUM_SYM
+%token<bytes>  TABLE_NAME_SYM                /* SQL-2003-N */
+%token<bytes>  TEMPORARY                     /* SQL-2003-N */
+%token<bytes>  TEMPTABLE_SYM
+%token<bytes>  TERMINATED
+%token<bytes>  TEXT_STRING
+%token<bytes>  TEXT_SYM
+%token<bytes>  THAN_SYM
+%token<bytes>  THEN_SYM                      /* SQL-2003-R */
+%token<bytes>  TIMESTAMP                     /* SQL-2003-R */
+%token<bytes>  TIMESTAMP_ADD
+%token<bytes>  TIMESTAMP_DIFF
+%token<bytes>  TIME_SYM                      /* SQL-2003-R */
+%token<bytes>  TINYBLOB
+%token<bytes>  TINYINT
+%token<bytes>  TINYTEXT
+%token<bytes>  TO_SYM                        /* SQL-2003-R */
+%token<bytes>  TRAILING                      /* SQL-2003-R */
+%token<bytes>  TRANSACTION_SYM
+%token<bytes>  TRIGGERS_SYM
+%token<bytes>  TRIGGER_SYM                   /* SQL-2003-R */
+%token<bytes>  TRIM                          /* SQL-2003-N */
+%token<bytes>  TRUE_SYM                      /* SQL-2003-R */
+%token<bytes>  TRUNCATE_SYM
+%token<bytes>  TYPES_SYM
+%token<bytes>  TYPE_SYM                      /* SQL-2003-N */
+%token<bytes>  UDF_RETURNS_SYM
+%token<bytes>  ULONGLONG_NUM
+%token<bytes>  UNCOMMITTED_SYM               /* SQL-2003-N */
+%token<bytes>  UNDEFINED_SYM
+%token<bytes>  UNDERSCORE_CHARSET
+%token<bytes>  UNDOFILE_SYM
+%token<bytes>  UNDO_BUFFER_SIZE_SYM
+%token<bytes>  UNDO_SYM                      /* FUTURE-USE */
+%token<bytes>  UNICODE_SYM
+%token<bytes>  UNINSTALL_SYM
+%token<bytes>  UNION_SYM                     /* SQL-2003-R */
+%token<bytes>  UNIQUE_SYM
+%token<bytes>  UNKNOWN_SYM                   /* SQL-2003-R */
+%token<bytes>  UNLOCK_SYM
+%token<bytes>  UNSIGNED
+%token<bytes>  UNTIL_SYM
+%token<bytes>  UPDATE_SYM                    /* SQL-2003-R */
+%token<bytes>  UPGRADE_SYM
+%token<bytes>  USAGE                         /* SQL-2003-N */
+%token<bytes>  USER                          /* SQL-2003-R */
+%token<bytes>  USE_FRM
+%token<bytes>  USE_SYM
+%token<bytes>  USING                         /* SQL-2003-R */
+%token<bytes>  UTC_DATE_SYM
+%token<bytes>  UTC_TIMESTAMP_SYM
+%token<bytes>  UTC_TIME_SYM
+%token<bytes>  VALUES                        /* SQL-2003-R */
+%token<bytes>  VALUE_SYM                     /* SQL-2003-R */
+%token<bytes>  VARBINARY
+%token<bytes>  VARCHAR                       /* SQL-2003-R */
+%token<bytes>  VARIABLES
+%token<bytes>  VARIANCE_SYM
+%token<bytes>  VARYING                       /* SQL-2003-R */
+%token<bytes>  VAR_SAMP_SYM
+%token<bytes>  VIEW_SYM                      /* SQL-2003-N */
+%token<bytes>  WAIT_SYM
+%token<bytes>  WARNINGS
+%token<bytes>  WEEK_SYM
+%token<bytes>  WEIGHT_STRING_SYM
+%token<bytes>  WHEN_SYM                      /* SQL-2003-R */
+%token<bytes>  WHERE                         /* SQL-2003-R */
+%token<bytes>  WHILE_SYM
+%token<bytes>  WITH                          /* SQL-2003-R */
+%token<bytes>  WITH_CUBE_SYM                 /* INTERNAL */
+%token<bytes>  WITH_ROLLUP_SYM               /* INTERNAL */
+%token<bytes>  WORK_SYM                      /* SQL-2003-N */
+%token<bytes>  WRAPPER_SYM
+%token<bytes>  WRITE_SYM                     /* SQL-2003-N */
+%token<bytes>  X509_SYM
+%token<bytes>  XA_SYM
+%token<bytes>  XML_SYM
+%token<bytes>  XOR
+%token<bytes>  YEAR_MONTH_SYM
+%token<bytes>  YEAR_SYM                      /* SQL-2003-R */
+%token<bytes>  ZEROFILL
 
 %left   JOIN_SYM INNER_SYM STRAIGHT_JOIN CROSS LEFT RIGHT
 /* A dummy token to force the priority of table_ref production in a join. */
@@ -701,8 +702,9 @@ import (
 /* MySQL Utility Statement */
 %type <statement> describe help use
 
-%type <Bytes> ident IDENT_sys keyword keyword_sp
-%type <Table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb sp_name
+%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty
+%type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb
+%type <spname> sp_name
 
 %type <empty> '.'
 
@@ -937,8 +939,8 @@ clear_privileges:
  ;
 
 sp_name:
-  ident '.' ident { $$ = &TableInfo{Qualifier: $1, Name: $3} }
-| ident { $$ = &TableInfo{Name: $1} };
+  ident '.' ident { $$ = &Spname{Qualifier: $1, Name: $3} }
+| ident { $$ = &Spname{Name: $1} };
 
 sp_a_chistics:
  
@@ -967,7 +969,7 @@ sp_suid:
 | SQL_SYM SECURITY_SYM INVOKER_SYM;
 
 call:
-  CALL_SYM sp_name opt_sp_cparam_list { $$ = &Call{SpName:$2} };
+  CALL_SYM sp_name opt_sp_cparam_list { $$ = &Call{Spname:$2} };
 
 opt_sp_cparam_list:
  
@@ -2162,8 +2164,8 @@ string_list:
 
 alter:
   ALTER opt_ignore TABLE_SYM table_ident alter_commands { $$ = &AlterTable{} }
-| ALTER DATABASE ident_or_empty create_database_options { $$ = &AlterDatabase{} }
-| ALTER DATABASE ident UPGRADE_SYM DATA_SYM DIRECTORY_SYM NAME_SYM { $$ = &AlterDatabase{} }
+| ALTER DATABASE ident_or_empty create_database_options { $$ = &AlterDatabase{Schema: $3} }
+| ALTER DATABASE ident UPGRADE_SYM DATA_SYM DIRECTORY_SYM NAME_SYM { $$ = &AlterDatabase{Schema: $3} }
 | ALTER PROCEDURE_SYM sp_name sp_a_chistics { $$ = &AlterProcedure{} }
 | ALTER FUNCTION_SYM sp_name sp_a_chistics { $$ = &AlterFunction{} }
 | ALTER view_algorithm definer_opt view_tail { $$ = &AlterView{} }
@@ -2196,8 +2198,8 @@ opt_ev_sql_stmt:
 | DO_SYM ev_sql_stmt;
 
 ident_or_empty:
- 
-| ident;
+  { $$ = nil } 
+| ident { $$ = $1 };
 
 alter_commands:
  

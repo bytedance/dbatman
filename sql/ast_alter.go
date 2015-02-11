@@ -4,7 +4,9 @@ type AlterTable struct{}
 
 func (*AlterTable) Statement() {}
 
-type AlterDatabase struct{}
+type AlterDatabase struct {
+	Schema []byte
+}
 
 func (*AlterDatabase) Statement() {}
 

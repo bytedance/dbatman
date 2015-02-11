@@ -16,7 +16,7 @@ func (lexer *SQLLexer) scanNChar(lval *MySQLSymType) (int, byte) {
 		return ABORT_SYM, c
 	}
 
-	lval.Bytes = lexer.buf[lexer.tok_start:lexer.ptr]
+	lval.bytes = lexer.buf[lexer.tok_start:lexer.ptr]
 
 	return NCHAR_STRING, c
 }

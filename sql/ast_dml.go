@@ -26,7 +26,7 @@ type Replace struct {
 func (*Replace) Statement() {}
 
 type Call struct {
-	SpName *TableInfo
+	Spname *Spname
 }
 
 func (*Call) Statement() {}

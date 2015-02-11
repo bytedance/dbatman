@@ -22,7 +22,7 @@ var (
 func (lex *SQLLexer) scanInt(lval *MySQLSymType, c *byte) int {
 	length := lex.ptr - lex.tok_start
 
-	lval.Bytes = lex.buf[lex.tok_start : lex.ptr-1]
+	lval.bytes = lex.buf[lex.tok_start : lex.ptr-1]
 
 	if length < LONG_LEN {
 		return NUM
@@ -117,7 +117,7 @@ func (lex *SQLLexer) scanFloat(lval *MySQLSymType, c *byte) (int, bool) {
 		for ; cs.IsDigit(lex.yyPeek()); lex.yySkip() {
 		}
 
-		lval.Bytes = lex.buf[lex.tok_start:lex.ptr]
+		lval.bytes = lex.buf[lex.tok_start:lex.ptr]
 		return FLOAT_NUM, true
 	}
 

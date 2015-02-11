@@ -158,7 +158,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 			fallthrough
 		case MY_LEX_IDENT:
 
-			retstate, lval.Bytes = lex.getIdentifier()
+			retstate, lval.bytes = lex.getIdentifier()
 			goto TG_RET
 
 		case MY_LEX_IDENT_SEP: // Found ident before
@@ -251,7 +251,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 			}
 
 			lex.next_state = MY_LEX_START
-			lval.Bytes = lex.buf[lex.tok_start:lex.ptr]
+			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
 			retstate = IDENT_QUOTED
 			goto TG_RET
 
@@ -276,7 +276,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 				break
 			}
 
-			lval.Bytes = lex.buf[lex.tok_start : lex.ptr-1]
+			lval.bytes = lex.buf[lex.tok_start : lex.ptr-1]
 			retstate = DECIMAL_NUM
 			goto TG_RET
 		case MY_LEX_HEX_NUMBER:
@@ -291,7 +291,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 				goto TG_RET
 			}
 
-			lval.Bytes = lex.buf[lex.tok_start:lex.ptr]
+			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
 			retstate = HEX_NUM
 			goto TG_RET
 
@@ -359,7 +359,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 				lex.Error(err.Error())
 				retstate = ABORT_SYM
 			} else {
-				lval.Bytes = b
+				lval.bytes = b
 				retstate = TEXT_STRING
 			}
 			goto TG_RET
@@ -509,7 +509,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 				goto TG_RET
 			}
 
-			lval.Bytes = val
+			lval.bytes = val
 			retstate = result_state
 			goto TG_RET
 		}
