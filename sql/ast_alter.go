@@ -1,6 +1,8 @@
 package sql
 
-type AlterTable struct{}
+type AlterTable struct {
+	Table ISimpleTable
+}
 
 func (*AlterTable) Statement() {}
 
@@ -10,11 +12,15 @@ type AlterDatabase struct {
 
 func (*AlterDatabase) Statement() {}
 
-type AlterProcedure struct{}
+type AlterProcedure struct {
+	Spname *Spname
+}
 
 func (*AlterProcedure) Statement() {}
 
-type AlterFunction struct{}
+type AlterFunction struct {
+	FuncName *Spname
+}
 
 func (*AlterFunction) Statement() {}
 
@@ -22,7 +28,10 @@ type AlterView struct{}
 
 func (*AlterView) Statement() {}
 
-type AlterEvent struct{}
+type AlterEvent struct {
+	EventName *Spname
+	Rename    *Spname
+}
 
 func (*AlterEvent) Statement() {}
 

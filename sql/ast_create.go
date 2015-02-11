@@ -5,7 +5,7 @@ type Create interface {
 }
 
 type CreateTable struct {
-	Table *TableInfo
+	Table ISimpleTable
 }
 
 func (*CreateTable) Statement() {}

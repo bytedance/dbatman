@@ -1,12 +1,24 @@
 package sql
 
+type ISelect interface {
+	Select()
+}
+
+func (*Select) ISelect() {}
+func (*Union) ISelect()  {}
+
+func (*Select) Statement() {}
+func (*Union) Statement()  {}
+
+type Union struct {
+	Left, Right ISelect
+}
+
 type Select struct {
 }
 
-func (*Select) Statement() {}
-
 type Insert struct {
-	Table *TableInfo
+	Table ISimpleTable
 }
 
 func (*Insert) Statement() {}
@@ -15,12 +27,33 @@ type Update struct{}
 
 func (*Update) Statement() {}
 
-type Delete struct{}
+/***********************************************
+ * Delete Clause
+ **********************************************/
+type IDelete interface {
+	Delete()
+	IStatement
+}
 
-func (*Delete) Statement() {}
+type SingleTableDelete struct {
+	Table ISimpleTable
+}
 
+func (*SingleTableDelete) Statement() {}
+func (*SingleTableDelete) Delete()    {}
+
+type MultiTableDelete struct {
+	Tables []ISimpleTable
+}
+
+func (*MultiTableDelete) Statement() {}
+func (*MultiTableDelete) Delete()    {}
+
+/***********************************************
+ * Replace Clause
+ **********************************************/
 type Replace struct {
-	Table *TableInfo
+	Table ISimpleTable
 }
 
 func (*Replace) Statement() {}

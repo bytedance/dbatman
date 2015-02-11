@@ -13,7 +13,10 @@ import (
 %union {
     bytes []byte
     statement IStatement
-    table *TableInfo
+    table ISimpleTable
+    tablelist []ISimpleTable
+    tableref ITable
+    tablerefs []ITable
     spname *Spname
     empty struct{}
 }
@@ -682,7 +685,7 @@ import (
 %type <statement> alter create drop rename truncate
 
 /* DML */
-%type <statement> select insert update delete replace call do handler load
+%type <statement> select insert update delete replace call do handler load single_multi
 
 /* Transaction */
 %type <statement> commit lock release rollback savepoint start unlock xa 
@@ -702,9 +705,12 @@ import (
 /* MySQL Utility Statement */
 %type <statement> describe help use
 
-%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty
-%type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb
-%type <spname> sp_name
+%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild
+
+%type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_alias_ref table_ident_opt_wild
+%type <tablelist> table_wild_list table_alias_ref_list
+
+%type <spname> sp_name opt_ev_rename_to
 
 %type <empty> '.'
 
@@ -2163,14 +2169,17 @@ string_list:
 | string_list ',' text_string;
 
 alter:
-  ALTER opt_ignore TABLE_SYM table_ident alter_commands { $$ = &AlterTable{} }
-| ALTER DATABASE ident_or_empty create_database_options { $$ = &AlterDatabase{Schema: $3} }
-| ALTER DATABASE ident UPGRADE_SYM DATA_SYM DIRECTORY_SYM NAME_SYM { $$ = &AlterDatabase{Schema: $3} }
-| ALTER PROCEDURE_SYM sp_name sp_a_chistics { $$ = &AlterProcedure{} }
-| ALTER FUNCTION_SYM sp_name sp_a_chistics { $$ = &AlterFunction{} }
+  ALTER opt_ignore TABLE_SYM table_ident alter_commands 
+  { $$ = &AlterTable{Table: $4} }
+| ALTER DATABASE ident_or_empty create_database_options 
+  { $$ = &AlterDatabase{Schema: $3} }
+| ALTER DATABASE ident UPGRADE_SYM DATA_SYM DIRECTORY_SYM NAME_SYM 
+  { $$ = &AlterDatabase{Schema: $3} }
+| ALTER PROCEDURE_SYM sp_name sp_a_chistics { $$ = &AlterProcedure{Spname: $3} }
+| ALTER FUNCTION_SYM sp_name sp_a_chistics { $$ = &AlterFunction{FuncName: $3} }
 | ALTER view_algorithm definer_opt view_tail { $$ = &AlterView{} }
 | ALTER definer_opt view_tail { $$ = &AlterView{} }
-| ALTER definer_opt EVENT_SYM sp_name ev_alter_on_schedule_completion opt_ev_rename_to opt_ev_status opt_ev_comment opt_ev_sql_stmt { $$ = &AlterEvent{} }
+| ALTER definer_opt EVENT_SYM sp_name ev_alter_on_schedule_completion opt_ev_rename_to opt_ev_status opt_ev_comment opt_ev_sql_stmt { $$ = &AlterEvent{EventName: $4, Rename: $6} }
 | ALTER TABLESPACE alter_tablespace_info { $$ = &AlterTablespace{} }
 | ALTER LOGFILE_SYM GROUP_SYM alter_logfile_group_info { $$ = &AlterLogfile{} }
 | ALTER TABLESPACE change_tablespace_info { $$ = &AlterTablespace{} }
@@ -2190,8 +2199,8 @@ ev_alter_on_schedule_completion:
 | ON SCHEDULE_SYM ev_schedule_time ev_on_completion;
 
 opt_ev_rename_to:
- 
-| RENAME TO_SYM sp_name;
+  { $$ = nil }
+| RENAME TO_SYM sp_name { $$ = $3 };
 
 opt_ev_sql_stmt:
  
@@ -2508,11 +2517,19 @@ opt_ignore_leaves:
 | IGNORE_SYM LEAVES;
 
 select:
-  select_init { $$ = &Select{} };
+  select_init { $$ = $1 };
 
 select_init:
-  SELECT_SYM select_init2
-| '(' select_paren ')' union_opt;
+  SELECT_SYM select_init2 { $$ = $2 }
+| '(' select_paren ')' union_opt 
+  { 
+    if $4 == nil {
+        $$ = &Select{} // subquery?
+    } else {
+        $$ = &Subquery{ Select: $2 }
+    }
+  }
+;
 
 select_paren:
   SELECT_SYM select_part2
@@ -2537,7 +2554,8 @@ select_into:
 
 select_from:
   FROM join_table_list where_clause group_clause having_clause opt_order_clause opt_limit_clause procedure_analyse_clause
-| FROM DUAL_SYM where_clause opt_limit_clause;
+  { $$ = $2 }
+| FROM DUAL_SYM where_clause opt_limit_clause { $$ = nil };
 
 select_options:
  
@@ -2946,6 +2964,7 @@ use_partition:
 
 table_factor:
   table_ident opt_use_partition opt_table_alias opt_key_definition
+  { $$ = &AliasedTable{Table: $1, As: $3} }
 | select_derived_init get_select_lex select_derived2
 | '(' get_select_lex select_derived_union ')' opt_table_alias;
 
@@ -3053,8 +3072,10 @@ table_alias:
 | EQ;
 
 opt_table_alias:
- 
-| table_alias ident;
+  { $$ = nil } 
+| table_alias ident 
+  { $$ = $2 }
+;
 
 opt_all:
  
@@ -3234,11 +3255,14 @@ table_name_with_opt_use_partition:
   table_ident opt_use_partition { $$ = $1 };
 
 table_alias_ref_list:
-  table_alias_ref
-| table_alias_ref_list ',' table_alias_ref;
+  table_alias_ref 
+  { $$ = []ISimpleTable{$1} }
+| table_alias_ref_list ',' table_alias_ref 
+  { $$ = append($1, $3) }
+;
 
 table_alias_ref:
-  table_ident_opt_wild;
+  table_ident_opt_wild { $$ = $1 };
 
 if_exists:
  
@@ -3364,25 +3388,31 @@ opt_low_priority:
 | LOW_PRIORITY;
 
 delete:
-  DELETE_SYM opt_delete_options single_multi { $$ = &Delete{} }
+  DELETE_SYM opt_delete_options single_multi { $$ = $3 }
 ;
 
 single_multi:
-  FROM table_ident opt_use_partition where_clause opt_order_clause delete_limit_clause
-| table_wild_list FROM join_table_list where_clause
-| FROM table_alias_ref_list USING join_table_list where_clause;
+  FROM table_ident opt_use_partition where_clause opt_order_clause delete_limit_clause 
+  { $$ = &SingleTableDelete{Table: $2} }
+| table_wild_list FROM join_table_list where_clause 
+  { $$ = &MultiTableDelete{Tables: $1} }
+| FROM table_alias_ref_list USING join_table_list where_clause
+  { $$ = &MultiTableDelete{Tables: $2} }
+;
 
 table_wild_list:
-  table_wild_one
-| table_wild_list ',' table_wild_one;
+  table_wild_one { $$ = []ISimpleTable{$1} }
+| table_wild_list ',' table_wild_one { $$ = append($1, $3) }
+;
 
 table_wild_one:
-  ident opt_wild
-| ident '.' ident opt_wild;
+  ident opt_wild { $$ = &SimpleTable{Name: $1, Column: $2} }
+| ident '.' ident opt_wild { $$ = &SimpleTable{Qualifier: $1, Name: $3, Column: $4} }
+;
 
 opt_wild:
- 
-| '.' '*';
+  { $$ = nil } 
+| '.' '*' { $$ = []byte{'*'} };
 
 opt_delete_options:
  
@@ -3770,16 +3800,17 @@ field_ident:
 | '.' ident;
 
 table_ident:
-  ident { $$ = &TableInfo{Name: $1} }
-| ident '.' ident { $$ = &TableInfo{Qualifier: $1, Name: $3} }
-| '.' ident { $$ = &TableInfo{Name: $2} } ;
+  ident { $$ = &SimpleTable{Name: $1} }
+| ident '.' ident { $$ = &SimpleTable{Qualifier: $1, Name: $3} }
+| '.' ident { $$ = &SimpleTable{Name: $2} } ;
 
 table_ident_opt_wild:
-  ident opt_wild
-| ident '.' ident opt_wild;
+  ident opt_wild { $$ = &SimpleTable{Name: $1, Column: $2} }
+| ident '.' ident opt_wild { $$ = &SimpleTable{Qualifier: $1, Name: $3, Column: $4} }
+;
 
 table_ident_nodb:
-  ident { $$ = &TableInfo{Name: $1} };
+  ident { $$ = &SimpleTable{Name: $1} };
 
 IDENT_sys:
   IDENT { $$ = $1 }
