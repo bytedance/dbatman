@@ -16,7 +16,6 @@ func (lex *SQLLexer) getIdentifier() (int, []byte) {
 	for ident_map[lex.yyPeek()] != 0 {
 		rs |= int(c)
 		c = lex.yyNext()
-		DEBUG(fmt.Sprintf("cur[%c]\n", c))
 	}
 
 	if rs&0x80 != 0 {

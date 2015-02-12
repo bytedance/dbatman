@@ -19,10 +19,9 @@ var (
 	UNSIGNED_LONGLONG []byte = []byte{'1', '8', '4', '4', '6', '7', '4', '4', '0', '7', '3', '7', '0', '9', '5', '5', '1', '6', '1', '5'}
 )
 
-func (lex *SQLLexer) scanInt(lval *MySQLSymType, c *byte) int {
+func (lex *SQLLexer) scanInt(lval *MySQLSymType) int {
 	length := lex.ptr - lex.tok_start
-
-	lval.bytes = lex.buf[lex.tok_start : lex.ptr-1]
+	lval.bytes = lex.buf[lex.tok_start:lex.ptr]
 
 	if length < LONG_LEN {
 		return NUM

@@ -1,22 +1,46 @@
 package sql
 
+/***********************************
+ * Select Clause
+ ***********************************/
+
 type ISelect interface {
-	Select()
+	IsSelect()
+	IStatement
 }
 
-func (*Select) ISelect() {}
-func (*Union) ISelect()  {}
+func (*Select) IsSelect()   {}
+func (*Union) IsSelect()    {}
+func (*SubQuery) IsSelect() {}
 
-func (*Select) Statement() {}
-func (*Union) Statement()  {}
+func (*Select) Statement()   {}
+func (*Union) Statement()    {}
+func (*SubQuery) Statement() {}
 
 type Union struct {
 	Left, Right ISelect
 }
 
-type Select struct {
+type SubQuery struct {
+	SelectStatement ISelect
 }
 
+type Select struct {
+	From     ITables
+	LockType LockType
+}
+
+type LockType int
+
+const (
+	LockType_NoLock = iota
+	LockType_ForUpdate
+	LockType_LockInShareMode
+)
+
+/*********************************
+ * Insert Clause
+ ********************************/
 type Insert struct {
 	Table ISimpleTable
 }
@@ -27,9 +51,9 @@ type Update struct{}
 
 func (*Update) Statement() {}
 
-/***********************************************
+/*********************************
  * Delete Clause
- **********************************************/
+ ********************************/
 type IDelete interface {
 	Delete()
 	IStatement

@@ -173,8 +173,10 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 			goto TG_RET
 
 		case MY_LEX_NUMBER_IDENT: // number or ident which num-start
-			for c = lex.yyNext(); cs.IsDigit(c); c = lex.yyNext() {
+			for cs.IsDigit(lex.yyPeek()) {
+				c = lex.yyNext()
 			}
+			c = lex.yyPeek()
 
 			if ident_map[c] == 0 {
 				// Can't be identifier
@@ -183,11 +185,13 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 			}
 
 			if c == 'e' || c == 'E' {
+				lex.yySkip() // skip for e/E
 				var ok bool
 				if retstate, ok = lex.scanFloat(lval, &c); ok {
 					goto TG_RET
 				}
-			} else if c == 'x' && (lex.ptr-lex.tok_start) == 2 && lex.buf[lex.tok_start] == '0' {
+			} else if c == 'x' && (lex.ptr-lex.tok_start) == 1 && lex.buf[lex.tok_start] == '0' {
+				lex.yySkip() // skip for 'x'
 				// 0xdddd number
 				for c = lex.yyNext(); cs.IsXdigit(c); c = lex.yyNext() {
 				}
@@ -198,7 +202,8 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 				}
 
 				lex.yyBack()
-			} else if c == 'b' && lex.ptr-lex.tok_start == 2 && lex.buf[lex.tok_start] == '0' {
+			} else if c == 'b' && lex.ptr-lex.tok_start == 1 && lex.buf[lex.tok_start] == '0' {
+				lex.yySkip() // skip for 'b'
 				// binary number 0bxxxx
 				for c = lex.yyNext(); cs.IsXdigit(c); c = lex.yyNext() {
 				}
@@ -257,16 +262,20 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 		case MY_LEX_INT_OR_REAL:
 			if c != '.' {
-				retstate = lex.scanInt(lval, &c)
+				retstate = lex.scanInt(lval)
 				goto TG_RET
 			}
+			lex.yySkip()
 			DEBUG("\tMY_LEX_REAL\n")
 			fallthrough
 		case MY_LEX_REAL:
-			for c = lex.yyNext(); cs.IsDigit(c); c = lex.yyNext() {
+			for cs.IsDigit(lex.yyPeek()) {
+				c = lex.yyNext()
 			}
+			c = lex.yyPeek()
 
 			if c == 'e' || c == 'E' {
+				lex.yySkip() // skip for 'e'/'E'
 				var ok bool
 				if retstate, ok = lex.scanFloat(lval, &c); ok {
 					goto TG_RET
@@ -276,7 +285,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 				break
 			}
 
-			lval.bytes = lex.buf[lex.tok_start : lex.ptr-1]
+			lval.bytes = lex.buf[lex.tok_start:lex.ptr]
 			retstate = DECIMAL_NUM
 			goto TG_RET
 		case MY_LEX_HEX_NUMBER:

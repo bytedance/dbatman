@@ -1,24 +1,23 @@
-// Copyright
+// Copyright Oracle.Inc 
 
 %{
-
 package sql
-
 import (
 )
-
 %}
 
 
 %union {
     bytes []byte
     statement IStatement
+    select_statement ISelect
     table ISimpleTable
-    tablelist []ISimpleTable
-    tableref ITable
-    tablerefs []ITable
+    table_list []ISimpleTable
+    table_ref ITable
+    table_ref_list []ITable
     spname *Spname
     empty struct{}
+    lock_type LockType
 }
 
 /*
@@ -685,7 +684,10 @@ import (
 %type <statement> alter create drop rename truncate
 
 /* DML */
-%type <statement> select insert update delete replace call do handler load single_multi
+%type <statement> insert update delete replace call do handler load single_multi
+
+%type <select_statement> select select_init select_init2 select_paren select_part2 select_derived2 opt_select_from query_specification select_init2_derived select_part2_derived select_paren_derived select_derived
+%type <select_statement> union_opt union_clause_opt select_derived_union union_list
 
 /* Transaction */
 %type <statement> commit lock release rollback savepoint start unlock xa 
@@ -705,14 +707,20 @@ import (
 /* MySQL Utility Statement */
 %type <statement> describe help use
 
-%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild
+%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias
 
 %type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_alias_ref table_ident_opt_wild
-%type <tablelist> table_wild_list table_alias_ref_list
+%type <table_list> table_wild_list table_alias_ref_list
+
+
+%type <table_ref> esc_table_ref table_ref table_factor join_table
+%type <table_ref_list> select_into select_from join_table_list derived_table_list
 
 %type <spname> sp_name opt_ev_rename_to
 
 %type <empty> '.'
+
+%type <lock_type> select_lock_type
 
 %%
 
@@ -1458,7 +1466,7 @@ create2a:
 
 create3:
  
-| opt_duplicate opt_as create_select union_clause
+| opt_duplicate opt_as create_select union_clause_opt
 | opt_duplicate opt_as '(' create_select ')' union_opt;
 
 opt_create_partitioning:
@@ -1718,8 +1726,9 @@ merge_insert_types:
 | LAST_SYM;
 
 opt_select_from:
-  opt_limit_clause
-| select_from select_lock_type;
+  opt_limit_clause { $$ = nil }
+| select_from select_lock_type { $$ = &Select{From: $1, LockType: $2} }
+;
 
 udf_type:
   STRING_SYM
@@ -2524,33 +2533,49 @@ select_init:
 | '(' select_paren ')' union_opt 
   { 
     if $4 == nil {
-        $$ = &Select{} // subquery?
+        $$ = &SubQuery{SelectStatement: $2} // subquery?
     } else {
-        $$ = &Subquery{ Select: $2 }
+        $$ = &Union{Left: $2, Right: $4}
     }
   }
 ;
 
 select_paren:
   SELECT_SYM select_part2
-| '(' select_paren ')';
+  { $$ = $2 }
+| '(' select_paren ')'
+  { $$ = &SubQuery{SelectStatement : $2} } 
+;
 
 select_paren_derived:
-  SELECT_SYM select_part2_derived
-| '(' select_paren_derived ')';
+  SELECT_SYM select_part2_derived { $$ = $2 }
+| '(' select_paren_derived ')' { $$ = $2 }
+;
 
 select_init2:
-  select_part2 union_clause;
+  select_part2 union_clause_opt
+  {
+    if $2 == nil {
+        $$ = $1
+    } else { // we got a right-recuse union clause
+        $2.(*Union).Left = $1 // set union left
+        $$ = $2
+    }
+  }
+;
 
 select_part2:
-  select_options select_item_list select_into select_lock_type;
+  select_options select_item_list select_into select_lock_type
+  { $$ = &Select {From: $3, LockType: $4} }
+;
 
 select_into:
-  opt_order_clause opt_limit_clause
-| into
-| select_from
-| into select_from
-| select_from into;
+  opt_order_clause opt_limit_clause { $$ = nil }
+| into { $$ = nil }
+| select_from { $$ = $1 }
+| into select_from { $$ = $2 }
+| select_from into { $$ = $1 }
+;
 
 select_from:
   FROM join_table_list where_clause group_clause having_clause opt_order_clause opt_limit_clause procedure_analyse_clause
@@ -2571,9 +2596,9 @@ select_option:
 | SQL_CACHE_SYM;
 
 select_lock_type:
- 
-| FOR_SYM UPDATE_SYM
-| LOCK_SYM IN_SYM SHARE_SYM MODE_SYM;
+  { $$ = LockType_NoLock }
+| FOR_SYM UPDATE_SYM { $$ = LockType_ForUpdate }
+| LOCK_SYM IN_SYM SHARE_SYM MODE_SYM { $$ = LockType_LockInShareMode };
 
 select_item_list:
   select_item_list ',' select_item
@@ -2922,33 +2947,46 @@ when_list:
 | when_list WHEN_SYM expr THEN_SYM expr;
 
 table_ref:
-  table_factor
-| join_table;
+  table_factor { $$ = $1 }
+| join_table { $$ = $1 };
 
 join_table_list:
-  derived_table_list;
+  derived_table_list { $$ = $1 };
 
 esc_table_ref:
-  table_ref
-| '{' ident table_ref '}';
+  table_ref { $$ = $1 }
+| '{' ident table_ref '}' { $$ = $3 };
 
 derived_table_list:
-  esc_table_ref
-| derived_table_list ',' esc_table_ref;
+  esc_table_ref { $$ = []ITable{$1} }
+| derived_table_list ',' esc_table_ref { $$ = append($1, $3) };
 
 join_table:
-  table_ref normal_join table_ref %prec TABLE_REF_PRIORITY
+  table_ref normal_join table_ref %prec TABLE_REF_PRIORITY 
+  { $$ = &JoinTable{Left: $1, Right: $3} }
 | table_ref STRAIGHT_JOIN table_factor
+  { $$ = &JoinTable{Left: $1, Right: $3} }
 | table_ref normal_join table_ref ON expr
+  { $$ = &JoinTable{Left: $1, Right: $3} }
 | table_ref STRAIGHT_JOIN table_factor ON expr
+  { $$ = &JoinTable{Left: $1, Right: $3} }
 | table_ref normal_join table_ref USING '(' using_list ')'
+  { $$ = &JoinTable{Left: $1, Right: $3} }
 | table_ref NATURAL JOIN_SYM table_factor
+  { $$ = &JoinTable{Left: $1, Right: $4} }
 | table_ref LEFT opt_outer JOIN_SYM table_ref ON expr
+  { $$ = &JoinTable{Left: $1, Right: $5} }
 | table_ref LEFT opt_outer JOIN_SYM table_factor USING '(' using_list ')'
+  { $$ = &JoinTable{Left: $1, Right: $5} }
 | table_ref NATURAL LEFT opt_outer JOIN_SYM table_factor
+  { $$ = &JoinTable{Left: $1, Right: $6} }
 | table_ref RIGHT opt_outer JOIN_SYM table_ref ON expr
+  { $$ = &JoinTable{Left: $1, Right: $5} }
 | table_ref RIGHT opt_outer JOIN_SYM table_factor USING '(' using_list ')'
-| table_ref NATURAL RIGHT opt_outer JOIN_SYM table_factor;
+  { $$ = &JoinTable{Left: $1, Right: $5} }
+| table_ref NATURAL RIGHT opt_outer JOIN_SYM table_factor
+  { $$ = &JoinTable{Left: $1, Right: $6} }
+;
 
 normal_join:
   JOIN_SYM
@@ -2964,25 +3002,40 @@ use_partition:
 
 table_factor:
   table_ident opt_use_partition opt_table_alias opt_key_definition
-  { $$ = &AliasedTable{Table: $1, As: $3} }
+  { $$ = &AliasedTable{TableOrSubQuery: $1, As: $3} }
 | select_derived_init get_select_lex select_derived2
-| '(' get_select_lex select_derived_union ')' opt_table_alias;
+  { $$ = &AliasedTable{TableOrSubQuery: $3} }
+| '(' get_select_lex select_derived_union ')' opt_table_alias
+  { $$ = &AliasedTable{TableOrSubQuery: $3, As: $5} }
+;
 
 select_derived_union:
-  select_derived opt_union_order_or_limit
-| select_derived_union UNION_SYM union_option query_specification opt_union_order_or_limit;
+  select_derived opt_union_order_or_limit 
+  { $$ = $1 }
+| select_derived_union UNION_SYM union_option query_specification opt_union_order_or_limit { $$ = &Union{Left:$1, Right: $4} }
+;
 
 select_init2_derived:
-  select_part2_derived;
+  select_part2_derived { $$ = $1 };
 
 select_part2_derived:
-  opt_query_expression_options select_item_list opt_select_from select_lock_type;
+  opt_query_expression_options select_item_list opt_select_from select_lock_type
+  {
+    if $3 == nil {
+        $$ = &Select{From: nil, LockType: $4}
+    } else {
+        $$ = &Select{From: $3.(*Select).From, LockType: $4}
+    }
+  }
+;
 
 select_derived:
-  get_select_lex derived_table_list;
+  get_select_lex derived_table_list { $$ = &Select{From: $2} };
 
 select_derived2:
-  select_options select_item_list opt_select_from;
+  select_options select_item_list opt_select_from
+  { $$ = $3 }
+;
 
 get_select_lex:
  ;
@@ -3325,7 +3378,7 @@ fields:
 insert_values:
   VALUES values_list
 | VALUE_SYM values_list
-| create_select union_clause
+| create_select union_clause_opt
 | '(' create_select ')' union_opt;
 
 values_list:
@@ -4522,17 +4575,17 @@ savepoint:
 release:
   RELEASE_SYM SAVEPOINT_SYM ident { $$ = &Release{} };
 
-union_clause:
- 
-| union_list;
+union_clause_opt:
+  { $$ = nil } 
+| union_list { $$ = $1 };
 
 union_list:
-  UNION_SYM union_option select_init;
+  UNION_SYM union_option select_init { $$ = &Union{Right : $3} };
 
 union_opt:
- 
-| union_list
-| union_order_or_limit;
+  { $$ = nil } 
+| union_list { $$ = $1 }
+| union_order_or_limit { $$ = nil };
 
 opt_union_order_or_limit:
  
@@ -4551,8 +4604,9 @@ union_option:
 | ALL;
 
 query_specification:
-  SELECT_SYM select_init2_derived
-| '(' select_paren_derived ')';
+  SELECT_SYM select_init2_derived { $$ = &SubQuery{SelectStatement: $2} }
+| '(' select_paren_derived ')' { $$ = &SubQuery{SelectStatement: $2} }
+;
 
 query_expression_body:
   query_specification opt_union_order_or_limit
@@ -4648,7 +4702,7 @@ view_select:
   view_select_aux view_check_option;
 
 view_select_aux:
-  create_view_select union_clause
+  create_view_select union_clause_opt
 | '(' create_view_select_paren ')' union_opt;
 
 create_view_select_paren:

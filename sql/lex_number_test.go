@@ -78,3 +78,11 @@ func TestMultiNum(t *testing.T) {
 
 	lexExpect(t, lex, lval, END_OF_INPUT)
 }
+
+func TestNumberInPlacehold(t *testing.T) {
+	str := ` (5)`
+	lex, lval := getLexer(str)
+	lexExpect(t, lex, lval, '(')
+	lexExpect(t, lex, lval, NUM)
+	lexExpect(t, lex, lval, ')')
+}
