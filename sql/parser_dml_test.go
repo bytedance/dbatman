@@ -56,8 +56,12 @@ func TestSelect(t *testing.T) {
     FROM db1.table1
     LEFT OUTER JOIN db2.table2
     ON db1.table1.column_name=db2.table2.column_name;`, t, false)
-	fmt.Println(st.(*Select).GetSchemas())
 	testSelectSchemas(t, st, "db1", "db2")
 
-	st = testParse("SELECT * FROM table1 LEFT JOIN table2 ON table1.id=table2.id LEFT JOIN table3 ON table2.id = table3.id ", t, false)
+	st = testParse("SELECT * FROM db1.table1 LEFT JOIN db2.table2 ON table1.id=table2.id LEFT JOIN db3.table3 ON table2.id = table3.id for update", t, false)
+	testSelectSchemas(t, st, "db1", "db2", "db3")
+
+	if st.(*Select).LockType != LockType_ForUpdate {
+		t.Fatalf("lock type is not For Update")
+	}
 }
