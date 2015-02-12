@@ -1,8 +1,13 @@
 package sql
 
 import (
+	"fmt"
 	"testing"
 )
+
+func fmtimport() {
+	fmt.Println()
+}
 
 func testSelectSchemas(t *testing.T, st IStatement, tables ...string) {
 	var ts []string
@@ -48,9 +53,11 @@ func TestSelect(t *testing.T) {
 	testSelectSchemas(t, st, "db1", "db2")
 
 	st = testParse(`SELECT column_name(s)
-    FROM table1
-    LEFT OUTER JOIN table2
-    ON table1.column_name=table2.column_name;`, t, false)
+    FROM db1.table1
+    LEFT OUTER JOIN db2.table2
+    ON db1.table1.column_name=db2.table2.column_name;`, t, false)
+	fmt.Println(st.(*Select).GetSchemas())
+	testSelectSchemas(t, st, "db1", "db2")
 
 	st = testParse("SELECT * FROM table1 LEFT JOIN table2 ON table1.id=table2.id LEFT JOIN table3 ON table2.id = table3.id ", t, false)
 }

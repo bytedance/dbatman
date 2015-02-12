@@ -40,9 +40,8 @@ func (u *Union) GetSchemas() []string {
 		return r
 	} else if r == nil {
 		return l
-	} else {
-		return append(l, r...)
 	}
+	return append(l, r...)
 }
 
 // SubQuery ---------

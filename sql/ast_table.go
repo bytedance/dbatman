@@ -46,7 +46,7 @@ func (j *JoinTable) GetSchemas() []string {
 		return nil
 	} else if l == nil {
 		return r
-	} else {
+	} else if r == nil {
 		return l
 	}
 
