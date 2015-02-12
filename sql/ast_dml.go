@@ -103,24 +103,18 @@ func (*Update) Statement() {}
 /*********************************
  * Delete Clause
  ********************************/
-type IDelete interface {
-	Delete()
-	IStatement
+func (*Delete) Statement() {}
+
+type Delete struct {
+	Tables ITables
 }
 
-type SingleTableDelete struct {
-	Table ISimpleTable
+func (d *Delete) GetSchemas() []string {
+	if d.Tables == nil || len(d.Tables) == 0 {
+		return nil
+	}
+	return d.Tables.GetSchemas()
 }
-
-func (*SingleTableDelete) Statement() {}
-func (*SingleTableDelete) Delete()    {}
-
-type MultiTableDelete struct {
-	Tables []ISimpleTable
-}
-
-func (*MultiTableDelete) Statement() {}
-func (*MultiTableDelete) Delete()    {}
 
 /***********************************************
  * Replace Clause

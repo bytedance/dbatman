@@ -18,6 +18,25 @@ type ITable interface {
 
 type ITables []ITable
 
+func (ts ITables) GetSchemas() []string {
+	if ts == nil && len(ts) == 0 {
+		return nil
+	}
+
+	var ret []string
+	for _, v := range ts {
+		if r := v.GetSchemas(); r != 0 && len(r) != 0 {
+			ret = append(ret, r...)
+		}
+	}
+
+	if len(ret) == 0 {
+		return nil
+	}
+
+	return ret
+}
+
 func (*JoinTable) IsTable()    {}
 func (*ParenTable) IsTable()   {}
 func (*AliasedTable) IsTable() {}

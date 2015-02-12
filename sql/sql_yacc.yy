@@ -3445,11 +3445,11 @@ delete:
 
 single_multi:
   FROM table_ident opt_use_partition where_clause opt_order_clause delete_limit_clause 
-  { $$ = &SingleTableDelete{Table: $2} }
+  { $$ = &Delete{Tables: $2} }
 | table_wild_list FROM join_table_list where_clause 
-  { $$ = &MultiTableDelete{Tables: $1} }
+  { $$ = &Delete{Tables: $1} }
 | FROM table_alias_ref_list USING join_table_list where_clause
-  { $$ = &MultiTableDelete{Tables: $2} }
+  { $$ = &Delete{Tables: $2} }
 ;
 
 table_wild_list:
