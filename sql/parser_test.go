@@ -20,6 +20,7 @@ func TestSelect(t *testing.T) {
 
 	testParse("SELECT AVG(SUM(column1)) FROM t1 GROUP BY column1;", t, false)
 
+	testParse("SELECT REPEAT('a',1) UNION SELECT REPEAT('b',10);", t, true)
 	// testParse("SELECT * FROM table1 LEFT JOIN table2 ON table1.id=table2.id LEFT JOIN table3 ON table2.id = table3.id ", t, true)
 }
 

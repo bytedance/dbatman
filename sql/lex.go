@@ -528,7 +528,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 TG_RET:
 
-	DEBUG(fmt.Sprintf("dbg leave with return[%s]\n", TokenName(retstate)))
+	DEBUG(fmt.Sprintf("dbg leave [%s]\n", TokenName(retstate)))
 	return
 }
 
