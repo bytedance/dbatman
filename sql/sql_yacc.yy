@@ -2558,8 +2558,7 @@ select_init2:
     if $2 == nil {
         $$ = $1
     } else { // we got a right-recuse union clause
-        $2.(*Union).Left = $1 // set union left
-        $$ = $2
+        $$ = &Union{Left: $1, Right: $2}
     }
   }
 ;
@@ -3011,8 +3010,8 @@ table_factor:
 
 select_derived_union:
   select_derived opt_union_order_or_limit 
-  { $$ = $1 }
-| select_derived_union UNION_SYM union_option query_specification opt_union_order_or_limit { $$ = &Union{Left:$1, Right: $4} }
+  { $$ = &SubQuery{SelectStatement:$1} }
+| select_derived_union UNION_SYM union_option query_specification opt_union_order_or_limit { $$ = &SubQuery{SelectStatement: &Union{Left:$1, Right: $4}} }
 ;
 
 select_init2_derived:
@@ -3034,7 +3033,7 @@ select_derived:
 
 select_derived2:
   select_options select_item_list opt_select_from
-  { $$ = $3 }
+  { $$ = &SubQuery{SelectStatement: $3} }
 ;
 
 get_select_lex:
@@ -4580,7 +4579,8 @@ union_clause_opt:
 | union_list { $$ = $1 };
 
 union_list:
-  UNION_SYM union_option select_init { $$ = &Union{Right : $3} };
+  UNION_SYM union_option select_init { $$ = $3 }
+;
 
 union_opt:
   { $$ = nil } 

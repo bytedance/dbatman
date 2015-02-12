@@ -6,6 +6,7 @@ package sql
 
 type ISelect interface {
 	IsSelect()
+	GetSchemas() []string
 	IStatement
 }
 
@@ -21,13 +22,62 @@ type Union struct {
 	Left, Right ISelect
 }
 
+func (u *Union) GetSchemas() []string {
+	if u.Left == nil {
+		panic("union must have left select statement")
+	}
+
+	if u.Right == nil {
+		panic("union must have right select statement")
+	}
+
+	l := u.Left.GetSchemas()
+	r := u.Right.GetSchemas()
+
+	if l == nil && r == nil {
+		return nil
+	} else if l == nil {
+		return r
+	} else if r == nil {
+		return l
+	} else {
+		return append(l, r...)
+	}
+}
+
+// SubQuery ---------
 type SubQuery struct {
 	SelectStatement ISelect
 }
 
+func (s *SubQuery) GetSchemas() []string {
+	if s.SelectStatement == nil {
+		panic("subquery has no content")
+	}
+
+	return s.SelectStatement.GetSchemas()
+}
+
+// Select -----------
 type Select struct {
 	From     ITables
 	LockType LockType
+}
+
+func (s *Select) GetSchemas() []string {
+	if s.From == nil {
+		return nil
+	}
+
+	ret := make([]string, 0, 8)
+	for _, v := range s.From {
+		r := v.GetSchemas()
+		if r != nil || len(r) != 0 {
+			ret = append(ret, r...)
+		}
+	}
+
+	return ret
 }
 
 type LockType int
