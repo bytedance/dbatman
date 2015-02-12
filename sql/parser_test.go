@@ -20,8 +20,17 @@ func TestSelect(t *testing.T) {
 
 	testParse("SELECT AVG(SUM(column1)) FROM t1 GROUP BY column1;", t, false)
 
-	testParse("SELECT REPEAT('a',1) UNION SELECT REPEAT('b',10);", t, true)
-	// testParse("SELECT * FROM table1 LEFT JOIN table2 ON table1.id=table2.id LEFT JOIN table3 ON table2.id = table3.id ", t, true)
+	testParse("SELECT REPEAT('a',1) UNION SELECT REPEAT('b',10);", t, false)
+
+	testParse(`(SELECT a FROM t1 WHERE a=10 AND B=1 ORDER BY a LIMIT 10) 
+    UNION 
+    (SELECT a FROM t2 WHERE a=11 AND B=2 ORDER BY a LIMIT 10);`, t, false)
+
+	testParse(`SELECT column_name(s)
+    FROM table1
+    LEFT OUTER JOIN table2
+    ON table1.column_name=table2.column_name;`, t, false)
+	testParse("SELECT * FROM table1 LEFT JOIN table2 ON table1.id=table2.id LEFT JOIN table3 ON table2.id = table3.id ", t, false)
 }
 
 func TestExplain(t *testing.T) {

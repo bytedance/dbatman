@@ -94,7 +94,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 	state = lex.next_state
 	lex.next_state = MY_LEX_OPERATOR_OR_IDENT
 
-	DEBUG("dbg buf:[" + string(lex.buf) + "]\ndbg enter:\n")
+	// DEBUG("dbg buf:[" + string(lex.buf) + "]\ndbg enter:\n")
 	for {
 		DEBUG("\t" + GetLexStatus(state) + " current_buf[" + string(lex.buf[lex.ptr:]) + "]\n")
 		switch state {
@@ -218,23 +218,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 			fallthrough
 		case MY_LEX_IDENT_START:
-			result_state = 0
-			for c = lex.yyNext(); ident_map[int(c)] != 0; result_state |= int(c) {
-				c = lex.yyNext()
-			}
-
-			result_state = result_state & 0x80
-			if result_state != 0 {
-				result_state = IDENT_QUOTED
-			} else {
-				result_state = IDENT
-			}
-
-			if c == '.' && ident_map[int(lex.yyPeek())] != 0 {
-				lex.next_state = MY_LEX_IDENT_SEP
-			}
-
-			retstate = result_state
+			retstate, lval.bytes = lex.getPureIdentifier()
 			goto TG_RET
 
 		case MY_LEX_USER_VARIABLE_DELIMITER:

@@ -6,6 +6,29 @@ import (
 	. "github.com/wangjild/go-mysql-proxy/sql/state"
 )
 
+func (lex *SQLLexer) getPureIdentifier() (int, []byte) {
+	ident_map := lex.cs.IdentMap
+	c := lex.yyPeek()
+	rs := int(c)
+
+	for ident_map[lex.yyPeek()] != 0 {
+		rs |= int(c)
+		c = lex.yyNext()
+	}
+
+	if rs&0x80 != 0 {
+		rs = IDENT_QUOTED
+	} else {
+		rs = IDENT
+	}
+
+	if lex.yyPeek() == '.' && ident_map[int(lex.yyPeek2())] != 0 {
+		lex.next_state = MY_LEX_IDENT_SEP
+	}
+
+	return rs, lex.buf[lex.tok_start:lex.ptr]
+}
+
 func (lex *SQLLexer) getIdentifier() (int, []byte) {
 
 	ident_map := lex.cs.IdentMap
