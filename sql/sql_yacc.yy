@@ -12,9 +12,9 @@ import (
     statement IStatement
     select_statement ISelect
     table ISimpleTable
-    table_list []ISimpleTable
+    table_list ITables
     table_ref ITable
-    table_ref_list []ITable
+    table_ref_list ITables
     spname *Spname
     empty struct{}
     lock_type LockType
@@ -3308,7 +3308,7 @@ table_name_with_opt_use_partition:
 
 table_alias_ref_list:
   table_alias_ref 
-  { $$ = []ISimpleTable{$1} }
+  { $$ = ITables{$1} }
 | table_alias_ref_list ',' table_alias_ref 
   { $$ = append($1, $3) }
 ;
@@ -3445,15 +3445,15 @@ delete:
 
 single_multi:
   FROM table_ident opt_use_partition where_clause opt_order_clause delete_limit_clause 
-  { $$ = &Delete{Tables: $2} }
+  { $$ = &Delete{Tables: ITables{$2}} }
 | table_wild_list FROM join_table_list where_clause 
   { $$ = &Delete{Tables: $1} }
 | FROM table_alias_ref_list USING join_table_list where_clause
-  { $$ = &Delete{Tables: $2} }
+  { $$ = &Delete{Tables: append($2, $4...)} }
 ;
 
 table_wild_list:
-  table_wild_one { $$ = []ISimpleTable{$1} }
+  table_wild_one { $$ = ITables{$1} }
 | table_wild_list ',' table_wild_one { $$ = append($1, $3) }
 ;
 

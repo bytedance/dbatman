@@ -9,12 +9,18 @@ func fmtimport() {
 	fmt.Println()
 }
 
-func testSelectSchemas(t *testing.T, st IStatement, tables ...string) {
+func matchSchemas(t *testing.T, st IStatement, tables ...string) {
 	var ts []string
-	if is, ok := st.(ISelect); !ok {
-		t.Fatal("not select statement")
-	} else {
-		ts = is.GetSchemas()
+
+	switch ast := st.(type) {
+	case *Select:
+		ts = ast.GetSchemas()
+	case *Union:
+		ts = ast.GetSchemas()
+	case *Delete:
+		ts = ast.GetSchemas()
+	default:
+		t.Fatalf("unknow statement type: %T", ast)
 	}
 
 	if len(tables) == 0 && len(ts) == 0 {
@@ -33,35 +39,49 @@ func testSelectSchemas(t *testing.T, st IStatement, tables ...string) {
 
 func TestSelect(t *testing.T) {
 	st := testParse("SELECT * FROM table1;", t, false)
-	testSelectSchemas(t, st)
+	matchSchemas(t, st)
 
 	st = testParse("SELECT t1.* FROM (select * from db1.table1) as t1;", t, false)
-	testSelectSchemas(t, st, "db1")
+	matchSchemas(t, st, "db1")
 
 	st = testParse("SELECT sb1,sb2,sb3 \n FROM (SELECT s1 AS sb1, s2 AS sb2, s3*2 AS sb3 FROM db1.t1) AS sb \n    WHERE sb1 > 1;", t, false)
-	testSelectSchemas(t, st, "db1")
+	matchSchemas(t, st, "db1")
 
 	st = testParse("SELECT AVG(SUM(column1)) FROM t1 GROUP BY column1;", t, false)
-	testSelectSchemas(t, st)
+	matchSchemas(t, st)
 
 	st = testParse("SELECT REPEAT('a',1) UNION SELECT REPEAT('b',10);", t, false)
-	testSelectSchemas(t, st)
+	matchSchemas(t, st)
 
 	st = testParse(`(SELECT a FROM db1.t1 WHERE a=10 AND B=1 ORDER BY a LIMIT 10)
 		    UNION
 		    (SELECT a FROM db2.t2 WHERE a=11 AND B=2 ORDER BY a LIMIT 10);`, t, false)
-	testSelectSchemas(t, st, "db1", "db2")
+	matchSchemas(t, st, "db1", "db2")
 
 	st = testParse(`SELECT column_name(s)
     FROM db1.table1
     LEFT OUTER JOIN db2.table2
     ON db1.table1.column_name=db2.table2.column_name;`, t, false)
-	testSelectSchemas(t, st, "db1", "db2")
+	matchSchemas(t, st, "db1", "db2")
 
 	st = testParse("SELECT * FROM db1.table1 LEFT JOIN db2.table2 ON table1.id=table2.id LEFT JOIN db3.table3 ON table2.id = table3.id for update", t, false)
-	testSelectSchemas(t, st, "db1", "db2", "db3")
+	matchSchemas(t, st, "db1", "db2", "db3")
 
 	if st.(*Select).LockType != LockType_ForUpdate {
 		t.Fatalf("lock type is not For Update")
 	}
+}
+
+func TestDelete(t *testing.T) {
+	st := testParse(`DELETE FROM db.somelog WHERE user = 'jcole'
+    ORDER BY timestamp_column LIMIT 1;`, t, false)
+	matchSchemas(t, st, "db")
+
+	st = testParse(`DELETE FROM db1.t1, db2.t2 USING t1 INNER JOIN t2 INNER JOIN db3.t3
+    WHERE t1.id=t2.id AND t2.id=t3.id;`, t, false)
+	matchSchemas(t, st, "db1", "db2", "db3")
+
+	st = testParse(`DELETE FROM a1, a2 USING db1.t1 AS a1 INNER JOIN t2 AS a2
+    WHERE a1.id=a2.id;`, t, false)
+	matchSchemas(t, st, "db1")
 }

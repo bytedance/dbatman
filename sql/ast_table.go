@@ -25,7 +25,7 @@ func (ts ITables) GetSchemas() []string {
 
 	var ret []string
 	for _, v := range ts {
-		if r := v.GetSchemas(); r != 0 && len(r) != 0 {
+		if r := v.GetSchemas(); r != nil && len(r) != 0 {
 			ret = append(ret, r...)
 		}
 	}
