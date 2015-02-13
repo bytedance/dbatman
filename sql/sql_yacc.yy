@@ -3356,7 +3356,11 @@ insert:
 ;
 
 replace:
-  REPLACE replace_lock_option into_table insert_field_spec { $$ = &Replace{} };
+  REPLACE replace_lock_option into_table insert_field_spec 
+  { 
+    $$ = &Replace{Table: $3, ReplaceFields: $4}
+  }
+;
 
 insert_lock_option:
  

@@ -164,11 +164,41 @@ func (d *Delete) GetSchemas() []string {
 /***********************************************
  * Replace Clause
  **********************************************/
-type Replace struct {
-	Table ISimpleTable
+func (*Replace) Statement() {}
+func (r *Replace) HasISelect() bool {
+	if r.ReplaceFields == nil {
+		return false
+	}
+
+	if _, ok := r.ReplaceFields.(ISelect); !ok {
+		return false
+	}
+
+	return true
+}
+func (r *Replace) GetSchemas() []string {
+	ret := r.Table.GetSchemas()
+	var s []string = nil
+	if r.HasISelect() {
+		s = r.ReplaceFields.(*Select).GetSchemas()
+	}
+
+	if ret == nil || len(ret) == 0 {
+		return s
+	}
+
+	if s == nil || len(s) == 0 {
+		return ret
+	}
+
+	return append(ret, s...)
 }
 
-func (*Replace) Statement() {}
+type Replace struct {
+	Table ITable
+	// can be `values(x,y,z)` list or `select` statement
+	ReplaceFields interface{}
+}
 
 type Call struct {
 	Spname *Spname

@@ -23,6 +23,8 @@ func matchSchemas(t *testing.T, st IStatement, tables ...string) {
 		ts = ast.GetSchemas()
 	case *Update:
 		ts = ast.GetSchemas()
+	case *Replace:
+		ts = ast.GetSchemas()
 	default:
 		t.Fatalf("unknow statement type: %T", ast)
 	}
@@ -107,4 +109,12 @@ func TestDelete(t *testing.T) {
 	st = testParse(`DELETE FROM a1, a2 USING db1.t1 AS a1 INNER JOIN t2 AS a2
     WHERE a1.id=a2.id;`, t, false)
 	matchSchemas(t, st, "db1")
+}
+
+func TestReplace(t *testing.T) {
+	st := testParse(`REPLACE INTO test2 VALUES (1, 'Old', '2014-08-20 18:47:00');`, t, false)
+	matchSchemas(t, st)
+
+	st = testParse(`REPLACE INTO dbname2.test2 VALUES (1, 'Old', '2014-08-20 18:47:00');`, t, false)
+	matchSchemas(t, st, "dbname2")
 }
