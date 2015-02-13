@@ -89,6 +89,10 @@ func TestUpdate(t *testing.T) {
 
 	st = testParse("UPDATE `Table A`,`Table B` SET `Table A`.`text`=concat_ws('',`Table A`.`text`,`Table B`.`B-num`,\" from \",`Table B`.`date`,'/') WHERE `Table A`.`A-num` = `Table B`.`A-num`", t, false)
 	matchSchemas(t, st)
+
+	st = testParse(`UPDATE db1.items,db2.month SET items.price=month.price
+    WHERE items.id=month.id;`, t, false)
+	matchSchemas(t, st, "db1", "db2")
 }
 
 func TestDelete(t *testing.T) {
