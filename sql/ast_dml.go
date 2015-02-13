@@ -89,12 +89,44 @@ const (
 
 /*********************************
  * Insert Clause
+ * - http://dev.mysql.com/doc/refman/5.7/en/insert.html
  ********************************/
-type Insert struct {
-	Table ISimpleTable
+func (*Insert) Statement() {}
+func (i *Insert) HasISelect() bool {
+	if i.InsertFields == nil {
+		return false
+	}
+
+	if _, ok := i.InsertFields.(ISelect); !ok {
+		return false
+	}
+
+	return true
 }
 
-func (*Insert) Statement() {}
+func (i *Insert) GetSchemas() []string {
+	ret := i.Table.GetSchemas()
+	var s []string = nil
+	if i.HasISelect() {
+		s = i.InsertFields.(*Select).GetSchemas()
+	}
+
+	if ret == nil || len(ret) == 0 {
+		return s
+	}
+
+	if s == nil || len(s) == 0 {
+		return ret
+	}
+
+	return append(ret, s...)
+}
+
+type Insert struct {
+	Table ISimpleTable
+	// can be `values(x,y,z)` list or `select` statement
+	InsertFields interface{}
+}
 
 type Update struct{}
 

@@ -17,6 +17,8 @@ func matchSchemas(t *testing.T, st IStatement, tables ...string) {
 		ts = ast.GetSchemas()
 	case *Union:
 		ts = ast.GetSchemas()
+	case *Insert:
+		ts = ast.GetSchemas()
 	case *Delete:
 		ts = ast.GetSchemas()
 	default:
@@ -70,6 +72,13 @@ func TestSelect(t *testing.T) {
 	if st.(*Select).LockType != LockType_ForUpdate {
 		t.Fatalf("lock type is not For Update")
 	}
+}
+
+func TestInsert(t *testing.T) {
+	st := testParse(`INSERT INTO db1.tbl_temp2 (fld_id)
+        SELECT tempdb.tbl_temp1.fld_order_id
+        FROM tempdb.tbl_temp1 WHERE tbl_temp1.fld_order_id > 100;`, t, false)
+	matchSchemas(t, st, "db1", "tempdb")
 }
 
 func TestDelete(t *testing.T) {

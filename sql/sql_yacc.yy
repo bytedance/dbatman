@@ -8,6 +8,8 @@ import (
 
 
 %union {
+    empty struct{}
+    interf interface{}
     bytes []byte
     statement IStatement
     select_statement ISelect
@@ -16,7 +18,6 @@ import (
     table_ref ITable
     table_ref_list ITables
     spname *Spname
-    empty struct{}
     lock_type LockType
 }
 
@@ -686,7 +687,7 @@ import (
 /* DML */
 %type <statement> insert update delete replace call do handler load single_multi
 
-%type <select_statement> select select_init select_init2 select_paren select_part2 select_derived2 opt_select_from query_specification select_init2_derived select_part2_derived select_paren_derived select_derived
+%type <select_statement> select select_init select_init2 select_paren select_part2 select_derived2 opt_select_from query_specification select_init2_derived select_part2_derived select_paren_derived select_derived create_select
 %type <select_statement> union_opt union_clause_opt select_derived_union union_list
 
 /* Transaction */
@@ -708,6 +709,8 @@ import (
 %type <statement> describe help use
 
 %type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias
+
+%type <interf> insert_field_spec insert_values
 
 %type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_alias_ref table_ident_opt_wild
 %type <table_list> table_wild_list table_alias_ref_list
@@ -1622,7 +1625,15 @@ opt_part_option:
 | COMMENT_SYM opt_equal TEXT_STRING_sys;
 
 create_select:
-  SELECT_SYM select_options select_item_list opt_select_from;
+  SELECT_SYM select_options select_item_list opt_select_from
+  {
+    if $4 == nil {
+        $$ = &Select{From: nil, LockType: LockType_NoLock}
+    } else {
+        $$ = &Select{From: $4.(*Select).From, LockType: $4.(*Select).LockType}
+    }    
+  } 
+;
 
 opt_as:
  
@@ -3340,7 +3351,7 @@ drop_ts_option:
 insert:
   INSERT insert_lock_option opt_ignore into_table insert_field_spec opt_insert_update
   {
-    $$ = &Insert{Table: $4}
+    $$ = &Insert{Table: $4, InsertFields: $5}
   }
 ;
 
@@ -3365,20 +3376,35 @@ insert_table:
   table_name_with_opt_use_partition { $$ = $1 };
 
 insert_field_spec:
-  insert_values
-| '(' ')' insert_values
-| '(' fields ')' insert_values
-| SET ident_eq_list;
+  insert_values { $$ = $1 }
+| '(' ')' insert_values { $$ = $3 }
+| '(' fields ')' insert_values { $$ = $4 }
+| SET ident_eq_list { $$ = struct{}{} };
 
 fields:
   fields ',' insert_ident
 | insert_ident;
 
 insert_values:
-  VALUES values_list
-| VALUE_SYM values_list
+  VALUES values_list { $$ = struct{}{} }
+| VALUE_SYM values_list { $$ = struct{}{} }
 | create_select union_clause_opt
-| '(' create_select ')' union_opt;
+  {
+    if $2 == nil {
+        $$ = $1
+    } else {
+        $$ = &Union{Left: $1, Right: $2}
+    }
+  }
+| '(' create_select ')' union_opt
+  {
+    if $4 == nil {
+        $$ = $2
+    } else {
+        $$ = &Union{Left: $2, Right: $4}
+    }
+  }
+;
 
 values_list:
   values_list ',' no_braces
