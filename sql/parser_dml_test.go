@@ -21,6 +21,8 @@ func matchSchemas(t *testing.T, st IStatement, tables ...string) {
 		ts = ast.GetSchemas()
 	case *Delete:
 		ts = ast.GetSchemas()
+	case *Update:
+		ts = ast.GetSchemas()
 	default:
 		t.Fatalf("unknow statement type: %T", ast)
 	}
@@ -79,6 +81,14 @@ func TestInsert(t *testing.T) {
         SELECT tempdb.tbl_temp1.fld_order_id
         FROM tempdb.tbl_temp1 WHERE tbl_temp1.fld_order_id > 100;`, t, false)
 	matchSchemas(t, st, "db1", "tempdb")
+}
+
+func TestUpdate(t *testing.T) {
+	st := testParse(`UPDATE t1 SET col1 = col1 + 1, col2 = col1;`, t, false)
+	matchSchemas(t, st)
+
+	st = testParse("UPDATE `Table A`,`Table B` SET `Table A`.`text`=concat_ws('',`Table A`.`text`,`Table B`.`B-num`,\" from \",`Table B`.`date`,'/') WHERE `Table A`.`A-num` = `Table B`.`A-num`", t, false)
+	matchSchemas(t, st)
 }
 
 func TestDelete(t *testing.T) {

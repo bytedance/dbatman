@@ -128,9 +128,22 @@ type Insert struct {
 	InsertFields interface{}
 }
 
-type Update struct{}
-
+/*********************************
+ * Update Clause
+ * - http://dev.mysql.com/doc/refman/5.7/en/update.html
+ ********************************/
 func (*Update) Statement() {}
+func (u *Update) GetSchemas() []string {
+	if u.Tables == nil {
+		panic("update must have table identifier")
+	}
+
+	return u.Tables.GetSchemas()
+}
+
+type Update struct {
+	Tables ITables
+}
 
 /*********************************
  * Delete Clause

@@ -3445,7 +3445,11 @@ opt_insert_update:
 | ON DUPLICATE_SYM KEY_SYM UPDATE_SYM insert_update_list;
 
 update:
-  UPDATE_SYM opt_low_priority opt_ignore join_table_list SET update_list where_clause opt_order_clause delete_limit_clause { $$ = &Update{} };
+  UPDATE_SYM opt_low_priority opt_ignore join_table_list SET update_list where_clause opt_order_clause delete_limit_clause 
+  { 
+    $$ = &Update{Tables: $4}
+  }
+;
 
 update_list:
   update_list ',' update_elem
