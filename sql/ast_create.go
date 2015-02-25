@@ -70,6 +70,11 @@ func (*CreateProcedure) HasDDLSchemas() {}
 type CreateProcedure struct {
 	Procedure ISimpleTable
 }
+
+func (c *CreateProcedure) GetSchemas() []string {
+	return c.Procedure.GetSchemas()
+}
+
 type spTail struct {
 	Procedure ISimpleTable
 }

@@ -18,7 +18,14 @@ func TestCreate(t *testing.T) {
                             UPDATE myschema.mytable SET mycol = mycol + 1;`, t, false)
 	matchSchemas(t, st, `mydb`)
 
-	st = testParse(`CREATE FUNCTION hello (s CHAR(20)) RETURNS CHAR(50) DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');`, t, false)
-	matchSchemas(t, st)
+	st = testParse(`CREATE FUNCTION thisdb.hello (s CHAR(20)) RETURNS CHAR(50) DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');`, t, false)
+	matchSchemas(t, st, `thisdb`)
 
+	st = testParse(
+		`CREATE DEFINER = 'admin'@'localhost' PROCEDURE account_count()
+            SQL SECURITY INVOKER
+            BEGIN
+                SELECT 'Number of accounts:', COUNT(*) FROM mysql.user;
+            END;`, t, false)
+	matchSchemas(t, st)
 }
