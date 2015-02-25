@@ -24,16 +24,40 @@ type AlterFunction struct {
 
 func (*AlterFunction) Statement() {}
 
-type AlterView struct{}
-
+/*************************
+ * Alter View Statement
+ *************************/
 func (*AlterView) Statement() {}
+
+type AlterView struct {
+	View ISimpleTable
+	As   ISelect
+}
+
+type viewTail struct {
+	View ISimpleTable
+	As   ISelect
+}
+
+func (av *AlterView) GetSchemas() []string {
+	d := av.View.GetSchemas()
+	p := av.As.GetSchemas()
+	if d != nil && p != nil {
+		d = append(d, p...)
+	}
+
+	return d
+}
+
+/*************************
+ * Alter Event Statement
+ *************************/
+func (*AlterEvent) Statement() {}
 
 type AlterEvent struct {
 	EventName *Spname
 	Rename    *Spname
 }
-
-func (*AlterEvent) Statement() {}
 
 type AlterTablespace struct{}
 

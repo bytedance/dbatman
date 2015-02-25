@@ -19,6 +19,12 @@ import (
     table_ref_list ITables
     spname *Spname
     lock_type LockType
+    view_tail *viewTail
+    event_tail *eventTail
+    trigger_tail *triggerTail
+    sf_tail *sfTail
+    sp_tail *spTail
+    udf_tail *udfTail
 }
 
 /*
@@ -687,8 +693,9 @@ import (
 /* DML */
 %type <statement> insert update delete replace call do handler load single_multi
 
-%type <select_statement> select select_init select_init2 select_paren select_part2 select_derived2 opt_select_from query_specification select_init2_derived select_part2_derived select_paren_derived select_derived create_select
-%type <select_statement> union_opt union_clause_opt select_derived_union union_list
+%type <select_statement> select select_init select_init2 select_paren select_part2 select_derived2 opt_select_from query_specification select_init2_derived select_part2_derived select_paren_derived select_derived create_select 
+%type <select_statement> view_select view_select_aux create_view_select create_view_select_paren
+%type <select_statement> union_opt union_clause_opt select_derived_union union_list 
 
 /* Transaction */
 %type <statement> commit lock release rollback savepoint start unlock xa 
@@ -710,7 +717,7 @@ import (
 
 %type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias
 
-%type <interf> insert_field_spec insert_values
+%type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail
 
 %type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_alias_ref table_ident_opt_wild
 %type <table_list> table_wild_list table_alias_ref_list
@@ -724,6 +731,13 @@ import (
 %type <empty> '.'
 
 %type <lock_type> select_lock_type
+
+%type <view_tail> view_tail
+%type <trigger_tail> trigger_tail
+%type <sp_tail> sp_tail
+%type <sf_tail> sf_tail
+%type <udf_tail> udf_tail
+%type <event_tail> event_tail
 
 %%
 
@@ -878,7 +892,25 @@ create:
 | CREATE fulltext INDEX_SYM ident init_key_options ON table_ident '(' key_list ')' fulltext_key_options opt_index_lock_algorithm { $$ = &CreateIndex{} }
 | CREATE spatial INDEX_SYM ident init_key_options ON table_ident '(' key_list ')' spatial_key_options opt_index_lock_algorithm { $$ = &CreateIndex{} }
 | CREATE DATABASE opt_if_not_exists ident opt_create_database_options { $$ = &CreateDatabase{} }
-| CREATE view_or_trigger_or_sp_or_event { $$ = &CreateView{} }
+| CREATE view_or_trigger_or_sp_or_event 
+  { 
+    switch st := $2.(type) {
+        case *viewTail:
+        $$ = &CreateView{View: st.View}
+        case *triggerTail:
+        $$ = &CreateTrigger{Trigger: st.Trigger}
+        case *spTail:
+        $$ = &CreateProcedure{Procedure: st.Procedure}
+        case *sfTail:
+        $$ = &CreateFunction{Function: st.Function}
+        case *udfTail:
+        $$ = &CreateFunction{Function: st.Function}
+        case *eventTail:
+        $$ = &CreateEvent{Event: st.Event}
+        default:
+        panic(__yyfmt__.Sprintf("unknow create statement:%T", st))
+    }
+  }
 | CREATE USER clear_privileges grant_list { $$ = &CreateUser{} }
 | CREATE LOGFILE_SYM GROUP_SYM logfile_group_info { $$ = &CreateLog{} }
 | CREATE TABLESPACE tablespace_info { $$ = &CreateTablespace{} }
@@ -902,7 +934,9 @@ server_option:
 | PORT_SYM ulong_num;
 
 event_tail:
-  remember_name EVENT_SYM opt_if_not_exists sp_name ON SCHEDULE_SYM ev_schedule_time opt_ev_on_completion opt_ev_status opt_ev_comment DO_SYM ev_sql_stmt;
+  remember_name EVENT_SYM opt_if_not_exists sp_name ON SCHEDULE_SYM ev_schedule_time opt_ev_on_completion opt_ev_status opt_ev_comment DO_SYM ev_sql_stmt
+  { $$ = &eventTail{Event: $4} }
+;
 
 ev_schedule_time:
   EVERY_SYM expr interval ev_starts ev_ends
@@ -2197,8 +2231,8 @@ alter:
   { $$ = &AlterDatabase{Schema: $3} }
 | ALTER PROCEDURE_SYM sp_name sp_a_chistics { $$ = &AlterProcedure{Spname: $3} }
 | ALTER FUNCTION_SYM sp_name sp_a_chistics { $$ = &AlterFunction{FuncName: $3} }
-| ALTER view_algorithm definer_opt view_tail { $$ = &AlterView{} }
-| ALTER definer_opt view_tail { $$ = &AlterView{} }
+| ALTER view_algorithm definer_opt view_tail { $$ = &AlterView{View: $4.View, As: $4.As} }
+| ALTER definer_opt view_tail { $$ = &AlterView{View: $3.View, As: $3.As} }
 | ALTER definer_opt EVENT_SYM sp_name ev_alter_on_schedule_completion opt_ev_rename_to opt_ev_status opt_ev_comment opt_ev_sql_stmt { $$ = &AlterEvent{EventName: $4, Rename: $6} }
 | ALTER TABLESPACE alter_tablespace_info { $$ = &AlterTablespace{} }
 | ALTER LOGFILE_SYM GROUP_SYM alter_logfile_group_info { $$ = &AlterLogfile{} }
@@ -4674,24 +4708,26 @@ query_expression_option:
 | ALL;
 
 view_or_trigger_or_sp_or_event:
-  definer definer_tail
-| no_definer no_definer_tail
-| view_replace_or_algorithm definer_opt view_tail;
+  definer definer_tail { $$ = $2 }
+| no_definer no_definer_tail { $$ = $2 }
+| view_replace_or_algorithm definer_opt view_tail { $$ = $3 };
 
 definer_tail:
-  view_tail
-| trigger_tail
-| sp_tail
-| sf_tail
-| event_tail;
+  view_tail { $$ = $1 }
+| trigger_tail { $$ = $1 }
+| sp_tail { $$ = $1 }
+| sf_tail { $$ = $1 }
+| event_tail { $$ = $1 }
+;
 
 no_definer_tail:
-  view_tail
-| trigger_tail
-| sp_tail
-| sf_tail
-| udf_tail
-| event_tail;
+  view_tail { $$ = $1 }
+| trigger_tail { $$ = $1 }
+| sp_tail { $$ = $1 }
+| sf_tail { $$ = $1 }
+| udf_tail { $$ = $1 }
+| event_tail { $$ = $1 }
+;
 
 definer_opt:
   no_definer
@@ -4722,7 +4758,9 @@ view_suid:
 | SQL_SYM SECURITY_SYM INVOKER_SYM;
 
 view_tail:
-  view_suid VIEW_SYM table_ident view_list_opt AS view_select;
+  view_suid VIEW_SYM table_ident view_list_opt AS view_select
+  { $$ = &viewTail{View: $3, As: $6} }
+;
 
 view_list_opt:
  
@@ -4733,18 +4771,34 @@ view_list:
 | view_list ',' ident;
 
 view_select:
-  view_select_aux view_check_option;
+  view_select_aux view_check_option { $$ = $1 };
 
 view_select_aux:
   create_view_select union_clause_opt
-| '(' create_view_select_paren ')' union_opt;
+  {
+    if $2 == nil {
+        $$ = $1
+    } else {
+        $$ = &Union{Left: $1, Right: $2}
+    }
+  }
+| '(' create_view_select_paren ')' union_opt
+  {
+    if $4 == nil {
+        $$ = &ParenSelect{Select: $2}
+    } else {
+        $$ = &Union{Left: &ParenSelect{Select: $2}, Right: $4}
+    }
+  }
+;
 
 create_view_select_paren:
-  create_view_select
-| '(' create_view_select_paren ')';
+  create_view_select { $$ = $1 }
+| '(' create_view_select_paren ')' { $$ = &ParenSelect{Select: $2} }
+;
 
 create_view_select:
-  SELECT_SYM select_part2;
+  SELECT_SYM select_part2 { $$ = $2 };
 
 view_check_option:
  
@@ -4753,17 +4807,26 @@ view_check_option:
 | WITH LOCAL_SYM CHECK_SYM OPTION;
 
 trigger_tail:
-  TRIGGER_SYM remember_name sp_name trg_action_time trg_event ON remember_name table_ident FOR_SYM remember_name EACH_SYM ROW_SYM sp_proc_stmt;
+  TRIGGER_SYM remember_name sp_name trg_action_time trg_event ON remember_name table_ident FOR_SYM remember_name EACH_SYM ROW_SYM sp_proc_stmt
+  { $$ = &triggerTail{Trigger: $3} }
+;
 
 udf_tail:
-  AGGREGATE_SYM remember_name FUNCTION_SYM ident RETURNS_SYM udf_type SONAME_SYM TEXT_STRING_sys
-| remember_name FUNCTION_SYM ident RETURNS_SYM udf_type SONAME_SYM TEXT_STRING_sys;
+  AGGREGATE_SYM remember_name FUNCTION_SYM ident RETURNS_SYM udf_type SONAME_SYM TEXT_STRING_sys 
+  { $$ = &udfTail{} }
+| remember_name FUNCTION_SYM ident RETURNS_SYM udf_type SONAME_SYM TEXT_STRING_sys
+  { $$ = &udfTail{} }
+;
 
 sf_tail:
-  remember_name FUNCTION_SYM sp_name '(' sp_fdparam_list ')' RETURNS_SYM type_with_opt_collate sp_c_chistics sp_proc_stmt;
+  remember_name FUNCTION_SYM sp_name '(' sp_fdparam_list ')' RETURNS_SYM type_with_opt_collate sp_c_chistics sp_proc_stmt
+  { $$ = &sfTail{Function: $3} }
+;
 
 sp_tail:
-  PROCEDURE_SYM remember_name sp_name '(' sp_pdparam_list ')' sp_c_chistics sp_proc_stmt;
+  PROCEDURE_SYM remember_name sp_name '(' sp_pdparam_list ')' sp_c_chistics sp_proc_stmt
+  { $$ = &spTail{Procedure: $3} }
+;
 
 xa:
   XA_SYM begin_or_start xid opt_join_or_resume { $$ = &XA{} }

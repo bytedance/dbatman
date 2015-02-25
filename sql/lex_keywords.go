@@ -4,6 +4,12 @@ import (
 	"bytes"
 )
 
+func init() {
+	for k, v := range Symbols {
+		Functions[k] = v
+	}
+}
+
 var Symbols map[string]int = map[string]int{
 	"&&":                            AND_AND_SYM,
 	"||":                            OR_OR_SYM,
@@ -650,14 +656,14 @@ const (
 )
 
 func findKeywords(b []byte, isfunc bool) (int, bool) {
-	var mp map[string]int
-	mp = Symbols
 	if isfunc {
-		mp = Functions
-	}
-
-	if v, ok := mp[string(bytes.ToUpper(b))]; ok {
-		return v, true
+		if v, ok := Functions[string(bytes.ToUpper(b))]; ok {
+			return v, true
+		}
+	} else {
+		if v, ok := Symbols[string(bytes.ToUpper(b))]; ok {
+			return v, true
+		}
 	}
 
 	return 0, false

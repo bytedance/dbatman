@@ -1,5 +1,10 @@
 package sql
 
+type IDDLSchemas interface {
+	GetSchemas() []string
+	HasDDLSchemas()
+}
+
 type RenameTable struct{}
 
 func (*RenameTable) Statement() {}

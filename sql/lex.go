@@ -512,7 +512,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 TG_RET:
 
-	DEBUG(fmt.Sprintf("dbg leave [%s]\n", TokenName(retstate)))
+	DEBUG(fmt.Sprintf("dbg return [%s]\n", TokenName(retstate)))
 	return
 }
 
@@ -564,11 +564,6 @@ func (lex *SQLLexer) yySkip() {
 // Error is called by go yacc if there's a parsing error.
 func (lexer *SQLLexer) Error(err string) {
 	buf := bytes.NewBuffer(make([]byte, 0, 32))
-	if lexer.errorToken != nil {
-		fmt.Fprintf(buf, "%s at position %v near %s", err, lexer.ptr, lexer.errorToken)
-	} else {
-		fmt.Fprintf(buf, "%s at position %v", err, lexer.ptr)
-	}
-
+	fmt.Fprintf(buf, "%s at position %v near %s", err, lexer.ptr, string(lexer.buf[lexer.tok_start:lexer.ptr]))
 	lexer.LastError = buf.String()
 }

@@ -10,13 +10,15 @@ type ISelect interface {
 	IStatement
 }
 
-func (*Select) IsSelect()   {}
-func (*Union) IsSelect()    {}
-func (*SubQuery) IsSelect() {}
+func (*Select) IsSelect()      {}
+func (*ParenSelect) IsSelect() {}
+func (*Union) IsSelect()       {}
+func (*SubQuery) IsSelect()    {}
 
-func (*Select) Statement()   {}
-func (*Union) Statement()    {}
-func (*SubQuery) Statement() {}
+func (*Select) Statement()      {}
+func (*ParenSelect) Statement() {}
+func (*Union) Statement()       {}
+func (*SubQuery) Statement()    {}
 
 type Union struct {
 	Left, Right ISelect
@@ -77,6 +79,15 @@ func (s *Select) GetSchemas() []string {
 	}
 
 	return ret
+}
+
+// ParenSelect ------
+type ParenSelect struct {
+	Select ISelect
+}
+
+func (p *ParenSelect) GetSchemas() []string {
+	return p.Select.GetSchemas()
 }
 
 type LockType int

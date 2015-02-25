@@ -25,6 +25,10 @@ func matchSchemas(t *testing.T, st IStatement, tables ...string) {
 		ts = ast.GetSchemas()
 	case *Replace:
 		ts = ast.GetSchemas()
+	case *AlterView:
+		ts = ast.GetSchemas()
+	case IDDLSchemas:
+		ts = ast.GetSchemas()
 	default:
 		t.Fatalf("unknow statement type: %T", ast)
 	}
@@ -64,7 +68,7 @@ func TestSelect(t *testing.T) {
 		    (SELECT a FROM db2.t2 WHERE a=11 AND B=2 ORDER BY a LIMIT 10);`, t, false)
 	matchSchemas(t, st, "db1", "db2")
 
-	st = testParse(`SELECT column_name(s)
+	st = testParse(`SELECT funcs(s)
     FROM db1.table1
     LEFT OUTER JOIN db2.table2
     ON db1.table1.column_name=db2.table2.column_name;`, t, false)

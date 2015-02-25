@@ -121,6 +121,17 @@ func (s *SimpleTable) GetSchemas() []string {
 	return []string{string(s.Qualifier)}
 }
 
+func (*Spname) IsSimpleTable() {}
+func (*Spname) IsTable()       {}
+
+func (s *Spname) GetSchemas() []string {
+	if s.Qualifier == nil || len(s.Qualifier) == 0 {
+		return nil
+	}
+
+	return []string{string(s.Qualifier)}
+}
+
 type Spname struct {
 	Qualifier []byte
 	Name      []byte
@@ -128,4 +139,19 @@ type Spname struct {
 
 type SchemaInfo struct {
 	Name []byte
+}
+
+func GetSchemas(params ...[]string) []string {
+	var dst []string
+	for _, arr := range params {
+		if arr != nil {
+			dst = append(dst, arr...)
+		}
+	}
+
+	if len(dst) == 0 {
+		return nil
+	}
+
+	return dst
 }
