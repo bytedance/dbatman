@@ -1,18 +1,12 @@
 package sql
 
 import (
-	"github.com/wangjild/go-mysql-proxy/sql/charset"
-	. "github.com/wangjild/go-mysql-proxy/sql/state"
-)
-
-// Copyright 2012, Google Inc. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/wangjild/go-mysql-proxy/sql/charset"
+	. "github.com/wangjild/go-mysql-proxy/sql/state"
+	"strconv"
 	"strings"
 )
 
@@ -375,10 +369,21 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 			lex.yySkip() // skip '*'
 			if lex.yyPeek() == '!' {
 				var version uint32 = MYSQL_VERSION_ID
-				lex.yySkip()
+				lex.yySkip() // skip '!'
 				state = MY_LEX_START
 				if cs.IsDigit(lex.yyPeek()) {
-					// TODO version = atoi
+					start := lex.ptr
+					lex.yySkip() // skip first digit
+					for c = lex.yyPeek(); cs.IsDigit(c); c = lex.yyPeek() {
+						lex.yySkip()
+					}
+
+					if i, err := strconv.Atoi(string(lex.buf[start:lex.ptr])); err != nil {
+						lex.Error(err.Error())
+						return ABORT_SYM
+					} else {
+						version = uint32(i)
+					}
 				}
 
 				if version <= MYSQL_VERSION_ID {
@@ -387,14 +392,12 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 				}
 			}
 
-			for lex.ptr != uint(len(lex.buf)) {
-				if c = lex.yyNext(); c != '*' || lex.yyPeek() != '/' {
-					continue
-				}
-			} //
+			// scan util match `*/`
+			for c = lex.yyNext(); c != EOF && !(c == '*' && lex.yyPeek() == '/'); c = lex.yyNext() {
+			}
 
-			if lex.ptr != uint(len(lex.buf)) {
-				lex.yySkip()
+			if c == '*' {
+				lex.yySkip() // skip for '*/'
 			}
 
 			state = MY_LEX_START

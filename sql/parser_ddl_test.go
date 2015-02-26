@@ -43,6 +43,9 @@ func TestCreateTable(t *testing.T) {
         PARTITION BY HASH(col1);`, t, false)
 	matchSchemas(t, st, `db1`)
 
-	st = testParse(`CREATE TABLE t1 (col1 INT, col2 CHAR(5), col3 DATETIME)
+	testParse(`CREATE TABLE t1 (col1 INT, col2 CHAR(5), col3 DATETIME)
         PARTITION BY HASH ( YEAR(col3) );`, t, false)
+	testParse(`CREATE /*!32302 TEMPORARY */ TABLE t (a INT);`, t, false)
+
+	testParse(`SELECT /*! STRAIGHT_JOIN */ col1 FROM table1,table2`, t, false)
 }

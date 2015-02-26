@@ -80,6 +80,10 @@ func TestSelect(t *testing.T) {
 	if st.(*Select).LockType != LockType_ForUpdate {
 		t.Fatalf("lock type is not For Update")
 	}
+
+	st = testParse(`select last_insert_id() as a`, t, false)
+	st = testParse(`SELECT substr('''a''bc',0,3) FROM dual`, t, false)
+	testParse(`SELECT /*mark for picman*/ * FROM filterd limit 1;`, t, false)
 }
 
 func TestInsert(t *testing.T) {
