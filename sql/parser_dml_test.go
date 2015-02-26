@@ -2,11 +2,18 @@ package sql
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
 func fmtimport() {
 	fmt.Println()
+}
+
+func matchType(t *testing.T, st IStatement, ref interface{}) {
+	if reflect.TypeOf(st) != reflect.TypeOf(ref) {
+		t.Fatalf("expect type[%v] not match[%v]", reflect.TypeOf(ref), reflect.TypeOf(st))
+	}
 }
 
 func matchSchemas(t *testing.T, st IStatement, tables ...string) {
@@ -28,6 +35,8 @@ func matchSchemas(t *testing.T, st IStatement, tables ...string) {
 	case *AlterView:
 		ts = ast.GetSchemas()
 	case IDDLSchemas:
+		ts = ast.GetSchemas()
+	case *Lock:
 		ts = ast.GetSchemas()
 	default:
 		t.Fatalf("unknow statement type: %T", ast)

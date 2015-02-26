@@ -721,8 +721,8 @@ import (
 
 %type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail
 
-%type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_ident_opt_wild table_name table_alias_ref
-%type <table_list> table_list
+%type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_ident_opt_wild table_name table_alias_ref table_lock
+%type <table_list> table_list table_lock_list
 
 
 %type <table_ref> esc_table_ref table_ref table_factor join_table 
@@ -2392,7 +2392,7 @@ slave:
 ;
 
 start:
-  START_SYM TRANSACTION_SYM opt_start_transaction_option_list { $$ = &Start{} };
+  START_SYM TRANSACTION_SYM opt_start_transaction_option_list { $$ = &StartTrans{} };
 
 opt_start_transaction_option_list:
  
@@ -4424,18 +4424,18 @@ set_expr_or_default:
 | BINARY;
 
 lock:
-  LOCK_SYM table_or_tables table_lock_list { $$ = &Lock{} };
+  LOCK_SYM table_or_tables table_lock_list { $$ = &Lock{Tables: $3} };
 
 table_or_tables:
   TABLE_SYM
 | TABLES;
 
 table_lock_list:
-  table_lock
-| table_lock_list ',' table_lock;
+  table_lock { $$ = ISimpleTables{$1} }
+| table_lock_list ',' table_lock { $$ = append($1, $3) };
 
 table_lock:
-  table_ident opt_table_alias lock_option;
+  table_ident opt_table_alias lock_option { $$ = $1 };
 
 lock_option:
   READ_SYM
@@ -4639,15 +4639,15 @@ commit:
 
 rollback:
   ROLLBACK_SYM opt_work opt_chain opt_release { $$ = &Rollback{} }
-| ROLLBACK_SYM opt_work TO_SYM opt_savepoint ident { $$ = &Rollback{} }
+| ROLLBACK_SYM opt_work TO_SYM opt_savepoint ident { $$ = &Rollback{Point: $5} }
 ;
 
 savepoint:
-  SAVEPOINT_SYM ident { $$ = &SavePoint{} }
+  SAVEPOINT_SYM ident { $$ = &SavePoint{Point: $2} }
 ;
 
 release:
-  RELEASE_SYM SAVEPOINT_SYM ident { $$ = &Release{} };
+  RELEASE_SYM SAVEPOINT_SYM ident { $$ = &Release{Point: $3} };
 
 union_clause_opt:
   { $$ = nil } 

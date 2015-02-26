@@ -1,37 +1,41 @@
 package sql
 
-type Start struct{}
+func (*StartTrans) Statement() {}
+func (*Lock) Statement()       {}
+func (*Unlock) Statement()     {}
+func (*Begin) Statement()      {}
+func (*Commit) Statement()     {}
+func (*Rollback) Statement()   {}
+func (*XA) Statement()         {}
+func (*SavePoint) Statement()  {}
+func (*Release) Statement()    {}
 
-func (*Start) Statement() {}
+type StartTrans struct{}
 
-type Lock struct{}
+func (l *Lock) GetSchemas() []string {
+	return l.Tables.GetSchemas()
+}
 
-func (*Lock) Statement() {}
+type Lock struct {
+	Tables ISimpleTables
+}
 
 type Unlock struct{}
 
-func (*Unlock) Statement() {}
-
 type Begin struct{}
-
-func (*Begin) Statement() {}
 
 type Commit struct{}
 
-func (*Commit) Statement() {}
-
-type Rollback struct{}
-
-func (*Rollback) Statement() {}
+type Rollback struct {
+	Point []byte
+}
 
 type XA struct{}
 
-func (*XA) Statement() {}
+type SavePoint struct {
+	Point []byte
+}
 
-type SavePoint struct{}
-
-func (*SavePoint) Statement() {}
-
-type Release struct{}
-
-func (*Release) Statement() {}
+type Release struct {
+	Point []byte
+}
