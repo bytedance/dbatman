@@ -5,8 +5,22 @@ import (
 )
 
 func TestAlter(t *testing.T) {
-	st := testParse(`alter view v1 as select * from t2;`, t, false)
-	matchSchemas(t, st)
+	st := testParse(`alter view d1.v1 as select * from t2;`, t, false)
+	matchSchemas(t, st, `d1`)
+
+	st = testParse(
+		`ALTER EVENT myschema.myevent
+            ON SCHEDULE
+            AT CURRENT_TIMESTAMP + INTERVAL 1 DAY
+            DO
+                TRUNCATE TABLE myschema.mytable;`, t, false)
+	matchSchemas(t, st, `myschema`)
+
+	st = testParse(`ALTER EVENT olddb.myevent RENAME TO newdb.myevent;`, t, false)
+	matchSchemas(t, st, `olddb`, `newdb`)
+
+	st = testParse(`ALTER SERVER s OPTIONS (USER 'sally');`, t, false)
+
 }
 
 func TestCreate(t *testing.T) {

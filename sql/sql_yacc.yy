@@ -2229,11 +2229,11 @@ alter:
   { $$ = &AlterDatabase{Schema: $3} }
 | ALTER DATABASE ident UPGRADE_SYM DATA_SYM DIRECTORY_SYM NAME_SYM 
   { $$ = &AlterDatabase{Schema: $3} }
-| ALTER PROCEDURE_SYM sp_name sp_a_chistics { $$ = &AlterProcedure{Spname: $3} }
-| ALTER FUNCTION_SYM sp_name sp_a_chistics { $$ = &AlterFunction{FuncName: $3} }
+| ALTER PROCEDURE_SYM sp_name sp_a_chistics { $$ = &AlterProcedure{Procedure: $3} }
+| ALTER FUNCTION_SYM sp_name sp_a_chistics { $$ = &AlterFunction{Function: $3} }
 | ALTER view_algorithm definer_opt view_tail { $$ = &AlterView{View: $4.View, As: $4.As} }
 | ALTER definer_opt view_tail { $$ = &AlterView{View: $3.View, As: $3.As} }
-| ALTER definer_opt EVENT_SYM sp_name ev_alter_on_schedule_completion opt_ev_rename_to opt_ev_status opt_ev_comment opt_ev_sql_stmt { $$ = &AlterEvent{EventName: $4, Rename: $6} }
+| ALTER definer_opt EVENT_SYM sp_name ev_alter_on_schedule_completion opt_ev_rename_to opt_ev_status opt_ev_comment opt_ev_sql_stmt { $$ = &AlterEvent{Event: $4, Rename: $6} }
 | ALTER TABLESPACE alter_tablespace_info { $$ = &AlterTablespace{} }
 | ALTER LOGFILE_SYM GROUP_SYM alter_logfile_group_info { $$ = &AlterLogfile{} }
 | ALTER TABLESPACE change_tablespace_info { $$ = &AlterTablespace{} }

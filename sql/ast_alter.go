@@ -13,13 +13,13 @@ type AlterDatabase struct {
 func (*AlterDatabase) Statement() {}
 
 type AlterProcedure struct {
-	Spname *Spname
+	Procedure *Spname
 }
 
 func (*AlterProcedure) Statement() {}
 
 type AlterFunction struct {
-	FuncName *Spname
+	Function *Spname
 }
 
 func (*AlterFunction) Statement() {}
@@ -52,11 +52,19 @@ func (av *AlterView) GetSchemas() []string {
 /*************************
  * Alter Event Statement
  *************************/
-func (*AlterEvent) Statement() {}
+func (*AlterEvent) Statement()     {}
+func (*AlterEvent) HasDDLSchemas() {}
+func (a *AlterEvent) GetSchemas() []string {
+	if a.Rename == nil {
+		return a.Event.GetSchemas()
+	}
+
+	return GetSchemas(a.Event.GetSchemas(), a.Rename.GetSchemas())
+}
 
 type AlterEvent struct {
-	EventName *Spname
-	Rename    *Spname
+	Event  *Spname
+	Rename *Spname
 }
 
 type AlterTablespace struct{}
