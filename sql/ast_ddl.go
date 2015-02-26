@@ -5,10 +5,18 @@ type IDDLSchemas interface {
 	HasDDLSchemas()
 }
 
-type RenameTable struct{}
+type RenameTable struct {
+	ToList []*TableToTable
+}
 
 func (*RenameTable) Statement() {}
 
-type TruncateTable struct{}
+func (*TruncateTable) Statement()     {}
+func (*TruncateTable) HasDDLSchemas() {}
+func (t *TruncateTable) GetSchemas() []string {
+	return t.Table.GetSchemas()
+}
 
-func (*TruncateTable) Statement() {}
+type TruncateTable struct {
+	Table ISimpleTable
+}

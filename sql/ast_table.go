@@ -176,3 +176,8 @@ func GetSchemas(params ...[]string) []string {
 
 	return dst
 }
+
+type TableToTable struct {
+	From ISimpleTable
+	To   ISimpleTable
+}

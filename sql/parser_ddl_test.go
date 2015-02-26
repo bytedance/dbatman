@@ -82,3 +82,10 @@ func TestDrop(t *testing.T) {
 	st = testParse("DROP TRIGGER schema_name.trigger_name;", t, false)
 	matchSchemas(t, st, `schema_name`)
 }
+
+func TestOthers(t *testing.T) {
+	st := testParse(`Truncate db1.table1`, t, false)
+	matchSchemas(t, st, `db1`)
+
+	testParse(`RENAME TABLE current_db.tbl_name TO other_db.tbl_name;`, t, false)
+}

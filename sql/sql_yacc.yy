@@ -17,6 +17,8 @@ import (
     table_list ISimpleTables
     table_ref ITable
     table_ref_list ITables
+    table_to_table *TableToTable
+    table_to_table_list []*TableToTable
     spname *Spname
     lock_type LockType
     view_tail *viewTail
@@ -725,6 +727,9 @@ import (
 
 %type <table_ref> esc_table_ref table_ref table_factor join_table 
 %type <table_ref_list> select_into select_from join_table_list derived_table_list table_alias_ref_list table_wild_list 
+
+%type <table_to_table> table_to_table
+%type <table_to_table_list> table_to_table_list
 
 %type <spname> sp_name opt_ev_rename_to
 
@@ -2502,7 +2507,7 @@ opt_no_write_to_binlog:
 | LOCAL_SYM;
 
 rename:
-  RENAME table_or_tables table_to_table_list { $$ = &RenameTable{} }
+  RENAME table_or_tables table_to_table_list { $$ = &RenameTable{ToList: $3} }
 | RENAME USER clear_privileges rename_list { $$ = &RenameUser{} }
 ; 
 
@@ -2511,11 +2516,11 @@ rename_list:
 | rename_list ',' user TO_SYM user;
 
 table_to_table_list:
-  table_to_table
-| table_to_table_list ',' table_to_table;
+  table_to_table { $$ = []*TableToTable{$1} }
+| table_to_table_list ',' table_to_table { $$ = append($1, $3) };
 
 table_to_table:
-  table_ident TO_SYM table_ident;
+  table_ident TO_SYM table_ident { $$ = &TableToTable{From: $1, To: $3} };
 
 keycache:
   CACHE_SYM INDEX_SYM keycache_list_or_parts IN_SYM key_cache_name { $$ = &CacheIndex{} };
@@ -3546,7 +3551,7 @@ opt_delete_option:
 | IGNORE_SYM;
 
 truncate:
-  TRUNCATE_SYM opt_table_sym table_name { $$ = &TruncateTable{} }
+  TRUNCATE_SYM opt_table_sym table_name { $$ = &TruncateTable{Table: $3} }
 ;
 
 opt_table_sym:
