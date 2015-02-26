@@ -93,3 +93,13 @@ func TestFlush(t *testing.T) {
 	st = testParse(`flush logs`, t, false)
 	matchType(t, st, &Flush{})
 }
+
+func TestKill(t *testing.T) {
+	st := testParse(`kill connection 1234`, t, false)
+	matchType(t, st, &Kill{})
+}
+
+func TestReset(t *testing.T) {
+	st := testParse(`reset master, query cache, slave`, t, false)
+	matchType(t, st, &Reset{})
+}
