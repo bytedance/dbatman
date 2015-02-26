@@ -1,10 +1,15 @@
 package sql
 
+func (*CreateTable) Statement()     {}
+func (*CreateTable) HasDDLSchemas() {}
+
+func (c *CreateTable) GetSchemas() []string {
+	return c.Table.GetSchemas()
+}
+
 type CreateTable struct {
 	Table ISimpleTable
 }
-
-func (*CreateTable) Statement() {}
 
 type CreateIndex struct{}
 
