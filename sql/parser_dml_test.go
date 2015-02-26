@@ -38,6 +38,10 @@ func matchSchemas(t *testing.T, st IStatement, tables ...string) {
 		ts = ast.GetSchemas()
 	case *Lock:
 		ts = ast.GetSchemas()
+	case *DescribeTable:
+		ts = ast.GetSchemas()
+	case *DescribeStmt:
+		ts = ast.GetSchemas()
 	default:
 		t.Fatalf("unknow statement type: %T", ast)
 	}

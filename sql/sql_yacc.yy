@@ -715,7 +715,7 @@ import (
 %type <statement> get_diagnostics resignal_stmt signal_stmt
 
 /* MySQL Utility Statement */
-%type <statement> describe help use
+%type <statement> describe help use explanable_command
 
 %type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias
 
@@ -3668,16 +3668,18 @@ wild_and_where:
 | WHERE expr;
 
 describe:
-  describe_command table_ident opt_describe_column { $$ = &Describe{} }
-| describe_command opt_extended_describe explanable_command { $$ = &Describe{} }
+  describe_command table_ident opt_describe_column 
+  { $$ = &DescribeTable{Table: $2} }
+| describe_command opt_extended_describe explanable_command 
+  { $$ = &DescribeStmt{Stmt: $3} }
 ;
 
 explanable_command:
-  select
-| insert
-| replace
-| update
-| delete;
+  select { $$ = $1 }
+| insert { $$ = $1 }
+| replace { $$ = $1 }
+| update { $$ = $1 }
+| delete { $$ = $1 };
 
 describe_command:
   DESC
@@ -3764,7 +3766,7 @@ kill_option:
 | QUERY_SYM;
 
 use:
-  USE_SYM ident { $$ = &Use{} };
+  USE_SYM ident { $$ = &Use{DB: $2} };
 
 load:
   LOAD data_or_xml load_data_lock opt_local INFILE TEXT_STRING_filesystem opt_duplicate INTO TABLE_SYM table_ident opt_use_partition opt_load_data_charset opt_xml_rows_identified_by opt_field_term opt_line_term opt_ignore_lines opt_field_or_var_spec opt_load_data_set_spec
