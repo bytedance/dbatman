@@ -19,6 +19,10 @@ import (
     table_ref_list ITables
     table_to_table *TableToTable
     table_to_table_list []*TableToTable
+
+    table_index *TableIndex
+    table_index_list []*TableIndex
+
     spname *Spname
     lock_type LockType
     view_tail *viewTail
@@ -730,6 +734,9 @@ import (
 
 %type <table_to_table> table_to_table
 %type <table_to_table_list> table_to_table_list
+
+%type <table_index> assign_to_keycache assign_to_keycache_parts
+%type <table_index_list> keycache_list_or_parts keycache_list 
 
 %type <spname> sp_name opt_ev_rename_to
 
@@ -2523,21 +2530,23 @@ table_to_table:
   table_ident TO_SYM table_ident { $$ = &TableToTable{From: $1, To: $3} };
 
 keycache:
-  CACHE_SYM INDEX_SYM keycache_list_or_parts IN_SYM key_cache_name { $$ = &CacheIndex{} };
+  CACHE_SYM INDEX_SYM keycache_list_or_parts IN_SYM key_cache_name 
+  { $$ = &CacheIndex{TableIndexList: $3} };
 
 keycache_list_or_parts:
-  keycache_list
-| assign_to_keycache_parts;
+  keycache_list { $$ = $1 }
+| assign_to_keycache_parts { $$ = []*TableIndex{$1} }
+;
 
 keycache_list:
-  assign_to_keycache
-| keycache_list ',' assign_to_keycache;
+  assign_to_keycache { $$ = []*TableIndex{$1} }
+| keycache_list ',' assign_to_keycache { $$ = append($1, $3) };
 
 assign_to_keycache:
-  table_ident cache_keys_spec;
+  table_ident cache_keys_spec { $$ = &TableIndex{Table: $1} };
 
 assign_to_keycache_parts:
-  table_ident adm_partition cache_keys_spec;
+  table_ident adm_partition cache_keys_spec { $$ = &TableIndex{Table: $1} };
 
 key_cache_name:
   ident

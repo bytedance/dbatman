@@ -66,3 +66,14 @@ func TestAccountMgrStmt(t *testing.T) {
 	st = testParse(`SET PASSWORD FOR 'jeffrey'@'localhost' = PASSWORD('cleartext password');`, t, false)
 	// matchType(t, st, &SetPassword{})
 }
+
+func TestBinlog(t *testing.T) {
+	st := testParse(`BINLOG 'str'`, t, false)
+	matchType(t, st, &Binlog{})
+}
+
+func TestCacheIndex(t *testing.T) {
+	st := testParse(`CACHE INDEX d1.t1, d2.t2, d3.t3 IN hot_cache;`, t, false)
+	matchType(t, st, &CacheIndex{})
+	matchSchemas(t, st, `d1`, `d2`, `d3`)
+}

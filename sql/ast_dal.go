@@ -69,9 +69,41 @@ type Optimize struct {
 	Tables ISimpleTables
 }
 
-type CacheIndex struct{}
-
+/****************************
+ * Cache Index Statement
+ ***************************/
 func (*CacheIndex) Statement() {}
+
+type CacheIndex struct {
+	TableIndexList []*TableIndex
+}
+
+func (c *CacheIndex) GetSchemas() []string {
+	if c.TableIndexList == nil || len(c.TableIndexList) == 0 {
+		return nil
+	}
+
+	var rt []string
+	for _, v := range c.TableIndexList {
+		if v == nil {
+			continue
+		}
+
+		if r := v.Table.GetSchemas(); r != nil && len(r) != 0 {
+			rt = append(rt, r...)
+		}
+	}
+
+	if len(rt) == 0 {
+		return nil
+	}
+
+	return rt
+}
+
+type TableIndex struct {
+	Table ISimpleTable
+}
 
 type LoadIndex struct{}
 
