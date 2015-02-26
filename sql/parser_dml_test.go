@@ -46,6 +46,10 @@ func matchSchemas(t *testing.T, st IStatement, tables ...string) {
 		ts = ast.GetSchemas()
 	case *CacheIndex:
 		ts = ast.GetSchemas()
+	case *LoadIndex:
+		ts = ast.GetSchemas()
+	case *FlushTables:
+		ts = ast.GetSchemas()
 	default:
 		t.Fatalf("unknow statement type: %T", ast)
 	}

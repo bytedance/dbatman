@@ -76,4 +76,20 @@ func TestCacheIndex(t *testing.T) {
 	st := testParse(`CACHE INDEX d1.t1, d2.t2, d3.t3 IN hot_cache;`, t, false)
 	matchType(t, st, &CacheIndex{})
 	matchSchemas(t, st, `d1`, `d2`, `d3`)
+
+	st = testParse(`LOAD INDEX INTO CACHE pt PARTITION (p1, p3);`, t, false)
+	matchType(t, st, &LoadIndex{})
+	matchSchemas(t, st)
+
+	st = testParse(`LOAD INDEX INTO CACHE db1.t1, db2.t2 IGNORE LEAVES;`, t, false)
+	matchSchemas(t, st, `db1`, `db2`)
+}
+
+func TestFlush(t *testing.T) {
+	st := testParse(`FLUSH TABLES db1.tbl_name , db2.tbl_name WITH READ LOCK`, t, false)
+	matchType(t, st, &FlushTables{})
+	matchSchemas(t, st, `db1`, `db2`)
+
+	st = testParse(`flush logs`, t, false)
+	matchType(t, st, &Flush{})
 }

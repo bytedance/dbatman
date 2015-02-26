@@ -75,16 +75,34 @@ type Optimize struct {
 func (*CacheIndex) Statement() {}
 
 type CacheIndex struct {
-	TableIndexList []*TableIndex
+	TableIndexList TableIndexes
 }
 
 func (c *CacheIndex) GetSchemas() []string {
 	if c.TableIndexList == nil || len(c.TableIndexList) == 0 {
 		return nil
 	}
+	return c.TableIndexList.GetSchemas()
+}
 
+func (*LoadIndex) Statement() {}
+
+type LoadIndex struct {
+	TableIndexList TableIndexes
+}
+
+func (l *LoadIndex) GetSchemas() []string {
+	if l.TableIndexList == nil || len(l.TableIndexList) == 0 {
+		return nil
+	}
+	return l.TableIndexList.GetSchemas()
+}
+
+type TableIndexes []*TableIndex
+
+func (tis TableIndexes) GetSchemas() []string {
 	var rt []string
-	for _, v := range c.TableIndexList {
+	for _, v := range tis {
 		if v == nil {
 			continue
 		}
@@ -105,17 +123,26 @@ type TableIndex struct {
 	Table ISimpleTable
 }
 
-type LoadIndex struct{}
-
-func (*LoadIndex) Statement() {}
-
 type Binlog struct{}
 
 func (*Binlog) Statement() {}
 
+func (*Flush) Statement() {}
+
 type Flush struct{}
 
-func (*Flush) Statement() {}
+func (*FlushTables) Statement() {}
+
+func (f *FlushTables) GetSchemas() []string {
+	if f.Tables == nil {
+		return nil
+	}
+	return f.Tables.GetSchemas()
+}
+
+type FlushTables struct {
+	Tables ISimpleTables
+}
 
 type Kill struct{}
 

@@ -707,7 +707,7 @@ import (
 %type <statement> commit lock release rollback savepoint start unlock xa 
 
 /* DAL */
-%type <statement> analyze binlog_base64_event check checksum optimize repair flush grant install uninstall kill keycache partition_entry preload reset revoke set show 
+%type <statement> analyze binlog_base64_event check checksum optimize repair flush grant install uninstall kill keycache partition_entry preload reset revoke set show flush_options 
 
 /* Replication Statement */
 %type <statement> change purge slave 
@@ -726,7 +726,7 @@ import (
 %type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail
 
 %type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_ident_opt_wild table_name table_alias_ref table_lock
-%type <table_list> table_list table_lock_list
+%type <table_list> table_list table_lock_list opt_table_list
 
 
 %type <table_ref> esc_table_ref table_ref table_factor join_table 
@@ -735,8 +735,8 @@ import (
 %type <table_to_table> table_to_table
 %type <table_to_table_list> table_to_table_list
 
-%type <table_index> assign_to_keycache assign_to_keycache_parts
-%type <table_index_list> keycache_list_or_parts keycache_list 
+%type <table_index> assign_to_keycache assign_to_keycache_parts preload_keys_parts preload_keys
+%type <table_index_list> keycache_list_or_parts keycache_list preload_list_or_parts preload_list 
 
 %type <spname> sp_name opt_ev_rename_to
 
@@ -2553,22 +2553,22 @@ key_cache_name:
 | DEFAULT;
 
 preload:
-  LOAD INDEX_SYM INTO CACHE_SYM preload_list_or_parts { $$ = &LoadIndex{} }
+  LOAD INDEX_SYM INTO CACHE_SYM preload_list_or_parts { $$ = &LoadIndex{TableIndexList: $5} }
 ;
 
 preload_list_or_parts:
-  preload_keys_parts
-| preload_list;
+  preload_keys_parts { $$ = TableIndexes{$1} }
+| preload_list { $$ = $1 };
 
 preload_list:
-  preload_keys
-| preload_list ',' preload_keys;
+  preload_keys { $$ = TableIndexes{$1} }
+| preload_list ',' preload_keys { $$ = append($1, $3) };
 
 preload_keys:
-  table_ident cache_keys_spec opt_ignore_leaves;
+  table_ident cache_keys_spec opt_ignore_leaves { $$ = &TableIndex{Table: $1} };
 
 preload_keys_parts:
-  table_ident adm_partition cache_keys_spec opt_ignore_leaves;
+  table_ident adm_partition cache_keys_spec opt_ignore_leaves {$$ = &TableIndex{Table: $1} };
 
 adm_partition:
   PARTITION_SYM have_partitioning '(' all_or_alt_part_name_list ')';
@@ -3706,11 +3706,11 @@ opt_describe_column:
 | ident;
 
 flush:
-  FLUSH_SYM opt_no_write_to_binlog flush_options { $$ = &Flush{} };
+  FLUSH_SYM opt_no_write_to_binlog flush_options { $$ = $3 };
 
 flush_options:
-  table_or_tables opt_table_list opt_flush_lock
-| flush_options_list;
+  table_or_tables opt_table_list opt_flush_lock { $$ = &FlushTables{Tables: $2} }
+| flush_options_list { $$ = &Flush{} };
 
 opt_flush_lock:
  
@@ -3737,8 +3737,8 @@ flush_option:
 | RESOURCES;
 
 opt_table_list:
- 
-| table_list;
+  { $$ = nil } 
+| table_list { $$ = $1 };
 
 reset:
   RESET_SYM reset_options { $$ = &Reset{} };
