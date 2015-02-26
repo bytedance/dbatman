@@ -14,7 +14,7 @@ import (
     statement IStatement
     select_statement ISelect
     table ISimpleTable
-    table_list ITables
+    table_list ISimpleTables
     table_ref ITable
     table_ref_list ITables
     spname *Spname
@@ -719,12 +719,12 @@ import (
 
 %type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail
 
-%type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_alias_ref table_ident_opt_wild
-%type <table_list> table_wild_list table_alias_ref_list
+%type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_ident_opt_wild table_name table_alias_ref
+%type <table_list> table_list
 
 
-%type <table_ref> esc_table_ref table_ref table_factor join_table
-%type <table_ref_list> select_into select_from join_table_list derived_table_list
+%type <table_ref> esc_table_ref table_ref table_factor join_table 
+%type <table_ref_list> select_into select_from join_table_list derived_table_list table_alias_ref_list table_wild_list 
 
 %type <spname> sp_name opt_ev_rename_to
 
@@ -3326,27 +3326,29 @@ do:
   DO_SYM expr_list { $$ = &Do{} };
 
 drop:
-  DROP opt_temporary table_or_tables if_exists table_list opt_restrict { $$ = &DropTables{} }
-| DROP INDEX_SYM ident ON table_ident opt_index_lock_algorithm { $$ = &DropIndex{} }
+  DROP opt_temporary table_or_tables if_exists table_list opt_restrict { $$ = &DropTables{Tables: $5} }
+| DROP INDEX_SYM ident ON table_ident opt_index_lock_algorithm { $$ = &DropIndex{On: $5} }
 | DROP DATABASE if_exists ident { $$ = &DropDatabase{} }
-| DROP FUNCTION_SYM if_exists ident '.' ident { $$ = &DropFunction{} }
-| DROP FUNCTION_SYM if_exists ident { $$ = &DropFunction{} }
-| DROP PROCEDURE_SYM if_exists sp_name { $$ = &DropProcedure{} }
+| DROP FUNCTION_SYM if_exists ident '.' ident 
+  { $$ = &DropFunction{Function: &Spname{Qualifier: $4 , Name: $6}} }
+| DROP FUNCTION_SYM if_exists ident
+  { $$ = &DropFunction{Function: &Spname{Name: $4}} }
+| DROP PROCEDURE_SYM if_exists sp_name { $$ = &DropProcedure{Procedure: $4} }
 | DROP USER clear_privileges user_list { $$ = &DropUser{} }
 | DROP VIEW_SYM if_exists table_list opt_restrict { $$ = &DropView{} }
-| DROP EVENT_SYM if_exists sp_name { $$ = &DropEvent{} }
-| DROP TRIGGER_SYM if_exists sp_name { $$ = &DropTrigger{} }
+| DROP EVENT_SYM if_exists sp_name { $$ = &DropEvent{Event: $4} }
+| DROP TRIGGER_SYM if_exists sp_name { $$ = &DropTrigger{Trigger: $4} }
 | DROP TABLESPACE tablespace_name drop_ts_options_list { $$ = &DropTablespace{} }
 | DROP LOGFILE_SYM GROUP_SYM logfile_group_name drop_ts_options_list { $$ = &DropLogfile{} }
 | DROP SERVER_SYM if_exists ident_or_text { $$ = &DropServer{} }
 ;
 
 table_list:
-  table_name
-| table_list ',' table_name;
+  table_name { $$ = ISimpleTables{$1} }
+| table_list ',' table_name { $$ = append($1, $3) };
 
 table_name:
-  table_ident;
+  table_ident { $$ = $1 };
 
 table_name_with_opt_use_partition:
   table_ident opt_use_partition { $$ = $1 };
@@ -3515,7 +3517,7 @@ single_multi:
   FROM table_ident opt_use_partition where_clause opt_order_clause delete_limit_clause 
   { $$ = &Delete{Tables: ITables{$2}} }
 | table_wild_list FROM join_table_list where_clause 
-  { $$ = &Delete{Tables: $1} }
+  { $$ = &Delete{Tables: append($1, $3...)} }
 | FROM table_alias_ref_list USING join_table_list where_clause
   { $$ = &Delete{Tables: append($2, $4...)} }
 ;

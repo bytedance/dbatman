@@ -1,32 +1,62 @@
 package sql
 
-type DropTables struct{}
+func (*DropTables) Statement()     {}
+func (*DropTables) HasDDLSchemas() {}
+func (d *DropTables) GetSchemas() []string {
+	return d.Tables.GetSchemas()
+}
 
-func (*DropTables) Statement() {}
+type DropTables struct {
+	Tables ISimpleTables
+}
 
-type DropIndex struct{}
+func (*DropIndex) Statement()     {}
+func (*DropIndex) HasDDLSchemas() {}
+func (d *DropIndex) GetSchemas() []string {
+	return d.On.GetSchemas()
+}
 
-func (*DropIndex) Statement() {}
+type DropIndex struct {
+	On ISimpleTable
+}
 
 type DropDatabase struct{}
 
 func (*DropDatabase) Statement() {}
 
-type DropFunction struct{}
+func (*DropFunction) Statement()     {}
+func (*DropFunction) HasDDLSchemas() {}
+func (d *DropFunction) GetSchemas() []string {
+	return d.Function.GetSchemas()
+}
 
-func (*DropFunction) Statement() {}
+type DropFunction struct {
+	Function *Spname
+}
 
-type DropProcedure struct{}
+func (*DropProcedure) Statement()     {}
+func (*DropProcedure) HasDDLSchemas() {}
+func (d *DropProcedure) GetSchemas() []string {
+	return d.Procedure.GetSchemas()
+}
 
-func (*DropProcedure) Statement() {}
+type DropProcedure struct {
+	Procedure *Spname
+}
 
 type DropView struct{}
 
 func (*DropView) Statement() {}
 
-type DropTrigger struct{}
+func (*DropTrigger) Statement()     {}
+func (*DropTrigger) HasDDLSchemas() {}
+func (d *DropTrigger) GetSchemas() []string {
+	return d.Trigger.GetSchemas()
+}
 
-func (*DropTrigger) Statement() {}
+type DropTrigger struct {
+	Trigger *Spname
+}
 
 type DropTablespace struct{}
 
@@ -40,9 +70,15 @@ type DropServer struct{}
 
 func (*DropServer) Statement() {}
 
-type DropEvent struct{}
+func (*DropEvent) Statement()     {}
+func (*DropEvent) HasDDLSchemas() {}
+func (d *DropEvent) GetSchemas() []string {
+	return d.Event.GetSchemas()
+}
 
-func (*DropEvent) Statement() {}
+type DropEvent struct {
+	Event *Spname
+}
 
 type DropUser struct{}
 

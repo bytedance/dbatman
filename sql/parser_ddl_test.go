@@ -63,3 +63,22 @@ func TestCreateTable(t *testing.T) {
 
 	testParse(`SELECT /*! STRAIGHT_JOIN */ col1 FROM table1,table2`, t, false)
 }
+
+func TestDrop(t *testing.T) {
+	st := testParse(`DROP EVENT IF EXISTS db1.event_name`, t, false)
+	matchSchemas(t, st, `db1`)
+
+	st = testParse(`Drop Procedure If exists db1.sp_name`, t, false)
+	matchSchemas(t, st, `db1`)
+
+	st = testParse("DROP INDEX `PRIMARY` ON db1.t1;", t, false)
+	matchSchemas(t, st, `db1`)
+
+	testParse("Drop server if exists server_name", t, false)
+
+	st = testParse("DROP TABLE IF EXISTS B.B, C.C, A.A;", t, false)
+	matchSchemas(t, st, `B`, `C`, `A`)
+
+	st = testParse("DROP TRIGGER schema_name.trigger_name;", t, false)
+	matchSchemas(t, st, `schema_name`)
+}

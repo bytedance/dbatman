@@ -121,6 +121,27 @@ func (s *SimpleTable) GetSchemas() []string {
 	return []string{string(s.Qualifier)}
 }
 
+type ISimpleTables []ISimpleTable
+
+func (ts ISimpleTables) GetSchemas() []string {
+	if ts == nil && len(ts) == 0 {
+		return nil
+	}
+
+	var ret []string
+	for _, v := range ts {
+		if r := v.GetSchemas(); r != nil && len(r) != 0 {
+			ret = append(ret, r...)
+		}
+	}
+
+	if len(ret) == 0 {
+		return nil
+	}
+
+	return ret
+}
+
 func (*Spname) IsSimpleTable() {}
 func (*Spname) IsTable()       {}
 
