@@ -78,7 +78,3 @@ func (*AlterLogfile) Statement() {}
 type AlterServer struct{}
 
 func (*AlterServer) Statement() {}
-
-type AlterUser struct{}
-
-func (*AlterUser) Statement() {}

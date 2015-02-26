@@ -34,10 +34,6 @@ func (c *CreateView) GetSchemas() []string {
 	return GetSchemas(c.View.GetSchemas(), c.As.GetSchemas())
 }
 
-type CreateUser struct{}
-
-func (*CreateUser) Statement() {}
-
 type CreateLog struct{}
 
 func (*CreateLog) Statement() {}

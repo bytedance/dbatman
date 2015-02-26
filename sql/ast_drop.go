@@ -79,7 +79,3 @@ func (d *DropEvent) GetSchemas() []string {
 type DropEvent struct {
 	Event *Spname
 }
-
-type DropUser struct{}
-
-func (*DropUser) Statement() {}

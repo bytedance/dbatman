@@ -1,5 +1,10 @@
 package sql
 
+type IAccountMgrStmt interface {
+	IsAccountMgrStmt()
+	IStatement
+}
+
 type Partition struct{}
 
 func (*Partition) Statement() {}
@@ -23,10 +28,6 @@ func (*Analyze) Statement() {}
 type Optimize struct{}
 
 func (*Optimize) Statement() {}
-
-type RenameUser struct{}
-
-func (*RenameUser) Statement() {}
 
 type CacheIndex struct{}
 
@@ -60,10 +61,40 @@ type Uninstall struct{}
 
 func (*Uninstall) Statement() {}
 
-type Revoke struct{}
-
-func (*Revoke) Statement() {}
+/**********************************
+ * Account Management Statements
+ *********************************/
+func (*Grant) Statement()        {}
+func (*Grant) IsAccountMgrStmt() {}
 
 type Grant struct{}
 
-func (*Grant) Statement() {}
+func (*SetPassword) Statement()     {}
+func (*SetPassword) IsAccountStmt() {}
+
+type SetPassword struct{}
+
+func (*RenameUser) Statement()        {}
+func (*RenameUser) IsAccountMgrStmt() {}
+
+type RenameUser struct{}
+
+func (*Revoke) Statement()        {}
+func (*Revoke) IsAccountMgrStmt() {}
+
+type Revoke struct{}
+
+func (*CreateUser) Statement()        {}
+func (*CreateUser) IsAccountMgrStmt() {}
+
+type CreateUser struct{}
+
+func (*AlterUser) Statement()        {}
+func (*AlterUser) IsAccountMgrStmt() {}
+
+type AlterUser struct{}
+
+func (*DropUser) Statement()        {}
+func (*DropUser) IsAccountMgrStmt() {}
+
+type DropUser struct{}
