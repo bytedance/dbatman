@@ -93,13 +93,32 @@ type Reset struct{}
 
 func (*Reset) Statement() {}
 
-type Install struct{}
+/**********************************************
+ * Plugin and User-Defined Function Statements
+ *********************************************/
+type IPluginAndUdf interface {
+	IStatement
+	IsPluginAndUdf()
+}
 
-func (*Install) Statement() {}
+func (*Install) Statement()        {}
+func (*Install) IsPluginAndUdf()   {}
+func (*CreateUDF) Statement()      {}
+func (*CreateUDF) IsPluginAndUdf() {}
+func (*Uninstall) Statement()      {}
+func (*Uninstall) IsPluginAndUdf() {}
+
+type Install struct{}
 
 type Uninstall struct{}
 
-func (*Uninstall) Statement() {}
+type CreateUDF struct {
+	Function ISimpleTable
+}
+
+type udfTail struct {
+	Function ISimpleTable
+}
 
 /**********************************
  * Account Management Statements

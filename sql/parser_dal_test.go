@@ -27,6 +27,23 @@ func TestTableMtStmt(t *testing.T) {
 
 }
 
+func TestPluginAndUdf(t *testing.T) {
+	st := testParse(`CREATE AGGREGATE FUNCTION function_name RETURNS DECIMAL SONAME 'shared_library_name'`, t, false)
+	matchType(t, st, &CreateUDF{})
+
+	st = testParse(`INSTALL PLUGIN plugin_name SONAME 'shared_library_name'`, t, false)
+	matchType(t, st, &Install{})
+	if _, ok := st.(IPluginAndUdf); !ok {
+		t.Fatalf("type[%T] is not a instance of IPluginAndUdf", st)
+	}
+
+	st = testParse(`UNINSTALL PLUGIN plugin_name`, t, false)
+	matchType(t, st, &Uninstall{})
+	if _, ok := st.(IPluginAndUdf); !ok {
+		t.Fatalf("type[%T] is not a instance of IPluginAndUdf", st)
+	}
+}
+
 func TestAccountMgrStmt(t *testing.T) {
 	st := testParse(`ALTER USER 'jeffrey'@'localhost' PASSWORD EXPIRE;`, t, false)
 	matchType(t, st, &AlterUser{})

@@ -909,7 +909,7 @@ create:
         case *sfTail:
         $$ = &CreateFunction{Function: st.Function}
         case *udfTail:
-        $$ = &CreateFunction{Function: st.Function}
+        $$ = &CreateUDF{Function: st.Function}
         case *eventTail:
         $$ = &CreateEvent{Event: st.Event}
         default:

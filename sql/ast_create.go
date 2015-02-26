@@ -89,9 +89,6 @@ type CreateFunction struct {
 type sfTail struct {
 	Function ISimpleTable
 }
-type udfTail struct {
-	Function ISimpleTable
-}
 
 func (c *CreateFunction) GetSchemas() []string {
 	return c.Function.GetSchemas()
