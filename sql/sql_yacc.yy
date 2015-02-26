@@ -2450,7 +2450,7 @@ slave_until_opts:
 | SQL_AFTER_MTS_GAPS;
 
 checksum:
-  CHECKSUM_SYM table_or_tables table_list opt_checksum_type { $$ = &CheckSum{} } ;
+  CHECKSUM_SYM table_or_tables table_list opt_checksum_type { $$ = &CheckSum{Tables: $3} } ;
 
 opt_checksum_type:
  
@@ -2458,7 +2458,7 @@ opt_checksum_type:
 | EXTENDED_SYM;
 
 repair:
-  REPAIR opt_no_write_to_binlog table_or_tables table_list opt_mi_repair_type { $$ = &Repair{} };
+  REPAIR opt_no_write_to_binlog table_or_tables table_list opt_mi_repair_type { $$ = &Repair{Tables: $4} };
 
 opt_mi_repair_type:
  
@@ -2474,13 +2474,13 @@ mi_repair_type:
 | USE_FRM;
 
 analyze:
-  ANALYZE_SYM opt_no_write_to_binlog table_or_tables table_list { $$ = &Analyze{} };
+  ANALYZE_SYM opt_no_write_to_binlog table_or_tables table_list { $$ = &Analyze{Tables: $4} };
 
 binlog_base64_event:
   BINLOG_SYM TEXT_STRING_sys { $$ = &Binlog{} };
 
 check:
-  CHECK_SYM table_or_tables table_list opt_mi_check_type { $$ = &Check{} } ;
+  CHECK_SYM table_or_tables table_list opt_mi_check_type { $$ = &Check{Tables: $3} } ;
 
 opt_mi_check_type:
  
@@ -2499,7 +2499,7 @@ mi_check_type:
 | FOR_SYM UPGRADE_SYM;
 
 optimize:
-  OPTIMIZE opt_no_write_to_binlog table_or_tables table_list { $$ = &Optimize{} }; 
+  OPTIMIZE opt_no_write_to_binlog table_or_tables table_list { $$ = &Optimize{Tables: $4} }; 
 
 opt_no_write_to_binlog:
  

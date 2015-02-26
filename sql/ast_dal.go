@@ -9,25 +9,65 @@ type Partition struct{}
 
 func (*Partition) Statement() {}
 
-type Check struct{}
+/*******************************
+ * Table Maintenance Statements
+ ******************************/
+type ITableMtStmt interface {
+	IStatement
+	IsTableMtStmt()
+	GetSchemas() []string
+}
 
-func (*Check) Statement() {}
+func (*Check) Statement()        {}
+func (*Check) IsTableMtStmt()    {}
+func (*CheckSum) Statement()     {}
+func (*CheckSum) IsTableMtStmt() {}
+func (*Repair) Statement()       {}
+func (*Repair) IsTableMtStmt()   {}
+func (*Analyze) Statement()      {}
+func (*Analyze) IsTableMtStmt()  {}
+func (*Optimize) Statement()     {}
+func (*Optimize) IsTableMtStmt() {}
 
-type CheckSum struct{}
+func (c *Check) GetSchemas() []string {
+	return c.Tables.GetSchemas()
+}
 
-func (*CheckSum) Statement() {}
+func (c *CheckSum) GetSchemas() []string {
+	return c.Tables.GetSchemas()
+}
 
-type Repair struct{}
+func (r *Repair) GetSchemas() []string {
+	return r.Tables.GetSchemas()
+}
 
-func (*Repair) Statement() {}
+func (a *Analyze) GetSchemas() []string {
+	return a.Tables.GetSchemas()
+}
 
-type Analyze struct{}
+func (o *Optimize) GetSchemas() []string {
+	return o.Tables.GetSchemas()
+}
 
-func (*Analyze) Statement() {}
+type Check struct {
+	Tables ISimpleTables
+}
 
-type Optimize struct{}
+type CheckSum struct {
+	Tables ISimpleTables
+}
 
-func (*Optimize) Statement() {}
+type Repair struct {
+	Tables ISimpleTables
+}
+
+type Analyze struct {
+	Tables ISimpleTables
+}
+
+type Optimize struct {
+	Tables ISimpleTables
+}
 
 type CacheIndex struct{}
 
