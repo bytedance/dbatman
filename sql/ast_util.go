@@ -4,10 +4,10 @@ import (
 	"fmt"
 )
 
-func (*Help) Statement()          {}
-func (*DescribeTable) Statement() {}
-func (*DescribeStmt) Statement()  {}
-func (*Use) Statement()           {}
+func (*Help) IStatement()          {}
+func (*DescribeTable) IStatement() {}
+func (*DescribeStmt) IStatement()  {}
+func (*Use) IStatement()           {}
 
 type Help struct{}
 

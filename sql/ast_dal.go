@@ -7,7 +7,7 @@ type IAccountMgrStmt interface {
 
 type Partition struct{}
 
-func (*Partition) Statement() {}
+func (*Partition) IStatement() {}
 
 /*******************************
  * Table Maintenance Statements
@@ -18,15 +18,15 @@ type ITableMtStmt interface {
 	GetSchemas() []string
 }
 
-func (*Check) Statement()        {}
+func (*Check) IStatement()       {}
 func (*Check) IsTableMtStmt()    {}
-func (*CheckSum) Statement()     {}
+func (*CheckSum) IStatement()    {}
 func (*CheckSum) IsTableMtStmt() {}
-func (*Repair) Statement()       {}
+func (*Repair) IStatement()      {}
 func (*Repair) IsTableMtStmt()   {}
-func (*Analyze) Statement()      {}
+func (*Analyze) IStatement()     {}
 func (*Analyze) IsTableMtStmt()  {}
-func (*Optimize) Statement()     {}
+func (*Optimize) IStatement()    {}
 func (*Optimize) IsTableMtStmt() {}
 
 func (c *Check) GetSchemas() []string {
@@ -72,7 +72,7 @@ type Optimize struct {
 /****************************
  * Cache Index Statement
  ***************************/
-func (*CacheIndex) Statement() {}
+func (*CacheIndex) IStatement() {}
 
 type CacheIndex struct {
 	TableIndexList TableIndexes
@@ -85,7 +85,7 @@ func (c *CacheIndex) GetSchemas() []string {
 	return c.TableIndexList.GetSchemas()
 }
 
-func (*LoadIndex) Statement() {}
+func (*LoadIndex) IStatement() {}
 
 type LoadIndex struct {
 	TableIndexList TableIndexes
@@ -125,13 +125,13 @@ type TableIndex struct {
 
 type Binlog struct{}
 
-func (*Binlog) Statement() {}
+func (*Binlog) IStatement() {}
 
-func (*Flush) Statement() {}
+func (*Flush) IStatement() {}
 
 type Flush struct{}
 
-func (*FlushTables) Statement() {}
+func (*FlushTables) IStatement() {}
 
 func (f *FlushTables) GetSchemas() []string {
 	if f.Tables == nil {
@@ -146,11 +146,11 @@ type FlushTables struct {
 
 type Kill struct{}
 
-func (*Kill) Statement() {}
+func (*Kill) IStatement() {}
 
 type Reset struct{}
 
-func (*Reset) Statement() {}
+func (*Reset) IStatement() {}
 
 /**********************************************
  * Plugin and User-Defined Function Statements
@@ -160,11 +160,11 @@ type IPluginAndUdf interface {
 	IsPluginAndUdf()
 }
 
-func (*Install) Statement()        {}
+func (*Install) IStatement()       {}
 func (*Install) IsPluginAndUdf()   {}
-func (*CreateUDF) Statement()      {}
+func (*CreateUDF) IStatement()     {}
 func (*CreateUDF) IsPluginAndUdf() {}
-func (*Uninstall) Statement()      {}
+func (*Uninstall) IStatement()     {}
 func (*Uninstall) IsPluginAndUdf() {}
 
 type Install struct{}
@@ -182,37 +182,37 @@ type udfTail struct {
 /**********************************
  * Account Management Statements
  *********************************/
-func (*Grant) Statement()        {}
+func (*Grant) IStatement()       {}
 func (*Grant) IsAccountMgrStmt() {}
 
 type Grant struct{}
 
-func (*SetPassword) Statement()     {}
+func (*SetPassword) IStatement()    {}
 func (*SetPassword) IsAccountStmt() {}
 
 type SetPassword struct{}
 
-func (*RenameUser) Statement()        {}
+func (*RenameUser) IStatement()       {}
 func (*RenameUser) IsAccountMgrStmt() {}
 
 type RenameUser struct{}
 
-func (*Revoke) Statement()        {}
+func (*Revoke) IStatement()       {}
 func (*Revoke) IsAccountMgrStmt() {}
 
 type Revoke struct{}
 
-func (*CreateUser) Statement()        {}
+func (*CreateUser) IStatement()       {}
 func (*CreateUser) IsAccountMgrStmt() {}
 
 type CreateUser struct{}
 
-func (*AlterUser) Statement()        {}
+func (*AlterUser) IStatement()       {}
 func (*AlterUser) IsAccountMgrStmt() {}
 
 type AlterUser struct{}
 
-func (*DropUser) Statement()        {}
+func (*DropUser) IStatement()       {}
 func (*DropUser) IsAccountMgrStmt() {}
 
 type DropUser struct{}

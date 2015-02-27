@@ -2,4 +2,4 @@ package sql
 
 type Set struct{}
 
-func (*Set) Statement() {}
+func (*Set) IStatement() {}

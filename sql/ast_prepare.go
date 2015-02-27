@@ -2,12 +2,12 @@ package sql
 
 type Deallocate struct{}
 
-func (*Deallocate) Statement() {}
+func (*Deallocate) IStatement() {}
 
 type Prepare struct{}
 
-func (*Prepare) Statement() {}
+func (*Prepare) IStatement() {}
 
 type Execute struct{}
 
-func (*Execute) Statement() {}
+func (*Execute) IStatement() {}

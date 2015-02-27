@@ -9,9 +9,9 @@ type RenameTable struct {
 	ToList []*TableToTable
 }
 
-func (*RenameTable) Statement() {}
+func (*RenameTable) IStatement() {}
 
-func (*TruncateTable) Statement()     {}
+func (*TruncateTable) IStatement()    {}
 func (*TruncateTable) HasDDLSchemas() {}
 func (t *TruncateTable) GetSchemas() []string {
 	return t.Table.GetSchemas()

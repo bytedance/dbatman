@@ -2,12 +2,12 @@ package sql
 
 type Signal struct{}
 
-func (*Signal) Statement() {}
+func (*Signal) IStatement() {}
 
 type Resignal struct{}
 
-func (*Resignal) Statement() {}
+func (*Resignal) IStatement() {}
 
 type Diagnostics struct{}
 
-func (*Diagnostics) Statement() {}
+func (*Diagnostics) IStatement() {}

@@ -1,7 +1,7 @@
 package sql
 
 type IStatement interface {
-	Statement()
+	IStatement()
 }
 
 func SetParseTree(yylex interface{}, stmt IStatement) {

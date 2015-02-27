@@ -2,16 +2,16 @@ package sql
 
 type Change struct{}
 
-func (*Change) Statement() {}
+func (*Change) IStatement() {}
 
 type Purge struct{}
 
-func (*Purge) Statement() {}
+func (*Purge) IStatement() {}
 
 type StartSlave struct{}
 
-func (*StartSlave) Statement() {}
+func (*StartSlave) IStatement() {}
 
 type StopSlave struct{}
 
-func (*StopSlave) Statement() {}
+func (*StopSlave) IStatement() {}

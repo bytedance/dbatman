@@ -1,6 +1,6 @@
 package sql
 
-func (*CreateTable) Statement()     {}
+func (*CreateTable) IStatement()    {}
 func (*CreateTable) HasDDLSchemas() {}
 
 func (c *CreateTable) GetSchemas() []string {
@@ -13,12 +13,12 @@ type CreateTable struct {
 
 type CreateIndex struct{}
 
-func (*CreateIndex) Statement() {}
+func (*CreateIndex) IStatement() {}
 
 /****************************
  * Create Database Statement
  ***************************/
-func (*CreateDatabase) Statement() {}
+func (*CreateDatabase) IStatement() {}
 
 type CreateDatabase struct{}
 
@@ -27,7 +27,7 @@ type CreateView struct {
 	As   ISelect
 }
 
-func (*CreateView) Statement()     {}
+func (*CreateView) IStatement()    {}
 func (*CreateView) HasDDLSchemas() {}
 
 func (c *CreateView) GetSchemas() []string {
@@ -36,21 +36,21 @@ func (c *CreateView) GetSchemas() []string {
 
 type CreateLog struct{}
 
-func (*CreateLog) Statement() {}
+func (*CreateLog) IStatement() {}
 
 type CreateTablespace struct{}
 
-func (*CreateTablespace) Statement() {}
+func (*CreateTablespace) IStatement() {}
 
 type CreateServer struct{}
 
-func (*CreateServer) Statement() {}
+func (*CreateServer) IStatement() {}
 
 /**********************
  * Create Event Statement
  * http://dev.mysql.com/doc/refman/5.7/en/create-event.html
  *********************/
-func (*CreateEvent) Statement()     {}
+func (*CreateEvent) IStatement()    {}
 func (*CreateEvent) HasDDLSchemas() {}
 
 type CreateEvent struct {
@@ -65,7 +65,7 @@ type eventTail struct {
 	Event ISimpleTable
 }
 
-func (*CreateProcedure) Statement()     {}
+func (*CreateProcedure) IStatement()    {}
 func (*CreateProcedure) HasDDLSchemas() {}
 
 type CreateProcedure struct {
@@ -80,7 +80,7 @@ type spTail struct {
 	Procedure ISimpleTable
 }
 
-func (*CreateFunction) Statement()     {}
+func (*CreateFunction) IStatement()    {}
 func (*CreateFunction) HasDDLSchemas() {}
 
 type CreateFunction struct {
@@ -94,7 +94,7 @@ func (c *CreateFunction) GetSchemas() []string {
 	return c.Function.GetSchemas()
 }
 
-func (*CreateTrigger) Statement()     {}
+func (*CreateTrigger) IStatement()    {}
 func (*CreateTrigger) HasDDLSchemas() {}
 
 type CreateTrigger struct {

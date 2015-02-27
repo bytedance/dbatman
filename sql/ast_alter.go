@@ -4,30 +4,30 @@ type AlterTable struct {
 	Table ISimpleTable
 }
 
-func (*AlterTable) Statement() {}
+func (*AlterTable) IStatement() {}
 
 type AlterDatabase struct {
 	Schema []byte
 }
 
-func (*AlterDatabase) Statement() {}
+func (*AlterDatabase) IStatement() {}
 
 type AlterProcedure struct {
 	Procedure *Spname
 }
 
-func (*AlterProcedure) Statement() {}
+func (*AlterProcedure) IStatement() {}
 
 type AlterFunction struct {
 	Function *Spname
 }
 
-func (*AlterFunction) Statement() {}
+func (*AlterFunction) IStatement() {}
 
 /*************************
  * Alter View Statement
  *************************/
-func (*AlterView) Statement() {}
+func (*AlterView) IStatement() {}
 
 type AlterView struct {
 	View ISimpleTable
@@ -52,7 +52,7 @@ func (av *AlterView) GetSchemas() []string {
 /*************************
  * Alter Event Statement
  *************************/
-func (*AlterEvent) Statement()     {}
+func (*AlterEvent) IStatement()    {}
 func (*AlterEvent) HasDDLSchemas() {}
 func (a *AlterEvent) GetSchemas() []string {
 	if a.Rename == nil {
@@ -69,12 +69,12 @@ type AlterEvent struct {
 
 type AlterTablespace struct{}
 
-func (*AlterTablespace) Statement() {}
+func (*AlterTablespace) IStatement() {}
 
 type AlterLogfile struct{}
 
-func (*AlterLogfile) Statement() {}
+func (*AlterLogfile) IStatement() {}
 
 type AlterServer struct{}
 
-func (*AlterServer) Statement() {}
+func (*AlterServer) IStatement() {}

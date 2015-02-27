@@ -1,14 +1,14 @@
 package sql
 
-func (*StartTrans) Statement() {}
-func (*Lock) Statement()       {}
-func (*Unlock) Statement()     {}
-func (*Begin) Statement()      {}
-func (*Commit) Statement()     {}
-func (*Rollback) Statement()   {}
-func (*XA) Statement()         {}
-func (*SavePoint) Statement()  {}
-func (*Release) Statement()    {}
+func (*StartTrans) IStatement() {}
+func (*Lock) IStatement()       {}
+func (*Unlock) IStatement()     {}
+func (*Begin) IStatement()      {}
+func (*Commit) IStatement()     {}
+func (*Rollback) IStatement()   {}
+func (*XA) IStatement()         {}
+func (*SavePoint) IStatement()  {}
+func (*Release) IStatement()    {}
 
 type StartTrans struct{}
 

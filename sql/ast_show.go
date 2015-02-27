@@ -1,5 +1,11 @@
 package sql
 
-type Show struct{}
+type IShow interface {
+	IShow()
+	IStatement
+}
 
-func (*Show) Statement() {}
+func (*Show) IStatement() {}
+func (*Show) IsShow()     {}
+
+type Show struct{}

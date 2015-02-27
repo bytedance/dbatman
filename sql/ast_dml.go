@@ -15,10 +15,10 @@ func (*ParenSelect) IsSelect() {}
 func (*Union) IsSelect()       {}
 func (*SubQuery) IsSelect()    {}
 
-func (*Select) Statement()      {}
-func (*ParenSelect) Statement() {}
-func (*Union) Statement()       {}
-func (*SubQuery) Statement()    {}
+func (*Select) IStatement()      {}
+func (*ParenSelect) IStatement() {}
+func (*Union) IStatement()       {}
+func (*SubQuery) IStatement()    {}
 
 type Union struct {
 	Left, Right ISelect
@@ -102,7 +102,7 @@ const (
  * Insert Clause
  * - http://dev.mysql.com/doc/refman/5.7/en/insert.html
  ********************************/
-func (*Insert) Statement() {}
+func (*Insert) IStatement() {}
 func (i *Insert) HasISelect() bool {
 	if i.InsertFields == nil {
 		return false
@@ -143,7 +143,7 @@ type Insert struct {
  * Update Clause
  * - http://dev.mysql.com/doc/refman/5.7/en/update.html
  ********************************/
-func (*Update) Statement() {}
+func (*Update) IStatement() {}
 func (u *Update) GetSchemas() []string {
 	if u.Tables == nil {
 		panic("update must have table identifier")
@@ -159,7 +159,7 @@ type Update struct {
 /*********************************
  * Delete Clause
  ********************************/
-func (*Delete) Statement() {}
+func (*Delete) IStatement() {}
 
 type Delete struct {
 	Tables ITables
@@ -175,7 +175,7 @@ func (d *Delete) GetSchemas() []string {
 /***********************************************
  * Replace Clause
  **********************************************/
-func (*Replace) Statement() {}
+func (*Replace) IStatement() {}
 func (r *Replace) HasISelect() bool {
 	if r.ReplaceFields == nil {
 		return false
@@ -215,16 +215,16 @@ type Call struct {
 	Spname *Spname
 }
 
-func (*Call) Statement() {}
+func (*Call) IStatement() {}
 
 type Do struct{}
 
-func (*Do) Statement() {}
+func (*Do) IStatement() {}
 
 type Load struct{}
 
-func (*Load) Statement() {}
+func (*Load) IStatement() {}
 
 type Handler struct{}
 
-func (*Handler) Statement() {}
+func (*Handler) IStatement() {}

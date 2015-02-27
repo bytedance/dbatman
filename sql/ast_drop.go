@@ -1,6 +1,6 @@
 package sql
 
-func (*DropTables) Statement()     {}
+func (*DropTables) IStatement()    {}
 func (*DropTables) HasDDLSchemas() {}
 func (d *DropTables) GetSchemas() []string {
 	return d.Tables.GetSchemas()
@@ -10,7 +10,7 @@ type DropTables struct {
 	Tables ISimpleTables
 }
 
-func (*DropIndex) Statement()     {}
+func (*DropIndex) IStatement()    {}
 func (*DropIndex) HasDDLSchemas() {}
 func (d *DropIndex) GetSchemas() []string {
 	return d.On.GetSchemas()
@@ -22,9 +22,9 @@ type DropIndex struct {
 
 type DropDatabase struct{}
 
-func (*DropDatabase) Statement() {}
+func (*DropDatabase) IStatement() {}
 
-func (*DropFunction) Statement()     {}
+func (*DropFunction) IStatement()    {}
 func (*DropFunction) HasDDLSchemas() {}
 func (d *DropFunction) GetSchemas() []string {
 	return d.Function.GetSchemas()
@@ -34,7 +34,7 @@ type DropFunction struct {
 	Function *Spname
 }
 
-func (*DropProcedure) Statement()     {}
+func (*DropProcedure) IStatement()    {}
 func (*DropProcedure) HasDDLSchemas() {}
 func (d *DropProcedure) GetSchemas() []string {
 	return d.Procedure.GetSchemas()
@@ -46,9 +46,9 @@ type DropProcedure struct {
 
 type DropView struct{}
 
-func (*DropView) Statement() {}
+func (*DropView) IStatement() {}
 
-func (*DropTrigger) Statement()     {}
+func (*DropTrigger) IStatement()    {}
 func (*DropTrigger) HasDDLSchemas() {}
 func (d *DropTrigger) GetSchemas() []string {
 	return d.Trigger.GetSchemas()
@@ -60,17 +60,17 @@ type DropTrigger struct {
 
 type DropTablespace struct{}
 
-func (*DropTablespace) Statement() {}
+func (*DropTablespace) IStatement() {}
 
 type DropLogfile struct{}
 
-func (*DropLogfile) Statement() {}
+func (*DropLogfile) IStatement() {}
 
 type DropServer struct{}
 
-func (*DropServer) Statement() {}
+func (*DropServer) IStatement() {}
 
-func (*DropEvent) Statement()     {}
+func (*DropEvent) IStatement()    {}
 func (*DropEvent) HasDDLSchemas() {}
 func (d *DropEvent) GetSchemas() []string {
 	return d.Event.GetSchemas()
