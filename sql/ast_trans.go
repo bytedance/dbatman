@@ -9,6 +9,7 @@ func (*Rollback) IStatement()   {}
 func (*XA) IStatement()         {}
 func (*SavePoint) IStatement()  {}
 func (*Release) IStatement()    {}
+func (*SetTrans) IStatement()   {}
 
 type StartTrans struct{}
 
@@ -39,3 +40,5 @@ type SavePoint struct {
 type Release struct {
 	Point []byte
 }
+
+type SetTrans struct{}

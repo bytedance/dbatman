@@ -33,6 +33,9 @@ import (
     udf_tail *udfTail
 
     like_or_where *LikeOrWhere
+
+    var *Variables
+    vars Vars
 }
 
 /*
@@ -754,6 +757,9 @@ import (
 %type <event_tail> event_tail
 
 %type <like_or_where> wild_and_where
+
+%type <var> option_value_no_option_type
+%type <vars> option_value_list_continued start_option_value_list
 
 %%
 
@@ -4356,33 +4362,44 @@ keyword_sp:
 ;
 
 set:
-  SET start_option_value_list { $$ = &Set{} };
+  SET start_option_value_list { $$ = $1 };
 
 start_option_value_list:
-  option_value_no_option_type option_value_list_continued
-| TRANSACTION_SYM transaction_characteristics
+  option_value_no_option_type option_value_list_continued 
+  {
+    if $2 == nil {
+        $$ = Vars{$1}
+    } else {
+        $$ = append($2, $1)
+    }
+  }
+| TRANSACTION_SYM transaction_characteristics { $$ = &SetTrans{} }
 | option_type start_option_value_list_following_option_type;
 
 start_option_value_list_following_option_type:
   option_value_following_option_type option_value_list_continued
-| TRANSACTION_SYM transaction_characteristics;
+| TRANSACTION_SYM transaction_characteristics { $$ = &SetTrans{} };
 
 option_value_list_continued:
- 
-| ',' option_value_list;
+  { $$ = nil } 
+| ',' option_value_list { $$ = $2 };
 
 option_value_list:
-  option_value
-| option_value_list ',' option_value;
+  option_value { $$ = Vars{$1} }
+| option_value_list ',' option_value { $$ = append($1, $3) };
 
 option_value:
-  option_type option_value_following_option_type
-| option_value_no_option_type;
+  option_type option_value_following_option_type 
+  {
+    $2.Life = $1
+    $$ = $2
+  }
+| option_value_no_option_type { $$ = $1 };
 
 option_type:
-  GLOBAL_SYM
-| LOCAL_SYM
-| SESSION_SYM;
+  GLOBAL_SYM { $$ = Life_Global }
+| LOCAL_SYM { $$ = Life_Local }
+| SESSION_SYM { $$ = Life_Session };
 
 opt_var_type:
  
@@ -4400,19 +4417,28 @@ option_value_following_option_type:
   internal_variable_name equal set_expr_or_default;
 
 option_value_no_option_type:
-  internal_variable_name equal set_expr_or_default
-| '@' ident_or_text equal expr
+  internal_variable_name equal set_expr_or_default 
+  { $$ = &Variable{Type: Type_usr, Var: $1, Value: $3} }
+| '@' ident_or_text equal expr 
+  { $$ = &Variable{Type: Type_usr, Var: &Varname{Name: string($2)}, Value: $4} }
 | '@' '@' opt_var_ident_type internal_variable_name equal set_expr_or_default
+  { $$ = &Variable{Type: Type_sys, Life: $3, Var: $4, Value: $6} }
 | charset old_or_new_charset_name_or_default
+  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "CHARACTER SET"}, Value: $3} }
 | NAMES_SYM equal expr
+  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "NAMES"}, Value: $3} }
 | NAMES_SYM charset_name_or_default opt_collate
+  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "NAMES"}, Value: $2} }
 | PASSWORD equal text_or_password
-| PASSWORD FOR_SYM user equal text_or_password;
+  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "PASSWORD"}, Value: $3} }
+| PASSWORD FOR_SYM user equal text_or_password
+  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "PASSWORD"}, Value: $5} }
+;
 
 internal_variable_name:
-  ident
-| ident '.' ident
-| DEFAULT '.' ident;
+  ident { $$ = &Varname{Name: string($1)} }
+| ident '.' ident { $$ = &Varname{Prefix: string($1), Name: string($3)} }
+| DEFAULT '.' ident { $$ = &Varname{Prefix: "DEFAULT", Name: string($3)} };
 
 transaction_characteristics:
   transaction_access_mode

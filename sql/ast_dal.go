@@ -1,5 +1,36 @@
 package sql
 
+func (*Set) IStatement() {}
+
+type Set struct {
+	VarList Vars
+}
+
+type Vars []*Variable
+
+type Variable struct {
+	Type  VarType
+	Life  LifeType
+	Var   *Varname
+	Value Expr
+}
+type Varname struct {
+	Prefix string
+	Name   string
+}
+
+type VarType int
+type LifeType int
+
+const (
+	Type_Sys = 1
+	Type_Usr = 2
+
+	Life_Global  = 0
+	Life_Session = 1
+	Life_Local   = 2
+)
+
 type IAccountMgrStmt interface {
 	IsAccountMgrStmt()
 	IStatement
