@@ -4,6 +4,121 @@ import (
 	"testing"
 )
 
+func TestShow(t *testing.T) {
+	var st IStatement
+
+	st = testParse(`show session variables like 'autocommit'`, t, false)
+	matchType(t, st, &ShowVariables{})
+
+	st = testParse(`show full tables in test`, t, false)
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`show table status in test`, t, false)
+	matchType(t, st, &ShowTableStatus{})
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`show global status`, t, false)
+	matchType(t, st, &ShowStatus{})
+
+	st = testParse(`SHOW SLAVE STATUS`, t, false)
+	matchType(t, st, &ShowSlaveStatus{})
+
+	st = testParse(`SHOW SLAVE HOSTS`, t, false)
+	matchType(t, st, &ShowSlaveHosts{})
+
+	st = testParse(`SHOW Profiles`, t, false)
+	matchType(t, st, &ShowProfiles{})
+
+	st = testParse(`SHOW FULL PROCESSLIST`, t, false)
+	matchType(t, st, &ShowProcessList{})
+
+	st = testParse(`SHOW PLUGINS`, t, false)
+	matchType(t, st, &ShowPlugins{})
+
+	st = testParse(`SHOW PRIVILEGES`, t, false)
+	matchType(t, st, &ShowPrivileges{})
+
+	st = testParse(`SHOW OPEN TABLES IN test like 'tables_%'`, t, false)
+	matchType(t, st, &ShowOpenTables{})
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`SHOW MASTER STATUS`, t, false)
+	matchType(t, st, &ShowMasterStatus{})
+
+	st = testParse(`SHOW INDEX FROM mytable FROM mydb;`, t, false)
+	matchType(t, st, &ShowIndex{})
+	matchSchemas(t, st, `mydb`)
+
+	st = testParse(`SHOW GRANTS FOR 'root'@'localhost';`, t, false)
+	matchType(t, st, &ShowGrants{})
+
+	st = testParse(`SHOW FUNCTION STATUS`, t, false)
+	matchType(t, st, &ShowFunction{})
+
+	st = testParse(`SHOW FUNCTION CODE dbname.func_name`, t, false)
+	matchSchemas(t, st, `dbname`)
+
+	st = testParse(`SHOW EVENTS FROM test;`, t, false)
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`SHOW ERRORS`, t, false)
+	matchType(t, st, &ShowErrors{})
+
+	st = testParse(`SHOW COUNT(*) ERRORS`, t, false)
+	matchType(t, st, &ShowErrors{})
+
+	st = testParse(`Show STORAGE ENGINES`, t, false)
+	matchType(t, st, &ShowEngines{})
+
+	st = testParse(`SHOW ENGINE PERFORMANCE_SCHEMA STATUS`, t, false)
+	matchType(t, st, &ShowEngines{})
+
+	st = testParse(`SHOW Databases like '%presale%'`, t, false)
+	matchType(t, st, &ShowDatabases{})
+
+	st = testParse(`SHOW CREATE View test.view`, t, false)
+	matchType(t, st, &ShowCreate{})
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`SHOW CREATE TRIGGER test.trigger`, t, false)
+	matchType(t, st, &ShowCreate{})
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`SHOW CREATE TABLE test.table`, t, false)
+	matchType(t, st, &ShowCreate{})
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`SHOW CREATE EVENT test.e_daily`, t, false)
+	matchType(t, st, &ShowCreate{})
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`SHOW CREATE PROCEDURE test.simpleproc`, t, false)
+	matchType(t, st, &ShowCreate{})
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`SHOW CREATE DATABASE test`, t, false)
+	matchType(t, st, &ShowCreateDatabase{})
+	matchSchemas(t, st, `test`)
+
+	st = testParse(`SHOW CHARACTER SET LIKE 'latin%';`, t, false)
+	matchType(t, st, &ShowCharset{})
+
+	st = testParse(`SHOW COLUMNS FROM mytable FROM mydb;`, t, false)
+	matchSchemas(t, st, `mydb`)
+
+	st = testParse(`SHOW COLUMNS FROM mydb.mytable;`, t, false)
+	matchSchemas(t, st, `mydb`)
+
+	st = testParse(`SHOW COLLATION LIKE 'latin1%';`, t, false)
+	matchType(t, st, &ShowCollation{})
+
+	st = testParse(`SHOW Binary LOGS;`, t, false)
+	matchType(t, st, &ShowLogs{})
+
+	st = testParse(`show binlog events in 'log1' from 123 limit 2, 4`, t, false)
+	matchType(t, st, &ShowLogEvents{})
+}
+
 func TestTableMtStmt(t *testing.T) {
 	st := testParse(`analyze table db1.tb1`, t, false)
 	matchType(t, st, &Analyze{})

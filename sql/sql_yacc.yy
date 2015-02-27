@@ -31,6 +31,8 @@ import (
     sf_tail *sfTail
     sp_tail *spTail
     udf_tail *udfTail
+
+    like_or_where *LikeOrWhere
 }
 
 /*
@@ -707,7 +709,7 @@ import (
 %type <statement> commit lock release rollback savepoint start unlock xa 
 
 /* DAL */
-%type <statement> analyze binlog_base64_event check checksum optimize repair flush grant install uninstall kill keycache partition_entry preload reset revoke set show flush_options 
+%type <statement> analyze binlog_base64_event check checksum optimize repair flush grant install uninstall kill keycache partition_entry preload reset revoke set show flush_options show_param
 
 /* Replication Statement */
 %type <statement> change purge slave 
@@ -721,7 +723,7 @@ import (
 /* MySQL Utility Statement */
 %type <statement> describe help use explanable_command
 
-%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias
+%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias opt_db TEXT_STRING_sys
 
 %type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail
 
@@ -750,6 +752,8 @@ import (
 %type <sf_tail> sf_tail
 %type <udf_tail> udf_tail
 %type <event_tail> event_tail
+
+%type <like_or_where> wild_and_where
 
 %%
 
@@ -3591,52 +3595,62 @@ opt_profile_args:
 | FOR_SYM QUERY_SYM NUM;
 
 show:
-  SHOW show_param { $$ = &Show{} };
+  SHOW show_param { $$ = $2 };
 
 show_param:
-  DATABASES wild_and_where
-| opt_full TABLES opt_db wild_and_where
-| opt_full TRIGGERS_SYM opt_db wild_and_where
-| EVENTS_SYM opt_db wild_and_where
-| TABLE_SYM STATUS_SYM opt_db wild_and_where
-| OPEN_SYM TABLES opt_db wild_and_where
-| PLUGINS_SYM
-| ENGINE_SYM known_storage_engines show_engine_param
-| ENGINE_SYM ALL show_engine_param
-| opt_full COLUMNS from_or_in table_ident opt_db wild_and_where
-| master_or_binary LOGS_SYM
-| SLAVE HOSTS_SYM
-| BINLOG_SYM EVENTS_SYM binlog_in binlog_from opt_limit_clause_init
-| RELAYLOG_SYM EVENTS_SYM binlog_in binlog_from opt_limit_clause_init
-| keys_or_index from_or_in table_ident opt_db where_clause
-| opt_storage ENGINES_SYM
-| PRIVILEGES
-| COUNT_SYM '(' '*' ')' WARNINGS
-| COUNT_SYM '(' '*' ')' ERRORS
-| WARNINGS opt_limit_clause_init
-| ERRORS opt_limit_clause_init
-| PROFILES_SYM
-| PROFILE_SYM opt_profile_defs opt_profile_args opt_limit_clause_init
-| opt_var_type STATUS_SYM wild_and_where
-| opt_full PROCESSLIST_SYM
-| opt_var_type VARIABLES wild_and_where
-| charset wild_and_where
-| COLLATION_SYM wild_and_where
-| GRANTS
-| GRANTS FOR_SYM user
-| CREATE DATABASE opt_if_not_exists ident
-| CREATE TABLE_SYM table_ident
-| CREATE VIEW_SYM table_ident
-| MASTER_SYM STATUS_SYM
-| SLAVE STATUS_SYM
-| CREATE PROCEDURE_SYM sp_name
-| CREATE FUNCTION_SYM sp_name
-| CREATE TRIGGER_SYM sp_name
-| PROCEDURE_SYM STATUS_SYM wild_and_where
-| FUNCTION_SYM STATUS_SYM wild_and_where
-| PROCEDURE_SYM CODE_SYM sp_name
-| FUNCTION_SYM CODE_SYM sp_name
-| CREATE EVENT_SYM sp_name;
+  DATABASES wild_and_where { $$ = &ShowDatabases{LikeOrWhere: $2} }
+| opt_full TABLES opt_db wild_and_where { $$ = &ShowTables{From: $3} }
+| opt_full TRIGGERS_SYM opt_db wild_and_where { $$ = &ShowTriggers{From: $3} }
+| EVENTS_SYM opt_db wild_and_where { $$ = &ShowEvents{From: $2} }
+| TABLE_SYM STATUS_SYM opt_db wild_and_where { $$ = &ShowTableStatus{From: $3} }
+| OPEN_SYM TABLES opt_db wild_and_where { $$ = &ShowOpenTables{From: $3} }
+| PLUGINS_SYM { $$ = &ShowPlugins{} }
+| ENGINE_SYM known_storage_engines show_engine_param { $$ = &ShowEngines{} }
+| ENGINE_SYM ALL show_engine_param { $$ = &ShowEngines{} }
+| opt_full COLUMNS from_or_in table_ident opt_db wild_and_where { $$ = &ShowColumns{Table: $4, From: $5} }
+| master_or_binary LOGS_SYM { $$ = &ShowLogs{} }
+| SLAVE HOSTS_SYM { $$ = &ShowSlaveHosts{} } 
+| BINLOG_SYM EVENTS_SYM binlog_in binlog_from opt_limit_clause_init { $$ = &ShowLogEvents{} } 
+| RELAYLOG_SYM EVENTS_SYM binlog_in binlog_from opt_limit_clause_init { $$ = &ShowLogEvents{} } 
+| keys_or_index from_or_in table_ident opt_db where_clause 
+  { $$ = &ShowIndex{Table: $3, From: $4} }
+| opt_storage ENGINES_SYM { $$ = &ShowEngines{} }
+| PRIVILEGES { $$ = &ShowPrivileges{} }
+| COUNT_SYM '(' '*' ')' WARNINGS { $$ = &ShowWarnings{} }
+| COUNT_SYM '(' '*' ')' ERRORS { $$ = &ShowErrors{} }
+| WARNINGS opt_limit_clause_init { $$ = &ShowWarnings{} }
+| ERRORS opt_limit_clause_init { $$ = &ShowErrors{} }
+| PROFILES_SYM { $$ = &ShowProfiles{} }
+| PROFILE_SYM opt_profile_defs opt_profile_args opt_limit_clause_init 
+  { $$ = &ShowProfiles{} }
+| opt_var_type STATUS_SYM wild_and_where { $$ = &ShowStatus{} }
+| opt_full PROCESSLIST_SYM { $$ = &ShowProcessList{} }
+| opt_var_type VARIABLES wild_and_where { $$ = &ShowVariables{} }
+| charset wild_and_where { $$ = &ShowCharset{} }
+| COLLATION_SYM wild_and_where { $$ = &ShowCollation{} }
+| GRANTS { $$ = &ShowGrants{} }
+| GRANTS FOR_SYM user { $$ = &ShowGrants{} }
+| CREATE DATABASE opt_if_not_exists ident 
+  { $$ = &ShowCreateDatabase{Schema: $4} }
+| CREATE TABLE_SYM table_ident 
+  { $$ = &ShowCreate{Prefix: $2, Table: $3} }
+| CREATE VIEW_SYM table_ident 
+  { $$ = &ShowCreate{Prefix: $2, Table: $3} }
+| MASTER_SYM STATUS_SYM { $$ = &ShowMasterStatus{} } 
+| SLAVE STATUS_SYM { $$ = &ShowSlaveStatus{} }
+| CREATE PROCEDURE_SYM sp_name 
+  { $$ = &ShowCreate{Prefix: $2, Table: $3} }
+| CREATE FUNCTION_SYM sp_name 
+  { $$ = &ShowCreate{Prefix: $2, Table: $3} }
+| CREATE TRIGGER_SYM sp_name 
+  { $$ = &ShowCreate{Prefix: $2, Table: $3} }
+| PROCEDURE_SYM STATUS_SYM wild_and_where { $$ = &ShowProcedure{} }
+| FUNCTION_SYM STATUS_SYM wild_and_where { $$ = &ShowFunction{} }
+| PROCEDURE_SYM CODE_SYM sp_name { $$ = &ShowProcedure{Procedure: $3} }
+| FUNCTION_SYM CODE_SYM sp_name { $$ = &ShowFunction{Function: $3} }
+| CREATE EVENT_SYM sp_name 
+  { $$ = &ShowCreate{Prefix: $2, Table: $3} }
+; 
 
 show_engine_param:
   STATUS_SYM
@@ -3652,8 +3666,8 @@ opt_storage:
 | STORAGE_SYM;
 
 opt_db:
- 
-| from_or_in ident;
+  { $$ = nil } 
+| from_or_in ident { $$ = $2 };
 
 opt_full:
  
@@ -3672,9 +3686,9 @@ binlog_from:
 | FROM ulonglong_num;
 
 wild_and_where:
- 
-| LIKE TEXT_STRING_sys
-| WHERE expr;
+  { $$ = nil } 
+| LIKE TEXT_STRING_sys { $$ = &LikeOrWhere{Like: string($2)} }
+| WHERE expr { $$ = nil };
 
 describe:
   describe_command table_ident opt_describe_column 
@@ -3958,7 +3972,7 @@ TEXT_STRING_sys_nonewline:
   TEXT_STRING_sys;
 
 TEXT_STRING_sys:
-  TEXT_STRING;
+  TEXT_STRING { $$ = $1} ;
 
 TEXT_STRING_literal:
   TEXT_STRING;
