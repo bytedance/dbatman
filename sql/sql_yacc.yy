@@ -4374,7 +4374,7 @@ start_option_value_list:
     }
   }
 | TRANSACTION_SYM transaction_characteristics { $$ = &SetTrans{} }
-| option_type start_option_value_list_following_option_type;
+| option_type start_option_value_list_following_option_type {};
 
 start_option_value_list_following_option_type:
   option_value_following_option_type option_value_list_continued
@@ -4414,7 +4414,8 @@ opt_var_ident_type:
 | SESSION_SYM '.';
 
 option_value_following_option_type:
-  internal_variable_name equal set_expr_or_default;
+  internal_variable_name equal set_expr_or_default 
+  { $$ = &Variable{Type: Type_usr, Var: $1, Value: $3} };
 
 option_value_no_option_type:
   internal_variable_name equal set_expr_or_default 
