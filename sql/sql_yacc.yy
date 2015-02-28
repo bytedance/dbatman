@@ -2702,41 +2702,72 @@ optional_braces:
 | '(' ')';
 
 expr:
-  expr or expr %prec OR_SYM
+  expr or expr %prec OR_SYM 
+  { $$ = &OrExpr{Left: $1, Right: $3} }
 | expr XOR expr %prec XOR
+  { $$ = &XorExpr{Left: $1, Right: $3} }
 | expr and expr %prec AND_SYM
+  { $$ = &AndExpr{Left: $1, Right: $3} }
 | NOT_SYM expr %prec NOT_SYM
+  { $$ = &NotExpr{Expr: $2} }
 | bool_pri IS TRUE_SYM %prec IS
+  { $$ = &IsCheck{Operator: OP_IS_TRUE, Expr: $1} }
 | bool_pri IS not TRUE_SYM %prec IS
+  { $$ = &IsCheck{Operator: OP_IS_NOT_TRUE, Expr: $1} }
 | bool_pri IS FALSE_SYM %prec IS
+  { $$ = &IsCheck{Operator: OP_IS_FALSE, Expr: $1} }
 | bool_pri IS not FALSE_SYM %prec IS
+  { $$ = &IsCheck{Operator: OP_IS_NOT_FALSE, Expr: $1} }
 | bool_pri IS UNKNOWN_SYM %prec IS
+  { $$ = &IsCheck{Operator: OP_IS_UNKNOWN, Expr: $1} }
 | bool_pri IS not UNKNOWN_SYM %prec IS
-| bool_pri;
+  { $$ = &IsCheck{Operator: OP_IS_NOT_UNKNOWN, Expr: $1} }
+| bool_pri
+  { $$ = $1 }
+;
 
 bool_pri:
   bool_pri IS NULL_SYM %prec IS
+  { $$ = &NullCheck{Operator: OP_IS_NULL, Expr: $1} }
 | bool_pri IS not NULL_SYM %prec IS
+  { $$ = &NullCheck{Operator: OP_IS_NOT_NULL, Expr: $1} }
 | bool_pri EQUAL_SYM predicate %prec EQUAL_SYM
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_EQ, Right: $3} }
 | bool_pri comp_op predicate %prec EQ
+  { $$ = &ComparisonExpr{Left: $1, Operator: $2, Right: $3} }
 | bool_pri comp_op all_or_any '(' subselect ')' %prec EQ
-| predicate;
+  { $$ = &ComparisonExpr{Left: $1, Operator: $2, Right: $5} }
+| predicate
+  { $$ = $1 };
 
 predicate:
   bit_expr IN_SYM '(' subselect ')'
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_IN, Right: ValExprs{$4}} }
 | bit_expr not IN_SYM '(' subselect ')'
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_IN, Right: ValExprs{$5}} }
 | bit_expr IN_SYM '(' expr ')'
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_IN, Right: ValExprs($4)} }
 | bit_expr IN_SYM '(' expr ',' expr_list ')'
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_IN, Right: append(ValExprs{}, $4, $6...} }
 | bit_expr not IN_SYM '(' expr ')'
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_IN, Right: ValExprs($5)} }
 | bit_expr not IN_SYM '(' expr ',' expr_list ')'
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_IN, Right: append(ValExprs{}, $5, $7...} }
 | bit_expr BETWEEN_SYM bit_expr AND_SYM predicate
+  { $$ = &RangeCond{Left: $1, Operator: OP_BETWEEN, From: $3, To: $5} }
 | bit_expr not BETWEEN_SYM bit_expr AND_SYM predicate
+  { $$ = &RangeCond{Left: $1, Operator: OP_NOT_BETWEEN, From: $3, To: $5} }
 | bit_expr SOUNDS_SYM LIKE bit_expr
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_SOUNDS_LIKE, Right: ValExprs($4)} }
 | bit_expr LIKE simple_expr opt_escape
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_LIKE, Right: ValExprs($3)} }
 | bit_expr not LIKE simple_expr opt_escape
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_LIKE, Right: ValExprs($4)} }
 | bit_expr REGEXP bit_expr
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_REGEXP, Right: ValExprs($3)} }
 | bit_expr not REGEXP bit_expr
-| bit_expr;
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_REGEXP, Right: ValExprs($4)} }
+| bit_expr { $$ = $1 };
 
 bit_expr:
   bit_expr '|' bit_expr %prec '|'
@@ -2772,12 +2803,12 @@ not2:
 | NOT2_SYM;
 
 comp_op:
-  EQ
-| GE
-| GT_SYM
-| LE
-| LT
-| NE;
+  EQ { $$ = OP_EQ }
+| GE { $$ = OP_GE }
+| GT_SYM { $$ = OP_GT }
+| LE { $$ = OP_LE }
+| LT { $$ = OP_LT }
+| NE { $$ = OP_NE };
 
 all_or_any:
   ALL
