@@ -4,6 +4,35 @@ import (
 	"testing"
 )
 
+func TestSet(t *testing.T) {
+	var st IStatement
+
+	st = testParse(`set global autocommit = 1`, t, false)
+	matchType(t, st, &Set{})
+
+	st = testParse(`set global autocommit = 1, sysvar = 2`, t, false)
+	set := st.(*Set)
+
+	v := set.VarList[0]
+	if v.Life != Life_Global {
+		t.Fatal("missed life type")
+	}
+
+	if v.Name != "autocommit" {
+		t.Fatal("missed varname")
+	}
+
+	v = set.VarList[1]
+	if v.Life != Life_Global {
+		t.Fatal("missed life type")
+	}
+
+	if v.Name != "sysvar" {
+		t.Fatal("missed varname")
+	}
+
+}
+
 func TestShow(t *testing.T) {
 	var st IStatement
 

@@ -11,6 +11,7 @@ import (
     empty struct{}
     interf interface{}
     bytes []byte
+    str string
     statement IStatement
     select_statement ISelect
     table ISimpleTable
@@ -34,8 +35,10 @@ import (
 
     like_or_where *LikeOrWhere
 
-    var *Variables
+    variable *Variable
     vars Vars
+    var_type VarType
+    life_type LifeType
 }
 
 /*
@@ -712,7 +715,7 @@ import (
 %type <statement> commit lock release rollback savepoint start unlock xa 
 
 /* DAL */
-%type <statement> analyze binlog_base64_event check checksum optimize repair flush grant install uninstall kill keycache partition_entry preload reset revoke set show flush_options show_param
+%type <statement> analyze binlog_base64_event check checksum optimize repair flush grant install uninstall kill keycache partition_entry preload reset revoke set show flush_options show_param start_option_value_list
 
 /* Replication Statement */
 %type <statement> change purge slave 
@@ -726,9 +729,9 @@ import (
 /* MySQL Utility Statement */
 %type <statement> describe help use explanable_command
 
-%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias opt_db TEXT_STRING_sys
+%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias opt_db TEXT_STRING_sys ident_or_text
 
-%type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail
+%type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail start_option_value_list_following_option_type
 
 %type <table> table_name_with_opt_use_partition table_ident into_table insert_table table_ident_nodb table_wild_one table_ident_opt_wild table_name table_alias_ref table_lock
 %type <table_list> table_list table_lock_list opt_table_list
@@ -758,8 +761,12 @@ import (
 
 %type <like_or_where> wild_and_where
 
-%type <var> option_value_no_option_type
-%type <vars> option_value_list_continued start_option_value_list
+%type <str> internal_variable_name
+%type <variable> option_value_no_option_type option_value_following_option_type option_value
+%type <vars> option_value_list_continued option_value_list
+
+%type <life_type> option_type opt_var_ident_type
+%type <var_type> 
 
 %%
 
@@ -3995,9 +4002,9 @@ label_ident:
 | keyword_sp;
 
 ident_or_text:
-  ident
-| TEXT_STRING_sys
-| LEX_HOSTNAME;
+  ident { $$ = $1 }
+| TEXT_STRING_sys { $$ = $1 }
+| LEX_HOSTNAME { $$ = $1 };
 
 user:
   ident_or_text
@@ -4362,22 +4369,42 @@ keyword_sp:
 ;
 
 set:
-  SET start_option_value_list { $$ = $1 };
+  SET start_option_value_list { $$ = $2 };
 
 start_option_value_list:
   option_value_no_option_type option_value_list_continued 
   {
     if $2 == nil {
-        $$ = Vars{$1}
+        $$ = &Set{VarList: Vars{$1}}
     } else {
-        $$ = append($2, $1)
+        $$ = &Set{VarList: append($2, $1)}
     }
   }
 | TRANSACTION_SYM transaction_characteristics { $$ = &SetTrans{} }
-| option_type start_option_value_list_following_option_type {};
+| option_type start_option_value_list_following_option_type 
+  {
+    if st, ok := $2.(*SetTrans); ok {
+        $$ = st
+    } else {
+        tmp := $2.(Vars)
+        for _, v := range tmp {
+            v.Life = $1
+        }
+
+        $$ = &Set{VarList: tmp}
+    }
+  };
 
 start_option_value_list_following_option_type:
   option_value_following_option_type option_value_list_continued
+  { 
+    tmp := Vars{$1}
+    if $2 != nil {
+        $$ = append(tmp, $2...)
+    } else {
+        $$ = tmp
+    }
+  }
 | TRANSACTION_SYM transaction_characteristics { $$ = &SetTrans{} };
 
 option_value_list_continued:
@@ -4408,38 +4435,38 @@ opt_var_type:
 | SESSION_SYM;
 
 opt_var_ident_type:
- 
-| GLOBAL_SYM '.'
-| LOCAL_SYM '.'
-| SESSION_SYM '.';
+  { $$ = Life_Unknown} 
+| GLOBAL_SYM '.' { $$ = Life_Global }
+| LOCAL_SYM '.' { $$ = Life_Local }
+| SESSION_SYM '.' { $$ = Life_Session };
 
 option_value_following_option_type:
   internal_variable_name equal set_expr_or_default 
-  { $$ = &Variable{Type: Type_usr, Var: $1, Value: $3} };
+  { $$ = &Variable{Type: Type_Usr, Name: $1} };
 
 option_value_no_option_type:
   internal_variable_name equal set_expr_or_default 
-  { $$ = &Variable{Type: Type_usr, Var: $1, Value: $3} }
+  { $$ = &Variable{Type: Type_Usr, Name: $1} }
 | '@' ident_or_text equal expr 
-  { $$ = &Variable{Type: Type_usr, Var: &Varname{Name: string($2)}, Value: $4} }
+  { $$ = &Variable{Type: Type_Usr, Name: string($2)} }
 | '@' '@' opt_var_ident_type internal_variable_name equal set_expr_or_default
-  { $$ = &Variable{Type: Type_sys, Life: $3, Var: $4, Value: $6} }
+  { $$ = &Variable{Type: Type_Sys, Life: $3, Name: $4} }
 | charset old_or_new_charset_name_or_default
-  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "CHARACTER SET"}, Value: $3} }
+  { $$ = &Variable{Type: Type_Sys, Name: "CHARACTER SET"} }
 | NAMES_SYM equal expr
-  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "NAMES"}, Value: $3} }
+  { $$ = &Variable{Type: Type_Sys, Name: "NAMES"} }
 | NAMES_SYM charset_name_or_default opt_collate
-  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "NAMES"}, Value: $2} }
+  { $$ = &Variable{Type: Type_Sys, Name: "NAMES"} }
 | PASSWORD equal text_or_password
-  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "PASSWORD"}, Value: $3} }
+  { $$ = &Variable{Type: Type_Sys, Name: "PASSWORD"} }
 | PASSWORD FOR_SYM user equal text_or_password
-  { $$ = &Variable{Type: Type_sys, Var: &Varname{Name: "PASSWORD"}, Value: $5} }
+  { $$ = &Variable{Type: Type_Sys, Name: "PASSWORD"} }
 ;
 
 internal_variable_name:
-  ident { $$ = &Varname{Name: string($1)} }
-| ident '.' ident { $$ = &Varname{Prefix: string($1), Name: string($3)} }
-| DEFAULT '.' ident { $$ = &Varname{Prefix: "DEFAULT", Name: string($3)} };
+  ident { $$ = string($1) }
+| ident '.' ident { $$ = string($1) + "." + string($3)}
+| DEFAULT '.' ident { $$ = "DEFAULT." + string($3) };
 
 transaction_characteristics:
   transaction_access_mode

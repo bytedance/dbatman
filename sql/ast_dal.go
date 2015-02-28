@@ -9,14 +9,9 @@ type Set struct {
 type Vars []*Variable
 
 type Variable struct {
-	Type  VarType
-	Life  LifeType
-	Var   *Varname
-	Value Expr
-}
-type Varname struct {
-	Prefix string
-	Name   string
+	Type VarType
+	Life LifeType
+	Name string
 }
 
 type VarType int
@@ -26,9 +21,10 @@ const (
 	Type_Sys = 1
 	Type_Usr = 2
 
-	Life_Global  = 0
-	Life_Session = 1
+	Life_Unknown = 0
+	Life_Global  = 1
 	Life_Local   = 2
+	Life_Session = 3
 )
 
 type IAccountMgrStmt interface {
