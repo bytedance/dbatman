@@ -2742,49 +2742,65 @@ bool_pri:
 
 predicate:
   bit_expr IN_SYM '(' subselect ')'
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_IN, Right: ValExprs{$4}} }
+  { $$ = &InExpr{Left: $1, Operator: OP_IN, Right: Exprs{$4}} }
 | bit_expr not IN_SYM '(' subselect ')'
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_IN, Right: ValExprs{$5}} }
+  { $$ = &InExpr{Left: $1, Operator: OP_NOT_IN, Right: Exprs{$5}} } 
 | bit_expr IN_SYM '(' expr ')'
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_IN, Right: ValExprs($4)} }
+  { $$ = &InExpr{Left: $1, Operator: OP_IN, Right: Exprs{$4}} }
 | bit_expr IN_SYM '(' expr ',' expr_list ')'
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_IN, Right: append(ValExprs{}, $4, $6...} }
+  { $$ = &InExpr{Left: $1, Operator: OP_IN, Right: append(Exprs{}, $4, $6...} }
 | bit_expr not IN_SYM '(' expr ')'
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_IN, Right: ValExprs($5)} }
+  { $$ = &InExpr{Left: $1, Operator: OP_NOT_IN, Right: Exprs{$5}} }
 | bit_expr not IN_SYM '(' expr ',' expr_list ')'
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_IN, Right: append(ValExprs{}, $5, $7...} }
+  { $$ = &InExpr{Left: $1, Operator: OP_NOT_IN, Right: append(Exprs{}, $5, $7...} }
 | bit_expr BETWEEN_SYM bit_expr AND_SYM predicate
   { $$ = &RangeCond{Left: $1, Operator: OP_BETWEEN, From: $3, To: $5} }
 | bit_expr not BETWEEN_SYM bit_expr AND_SYM predicate
   { $$ = &RangeCond{Left: $1, Operator: OP_NOT_BETWEEN, From: $3, To: $5} }
 | bit_expr SOUNDS_SYM LIKE bit_expr
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_SOUNDS_LIKE, Right: ValExprs($4)} }
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_SOUNDS_LIKE, Right: Exprs{$4}} }
 | bit_expr LIKE simple_expr opt_escape
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_LIKE, Right: ValExprs($3)} }
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_LIKE, Right: Exprs{$3}} }
 | bit_expr not LIKE simple_expr opt_escape
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_LIKE, Right: ValExprs($4)} }
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_LIKE, Right: Exprs{$4}} }
 | bit_expr REGEXP bit_expr
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_REGEXP, Right: ValExprs($3)} }
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_REGEXP, Right: Exprs{$3}} }
 | bit_expr not REGEXP bit_expr
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_REGEXP, Right: ValExprs($4)} }
+  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_REGEXP, Right: Exprs{$4}} }
 | bit_expr { $$ = $1 };
 
 bit_expr:
   bit_expr '|' bit_expr %prec '|'
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_BITOR, Right: $3} }
 | bit_expr '&' bit_expr %prec '&'
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_BITAND, Right: $3} }
 | bit_expr SHIFT_LEFT bit_expr %prec SHIFT_LEFT
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_SHIFTLEFT, Right: $3} }
 | bit_expr SHIFT_RIGHT bit_expr %prec SHIFT_RIGHT
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_SHIFTRIGHT, Right: $3} }
 | bit_expr '+' bit_expr %prec '+'
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_PLUS, Right: $3} }
 | bit_expr '-' bit_expr %prec '-'
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_MINUS, Right: $3} }
 | bit_expr '+' INTERVAL_SYM expr interval %prec '+'
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_PLUS, Right: &IntervalExpr{Expr: $4, Interval: $5}} }
 | bit_expr '-' INTERVAL_SYM expr interval %prec '-'
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_MINUS, Right: &IntervalExpr{Expr: $4, Interval: $5}} }
 | bit_expr '*' bit_expr %prec '*'
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_MULT, Right: $3} }
 | bit_expr '/' bit_expr %prec '/'
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_DIV, Right: $3} }
 | bit_expr '%' bit_expr %prec '%'
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_MOD, Right: $3} }
 | bit_expr DIV_SYM bit_expr %prec DIV_SYM
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_DIV, Right: $3} }
 | bit_expr MOD_SYM bit_expr %prec MOD_SYM
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_MOD, Right: $3} }
 | bit_expr '^' bit_expr
-| simple_expr;
+  { $$ = &BinaryExpr{Left: $1, Operator: OP_BITXOR, Right: $3} }
+| simple_expr
+  { $$ = $1 }
+;
 
 or:
   OR_SYM
@@ -2815,7 +2831,7 @@ all_or_any:
 | ANY_SYM;
 
 simple_expr:
-  simple_ident
+  simple_ident { $$ = $1 }
 | function_call_keyword
 | function_call_nonkeyword
 | function_call_generic
@@ -3029,8 +3045,8 @@ opt_expr_list:
 | expr_list;
 
 expr_list:
-  expr
-| expr_list ',' expr;
+  expr { $$ = Exprs{$1} }
+| expr_list ',' expr { $$ = append($1, $3) };
 
 ident_list_arg:
   ident_list
@@ -3977,17 +3993,17 @@ order_ident:
   expr;
 
 simple_ident:
-  ident
-| simple_ident_q;
+  ident { $$ = &SchemaObject{Column: $1} }
+| simple_ident_q { $$ = $1 };
 
 simple_ident_nospvar:
   ident
 | simple_ident_q;
 
 simple_ident_q:
-  ident '.' ident
-| '.' ident '.' ident
-| ident '.' ident '.' ident;
+  ident '.' ident { $$ = &SchemaObject{Table: $1, Column: $3} }
+| '.' ident '.' ident { $$ = &SchemaObject{Table: $2, Column: $4} }
+| ident '.' ident '.' ident { $$ = &SchemaObject{Schema: $1, Table: $3, Column: $5} };
 
 field_ident:
   ident

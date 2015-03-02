@@ -24,6 +24,7 @@ func (ValExprs) IExpr()        {}
 func (*SubQuery) IExpr()       {}
 func (*BinaryExpr) IExpr()     {}
 func (*UnaryExpr) IExpr()      {}
+func (*IntervalExpr) IExpr()   {}
 func (*FuncExpr) IExpr()       {}
 func (*CaseExpr) IExpr()       {}
 
@@ -84,13 +85,23 @@ const (
 	OP_GE          = ">="
 	OP_NE          = "!="
 	OP_NSE         = "<=>"
-	OP_IN          = "in"
-	OP_NOT_IN      = "not in"
 	OP_LIKE        = "like"
 	OP_NOT_LIKE    = "not like"
 	OP_SOUNDS_LIKE = "sounds like"
 	OP_REGEXP      = "regexp"
 	OP_NOT_REGEXP  = "not regexp"
+)
+
+// InExpr
+type InExpr struct {
+	Operator string
+	Left     ValExpr
+	Right    Exprs
+}
+
+const (
+	OP_IN     = "in"
+	OP_NOT_IN = "not in"
 )
 
 // RangeCond represents a BETWEEN or a NOT BETWEEN expression.
@@ -145,17 +156,18 @@ type ValExpr interface {
 	Expr
 }
 
-func (StrVal) IValExpr()      {}
-func (NumVal) IValExpr()      {}
-func (ValArg) IValExpr()      {}
-func (*NullVal) IValExpr()    {}
-func (*ColName) IValExpr()    {}
-func (ValExprs) IValExpr()    {}
-func (*SubQuery) IValExpr()   {}
-func (*BinaryExpr) IValExpr() {}
-func (*UnaryExpr) IValExpr()  {}
-func (*FuncExpr) IValExpr()   {}
-func (*CaseExpr) IValExpr()   {}
+func (StrVal) IValExpr()        {}
+func (NumVal) IValExpr()        {}
+func (ValArg) IValExpr()        {}
+func (*NullVal) IValExpr()      {}
+func (*ColName) IValExpr()      {}
+func (ValExprs) IValExpr()      {}
+func (*SubQuery) IValExpr()     {}
+func (*BinaryExpr) IValExpr()   {}
+func (*UnaryExpr) IValExpr()    {}
+func (*IntervalExpr) IValExpr() {}
+func (*FuncExpr) IValExpr()     {}
+func (*CaseExpr) IValExpr()     {}
 
 // StrVal represents a string value.
 type StrVal []byte
@@ -180,20 +192,22 @@ type ValExprs []ValExpr
 
 // BinaryExpr represents a binary value expression.
 type BinaryExpr struct {
-	Operator    byte
+	Operator    string
 	Left, Right Expr
 }
 
 // BinaryExpr.Operator
 const (
-	OP_BITAND = '&'
-	OP_BITOR  = '|'
-	OP_BITXOR = '^'
-	OP_PLUS   = '+'
-	OP_MINUS  = '-'
-	OP_MULT   = '*'
-	OP_DIV    = '/'
-	OP_MOD    = '%'
+	OP_BITAND     = "&"
+	OP_BITOR      = "|"
+	OP_BITXOR     = "^"
+	OP_PLUS       = "+"
+	OP_MINUS      = "-"
+	OP_MULT       = "*"
+	OP_DIV        = "/"
+	OP_MOD        = "%"
+	OP_SHIFTLEFT  = "<<"
+	OP_SHIFTRIGHT = ">>"
 )
 
 // UnaryExpr represents a unary value expression.
@@ -208,6 +222,13 @@ const (
 	OP_UMINUS = '-'
 	OP_TILDA  = '~'
 )
+
+// IntervalExpr represents a date and time function param expression
+// -- http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html
+type IntervalExpr struct {
+	Expr     ValExpr
+	Interval []byte
+}
 
 // FuncExpr represents a function call.
 type FuncExpr struct {
@@ -253,4 +274,11 @@ const (
 // Limit represents a LIMIT clause.
 type Limit struct {
 	Offset, Rowcount ValExpr
+}
+
+// SchemaObject
+type SchemaObject struct {
+	Schema []byte
+	Table  []byte
+	Column []byte
 }
