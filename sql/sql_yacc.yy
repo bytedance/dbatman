@@ -742,7 +742,7 @@ import (
 /* MySQL Utility Statement */
 %type <statement> describe help use explanable_command
 
-%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias opt_db TEXT_STRING_sys ident_or_text interval interval_time_stamp TEXT_STRING_literal 
+%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias opt_db TEXT_STRING_sys ident_or_text interval interval_time_stamp TEXT_STRING_literal old_or_new_charset_name old_or_new_charset_name_or_default charset_name_or_default charset_name 
 
 %type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail start_option_value_list_following_option_type
 
@@ -781,10 +781,10 @@ import (
 %type <life_type> option_type opt_var_ident_type
 %type <var_type> 
 
-%type <expr> expr
+%type <expr> expr set_expr_or_default
 %type <exprs> expr_list
 %type <boolexpr> bool_pri
-%type <valexpr> predicate bit_expr simple_expr simple_ident literal param_marker variable literal text_literal temporal_literal NUM_literal simple_ident_q  
+%type <valexpr> predicate bit_expr simple_expr simple_ident literal param_marker variable literal text_literal temporal_literal NUM_literal simple_ident_q 
 
 %%
 
@@ -2035,24 +2035,24 @@ charset:
 | CHARSET;
 
 charset_name:
-  ident_or_text
-| BINARY;
+  ident_or_text { $$ = $1 }
+| BINARY { $$ = $1 };
 
 charset_name_or_default:
-  charset_name
-| DEFAULT;
+  charset_name { $$ = $1 }
+| DEFAULT { $$ = $1 };
 
 opt_load_data_charset:
  
 | charset charset_name_or_default;
 
 old_or_new_charset_name:
-  ident_or_text
-| BINARY;
+  ident_or_text { $$ = $1 }
+| BINARY { $$ = $1 };
 
 old_or_new_charset_name_or_default:
-  old_or_new_charset_name
-| DEFAULT;
+  old_or_new_charset_name { $$ = $1 }
+| DEFAULT { $$ = $1 };
 
 collation_name:
   ident_or_text;
@@ -4512,21 +4512,21 @@ opt_var_ident_type:
 
 option_value_following_option_type:
   internal_variable_name equal set_expr_or_default 
-  { $$ = &Variable{Type: Type_Usr, Name: $1} };
+  { $$ = &Variable{Type: Type_Usr, Name: $1, Value: $3} };
 
 option_value_no_option_type:
   internal_variable_name equal set_expr_or_default 
-  { $$ = &Variable{Type: Type_Usr, Name: $1} }
+  { $$ = &Variable{Type: Type_Usr, Name: $1, Value: $3} }
 | '@' ident_or_text equal expr 
-  { $$ = &Variable{Type: Type_Usr, Name: string($2)} }
+  { $$ = &Variable{Type: Type_Usr, Name: string($2), Value: $4} }
 | '@' '@' opt_var_ident_type internal_variable_name equal set_expr_or_default
-  { $$ = &Variable{Type: Type_Sys, Life: $3, Name: $4} }
+  { $$ = &Variable{Type: Type_Sys, Life: $3, Name: $4, Value: $6} }
 | charset old_or_new_charset_name_or_default
-  { $$ = &Variable{Type: Type_Sys, Name: "CHARACTER SET"} }
+  { $$ = &Variable{Type: Type_Sys, Name: "CHARACTER SET", Value: StrVal($2)} }
 | NAMES_SYM equal expr
-  { $$ = &Variable{Type: Type_Sys, Name: "NAMES"} }
+  { $$ = &Variable{Type: Type_Sys, Name: "NAMES", Value: $3} }
 | NAMES_SYM charset_name_or_default opt_collate
-  { $$ = &Variable{Type: Type_Sys, Name: "NAMES"} }
+  { $$ = &Variable{Type: Type_Sys, Name: "NAMES", Value: StrVal($2)} }
 | PASSWORD equal text_or_password
   { $$ = &Variable{Type: Type_Sys, Name: "PASSWORD"} }
 | PASSWORD FOR_SYM user equal text_or_password
@@ -4566,11 +4566,12 @@ text_or_password:
 | OLD_PASSWORD '(' TEXT_STRING ')';
 
 set_expr_or_default:
-  expr
-| DEFAULT
-| ON
-| ALL
-| BINARY;
+  expr { $$ = $1 }
+| DEFAULT { $$ = StrVal($1) }
+| ON { $$ = StrVal($1) }
+| ALL { $$ = StrVal($1) }
+| BINARY { $$ = StrVal($1) }
+;
 
 lock:
   LOCK_SYM table_or_tables table_lock_list { $$ = &Lock{Tables: $3} };

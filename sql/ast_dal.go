@@ -9,9 +9,10 @@ type Set struct {
 type Vars []*Variable
 
 type Variable struct {
-	Type VarType
-	Life LifeType
-	Name string
+	Type  VarType
+	Life  LifeType
+	Name  string
+	Value IExpr
 }
 
 type VarType int
