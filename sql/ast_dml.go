@@ -6,6 +6,7 @@ package sql
 
 type ISelect interface {
 	ISelect()
+	IsLocked() bool
 	GetSchemas() []string
 	IStatement
 }
@@ -22,6 +23,10 @@ func (*SubQuery) IStatement()    {}
 
 type Union struct {
 	Left, Right ISelect
+}
+
+func (u *Union) IsLocked() bool {
+	return u.Left.IsLocked() || u.Right.IsLocked()
 }
 
 func (u *Union) GetSchemas() []string {
@@ -51,6 +56,10 @@ type SubQuery struct {
 	SelectStatement ISelect
 }
 
+func (s *SubQuery) IsLocked() bool {
+	return s.SelectStatement.IsLocked()
+}
+
 func (s *SubQuery) GetSchemas() []string {
 	if s.SelectStatement == nil {
 		panic("subquery has no content")
@@ -63,6 +72,10 @@ func (s *SubQuery) GetSchemas() []string {
 type Select struct {
 	From     ITables
 	LockType LockType
+}
+
+func (s *Select) IsLocked() bool {
+	return s.LockType != LockType_NoLock
 }
 
 func (s *Select) GetSchemas() []string {
@@ -84,6 +97,10 @@ func (s *Select) GetSchemas() []string {
 // ParenSelect ------
 type ParenSelect struct {
 	Select ISelect
+}
+
+func (p *ParenSelect) IsLocked() bool {
+	return p.Select.IsLocked()
 }
 
 func (p *ParenSelect) GetSchemas() []string {
