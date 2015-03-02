@@ -1,6 +1,7 @@
 package sql
 
 func (*CreateTable) IStatement()    {}
+func (*CreateTable) IDDLStatement() {}
 func (*CreateTable) HasDDLSchemas() {}
 
 func (c *CreateTable) GetSchemas() []string {
@@ -11,46 +12,53 @@ type CreateTable struct {
 	Table ISimpleTable
 }
 
-type CreateIndex struct{}
+func (*CreateIndex) IStatement()    {}
+func (*CreateIndex) IDDLStatement() {}
 
-func (*CreateIndex) IStatement() {}
+type CreateIndex struct{}
 
 /****************************
  * Create Database Statement
  ***************************/
-func (*CreateDatabase) IStatement() {}
+func (*CreateDatabase) IStatement()    {}
+func (*CreateDatabase) IDDLStatement() {}
 
 type CreateDatabase struct{}
+
+func (*CreateView) IStatement()    {}
+func (*CreateView) IDDLStatement() {}
+func (*CreateView) HasDDLSchemas() {}
 
 type CreateView struct {
 	View ISimpleTable
 	As   ISelect
 }
 
-func (*CreateView) IStatement()    {}
-func (*CreateView) HasDDLSchemas() {}
-
 func (c *CreateView) GetSchemas() []string {
 	return GetSchemas(c.View.GetSchemas(), c.As.GetSchemas())
 }
 
+func (*CreateLog) IStatement()    {}
+func (*CreateLog) IDDLStatement() {}
+
 type CreateLog struct{}
 
-func (*CreateLog) IStatement() {}
+func (*CreateTablespace) IStatement()    {}
+func (*CreateTablespace) IDDLStatement() {}
 
 type CreateTablespace struct{}
 
-func (*CreateTablespace) IStatement() {}
+func (*CreateServer) IStatement()    {}
+func (*CreateServer) IDDLStatement() {}
 
 type CreateServer struct{}
-
-func (*CreateServer) IStatement() {}
 
 /**********************
  * Create Event Statement
  * http://dev.mysql.com/doc/refman/5.7/en/create-event.html
  *********************/
 func (*CreateEvent) IStatement()    {}
+func (*CreateEvent) IDDLStatement() {}
 func (*CreateEvent) HasDDLSchemas() {}
 
 type CreateEvent struct {
@@ -66,6 +74,7 @@ type eventTail struct {
 }
 
 func (*CreateProcedure) IStatement()    {}
+func (*CreateProcedure) IDDLStatement() {}
 func (*CreateProcedure) HasDDLSchemas() {}
 
 type CreateProcedure struct {
@@ -81,6 +90,7 @@ type spTail struct {
 }
 
 func (*CreateFunction) IStatement()    {}
+func (*CreateFunction) IDDLStatement() {}
 func (*CreateFunction) HasDDLSchemas() {}
 
 type CreateFunction struct {
@@ -95,6 +105,7 @@ func (c *CreateFunction) GetSchemas() []string {
 }
 
 func (*CreateTrigger) IStatement()    {}
+func (*CreateTrigger) IDDLStatement() {}
 func (*CreateTrigger) HasDDLSchemas() {}
 
 type CreateTrigger struct {

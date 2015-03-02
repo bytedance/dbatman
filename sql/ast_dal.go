@@ -191,6 +191,7 @@ type IPluginAndUdf interface {
 func (*Install) IStatement()       {}
 func (*Install) IsPluginAndUdf()   {}
 func (*CreateUDF) IStatement()     {}
+func (*CreateUDF) IDDLStatement()  {}
 func (*CreateUDF) IsPluginAndUdf() {}
 func (*Uninstall) IStatement()     {}
 func (*Uninstall) IsPluginAndUdf() {}
@@ -231,16 +232,19 @@ func (*Revoke) IsAccountMgrStmt() {}
 type Revoke struct{}
 
 func (*CreateUser) IStatement()       {}
+func (*CreateUser) IDDLStatement()    {}
 func (*CreateUser) IsAccountMgrStmt() {}
 
 type CreateUser struct{}
 
 func (*AlterUser) IStatement()       {}
+func (*AlterUser) IDDLStatement()    {}
 func (*AlterUser) IsAccountMgrStmt() {}
 
 type AlterUser struct{}
 
 func (*DropUser) IStatement()       {}
+func (*DropUser) IDDLStatement()    {}
 func (*DropUser) IsAccountMgrStmt() {}
 
 type DropUser struct{}

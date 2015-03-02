@@ -5,15 +5,15 @@ package sql
  ***********************************/
 
 type ISelect interface {
-	IsSelect()
+	ISelect()
 	GetSchemas() []string
 	IStatement
 }
 
-func (*Select) IsSelect()      {}
-func (*ParenSelect) IsSelect() {}
-func (*Union) IsSelect()       {}
-func (*SubQuery) IsSelect()    {}
+func (*Select) ISelect()      {}
+func (*ParenSelect) ISelect() {}
+func (*Union) ISelect()       {}
+func (*SubQuery) ISelect()    {}
 
 func (*Select) IStatement()      {}
 func (*ParenSelect) IStatement() {}

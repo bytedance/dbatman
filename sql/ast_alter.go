@@ -4,30 +4,35 @@ type AlterTable struct {
 	Table ISimpleTable
 }
 
-func (*AlterTable) IStatement() {}
+func (*AlterTable) IStatement()    {}
+func (*AlterTable) IDDLStatement() {}
 
 type AlterDatabase struct {
 	Schema []byte
 }
 
-func (*AlterDatabase) IStatement() {}
+func (*AlterDatabase) IStatement()    {}
+func (*AlterDatabase) IDDLStatement() {}
 
 type AlterProcedure struct {
 	Procedure *Spname
 }
 
-func (*AlterProcedure) IStatement() {}
+func (*AlterProcedure) IStatement()    {}
+func (*AlterProcedure) IDDLStatement() {}
 
 type AlterFunction struct {
 	Function *Spname
 }
 
-func (*AlterFunction) IStatement() {}
+func (*AlterFunction) IStatement()    {}
+func (*AlterFunction) IDDLStatement() {}
 
 /*************************
  * Alter View Statement
  *************************/
-func (*AlterView) IStatement() {}
+func (*AlterView) IStatement()    {}
+func (*AlterView) IDDLStatement() {}
 
 type AlterView struct {
 	View ISimpleTable
@@ -53,6 +58,7 @@ func (av *AlterView) GetSchemas() []string {
  * Alter Event Statement
  *************************/
 func (*AlterEvent) IStatement()    {}
+func (*AlterEvent) IDDLStatement() {}
 func (*AlterEvent) HasDDLSchemas() {}
 func (a *AlterEvent) GetSchemas() []string {
 	if a.Rename == nil {
@@ -69,12 +75,15 @@ type AlterEvent struct {
 
 type AlterTablespace struct{}
 
-func (*AlterTablespace) IStatement() {}
+func (*AlterTablespace) IStatement()    {}
+func (*AlterTablespace) IDDLStatement() {}
 
 type AlterLogfile struct{}
 
-func (*AlterLogfile) IStatement() {}
+func (*AlterLogfile) IStatement()    {}
+func (*AlterLogfile) IDDLStatement() {}
 
 type AlterServer struct{}
 
-func (*AlterServer) IStatement() {}
+func (*AlterServer) IStatement()    {}
+func (*AlterServer) IDDLStatement() {}
