@@ -14,6 +14,7 @@ import (
     str string
     statement IStatement
     select_statement ISelect
+    subquery *SubQuery
     table ISimpleTable
     table_list ISimpleTables
     table_ref ITable
@@ -25,6 +26,13 @@ import (
     table_index_list []*TableIndex
 
     spname *Spname
+
+    expr IExpr
+    exprs IExprs
+    valexpr IValExpr
+    valexprs IValExprs
+    boolexpr IBoolExpr
+
     lock_type LockType
     view_tail *viewTail
     event_tail *eventTail
@@ -708,8 +716,10 @@ import (
 %type <statement> insert update delete replace call do handler load single_multi
 
 %type <select_statement> select select_init select_init2 select_paren select_part2 select_derived2 opt_select_from query_specification select_init2_derived select_part2_derived select_paren_derived select_derived create_select 
-%type <select_statement> view_select view_select_aux create_view_select create_view_select_paren
+%type <select_statement> view_select view_select_aux create_view_select create_view_select_paren query_expression_body
 %type <select_statement> union_opt union_clause_opt select_derived_union union_list 
+
+%type <subquery> subselect
 
 /* Transaction */
 %type <statement> commit lock release rollback savepoint start unlock xa 
@@ -729,7 +739,7 @@ import (
 /* MySQL Utility Statement */
 %type <statement> describe help use explanable_command
 
-%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias opt_db TEXT_STRING_sys ident_or_text
+%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias opt_db TEXT_STRING_sys ident_or_text interval interval_time_stamp TEXT_STRING_literal text_literal NUM_literal temporal_literal simple_ident_q 
 
 %type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail start_option_value_list_following_option_type
 
@@ -761,12 +771,17 @@ import (
 
 %type <like_or_where> wild_and_where
 
-%type <str> internal_variable_name
+%type <str> internal_variable_name comp_op
 %type <variable> option_value_no_option_type option_value_following_option_type option_value
 %type <vars> option_value_list_continued option_value_list
 
 %type <life_type> option_type opt_var_ident_type
 %type <var_type> 
+
+%type <expr> expr
+%type <exprs> expr_list
+%type <boolexpr> bool_pri
+%type <valexpr> predicate bit_expr simple_expr simple_ident literal param_marker variable 
 
 %%
 
@@ -2732,41 +2747,41 @@ bool_pri:
 | bool_pri IS not NULL_SYM %prec IS
   { $$ = &NullCheck{Operator: OP_IS_NOT_NULL, Expr: $1} }
 | bool_pri EQUAL_SYM predicate %prec EQUAL_SYM
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_EQ, Right: $3} }
+  { $$ = &CompareExpr{Left: $1, Operator: OP_EQ, Right: $3} }
 | bool_pri comp_op predicate %prec EQ
-  { $$ = &ComparisonExpr{Left: $1, Operator: $2, Right: $3} }
+  { $$ = &CompareExpr{Left: $1, Operator: $2, Right: $3} }
 | bool_pri comp_op all_or_any '(' subselect ')' %prec EQ
-  { $$ = &ComparisonExpr{Left: $1, Operator: $2, Right: $5} }
+  { $$ = &CompareExpr{Left: $1, Operator: $2, Right: $5} }
 | predicate
-  { $$ = $1 };
+  { $$ = &Predicate{Expr: $1} };
 
 predicate:
   bit_expr IN_SYM '(' subselect ')'
-  { $$ = &InExpr{Left: $1, Operator: OP_IN, Right: Exprs{$4}} }
+  { $$ = &InCond{Left: $1, Operator: OP_IN, Right: IExprs{$4}} }
 | bit_expr not IN_SYM '(' subselect ')'
-  { $$ = &InExpr{Left: $1, Operator: OP_NOT_IN, Right: Exprs{$5}} } 
+  { $$ = &InCond{Left: $1, Operator: OP_NOT_IN, Right: IExprs{$5}} } 
 | bit_expr IN_SYM '(' expr ')'
-  { $$ = &InExpr{Left: $1, Operator: OP_IN, Right: Exprs{$4}} }
+  { $$ = &InCond{Left: $1, Operator: OP_IN, Right: IExprs{$4}} }
 | bit_expr IN_SYM '(' expr ',' expr_list ')'
-  { $$ = &InExpr{Left: $1, Operator: OP_IN, Right: append(Exprs{}, $4, $6...} }
+  { $$ = &InCond{Left: $1, Operator: OP_IN, Right: append(IExprs{$4}, $6...)} }
 | bit_expr not IN_SYM '(' expr ')'
-  { $$ = &InExpr{Left: $1, Operator: OP_NOT_IN, Right: Exprs{$5}} }
+  { $$ = &InCond{Left: $1, Operator: OP_NOT_IN, Right: IExprs{$5}} }
 | bit_expr not IN_SYM '(' expr ',' expr_list ')'
-  { $$ = &InExpr{Left: $1, Operator: OP_NOT_IN, Right: append(Exprs{}, $5, $7...} }
+  { $$ = &InCond{Left: $1, Operator: OP_NOT_IN, Right: append(IExprs{$5}, $7...)} }
 | bit_expr BETWEEN_SYM bit_expr AND_SYM predicate
   { $$ = &RangeCond{Left: $1, Operator: OP_BETWEEN, From: $3, To: $5} }
 | bit_expr not BETWEEN_SYM bit_expr AND_SYM predicate
-  { $$ = &RangeCond{Left: $1, Operator: OP_NOT_BETWEEN, From: $3, To: $5} }
+  { $$ = &RangeCond{Left: $1, Operator: OP_NOT_BETWEEN, From: $4, To: $6} }
 | bit_expr SOUNDS_SYM LIKE bit_expr
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_SOUNDS_LIKE, Right: Exprs{$4}} }
+  { $$ = &LikeCond{Left: $1, Operator: OP_SOUNDS_LIKE, Right: $4} }
 | bit_expr LIKE simple_expr opt_escape
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_LIKE, Right: Exprs{$3}} }
+  { $$ = &LikeCond{Left: $1, Operator: OP_LIKE, Right: $3} }
 | bit_expr not LIKE simple_expr opt_escape
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_LIKE, Right: Exprs{$4}} }
+  { $$ = &LikeCond{Left: $1, Operator: OP_NOT_LIKE, Right: $4} }
 | bit_expr REGEXP bit_expr
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_REGEXP, Right: Exprs{$3}} }
+  { $$ = &LikeCond{Left: $1, Operator: OP_REGEXP, Right: $3} }
 | bit_expr not REGEXP bit_expr
-  { $$ = &ComparisonExpr{Left: $1, Operator: OP_NOT_REGEXP, Right: Exprs{$4}} }
+  { $$ = &LikeCond{Left: $1, Operator: OP_NOT_REGEXP, Right: $4} }
 | bit_expr { $$ = $1 };
 
 bit_expr:
@@ -2832,35 +2847,36 @@ all_or_any:
 
 simple_expr:
   simple_ident { $$ = $1 }
-| function_call_keyword
-| function_call_nonkeyword
-| function_call_generic
-| function_call_conflict
+| function_call_keyword { $$ = &FuncExpr{} }
+| function_call_nonkeyword { $$ = &FuncExpr{} }
+| function_call_generic { $$ = &FuncExpr{} }
+| function_call_conflict { $$ = &FuncExpr{} }
 | simple_expr COLLATE_SYM ident_or_text %prec NEG
-| literal
-| param_marker
-| variable
-| sum_expr
-| simple_expr OR_OR_SYM simple_expr
-| '+' simple_expr %prec NEG
-| '-' simple_expr %prec NEG
-| '~' simple_expr %prec NEG
-| not2 simple_expr %prec NEG
-| '(' subselect ')'
-| '(' expr ')'
-| '(' expr ',' expr_list ')'
-| ROW_SYM '(' expr ',' expr_list ')'
-| EXISTS '(' subselect ')'
-| '{' ident expr '}'
-| MATCH ident_list_arg AGAINST '(' bit_expr fulltext_options ')'
-| BINARY simple_expr %prec NEG
-| CAST_SYM '(' expr AS cast_type ')'
-| CASE_SYM opt_expr when_list opt_else END
-| CONVERT_SYM '(' expr ',' cast_type ')'
-| CONVERT_SYM '(' expr USING charset_name ')'
-| DEFAULT '(' simple_ident ')'
-| VALUES '(' simple_ident_nospvar ')'
-| INTERVAL_SYM expr interval '+' expr %prec INTERVAL_SYM;
+  { $$ = &CollateExpr{Expr: $1, Collate: $3} }
+| literal { $$ = $1 }
+| param_marker { $$ = $1 }
+| variable { $$ = $1 }
+| sum_expr { $$ = &FuncExpr{} }
+| simple_expr OR_OR_SYM simple_expr { $$ = &OrOrExpr{Left: $1, Right: $3} }
+| '+' simple_expr %prec NEG { $$ = &UnaryExpr{Expr: $2, Operator: OP_UPLUS} }
+| '-' simple_expr %prec NEG { $$ = &UnaryExpr{Expr: $2, Operator: OP_UMINUS} }
+| '~' simple_expr %prec NEG { $$ = &UnaryExpr{Expr: $2, Operator: OP_TILDA} }
+| not2 simple_expr %prec NEG { $$ = &UnaryExpr{Expr: $2, Operator: OP_NOT2} }
+| '(' subselect ')' { $$ = &SubQuery{SelectStatement: $2} }
+| '(' expr ')' { $$ = &IExprs{$2} }
+| '(' expr ',' expr_list ')' { $$ = append(IExprs{$2}, $4...) }
+| ROW_SYM '(' expr ',' expr_list ')' { $$ = &FuncExpr{} }
+| EXISTS '(' subselect ')' { $$ = &ExistsExpr{SubQuery: $3} }
+| '{' ident expr '}' { $$ = &IdentExpr{Ident: $2, Expr: $3} }
+| MATCH ident_list_arg AGAINST '(' bit_expr fulltext_options ')' { $$ = &MatchExpr{} }
+| BINARY simple_expr %prec NEG { $$ = &UnaryExpr{Expr: $2, Operator: OP_UBINARY} }
+| CAST_SYM '(' expr AS cast_type ')' { $$ = &FuncExpr{} }
+| CASE_SYM opt_expr when_list opt_else END { $$ = &FuncExpr{} }
+| CONVERT_SYM '(' expr ',' cast_type ')' { $$ = &FuncExpr{} }
+| CONVERT_SYM '(' expr USING charset_name ')' { $$ = &FuncExpr{} }
+| DEFAULT '(' simple_ident ')' { $$ = &FuncExpr{} }
+| VALUES '(' simple_ident_nospvar ')' { $$ = &FuncExpr{} }
+| INTERVAL_SYM expr interval '+' expr %prec INTERVAL_SYM { $$ = &IntervalExpr{Expr: &BinaryExpr{Left: $2, Right: $5, Operator: OP_PLUS}, Interval: $3};
 
 function_call_keyword:
   CHAR_SYM '(' expr_list ')'
@@ -2980,7 +2996,7 @@ udf_expr:
   remember_name expr remember_end select_alias;
 
 sum_expr:
-  AVG_SYM '(' in_sum_expr ')'
+  AVG_SYM '(' in_sum_expr ')' {}
 | AVG_SYM '(' DISTINCT in_sum_expr ')'
 | BIT_AND '(' in_sum_expr ')'
 | BIT_OR '(' in_sum_expr ')'
@@ -3001,7 +3017,7 @@ sum_expr:
 | GROUP_CONCAT_SYM '(' opt_distinct expr_list opt_gorder_clause opt_gconcat_separator ')';
 
 variable:
-  '@' variable_aux;
+  '@' variable_aux { $$ = &Variable{} };
 
 variable_aux:
   ident_or_text SET_VAR expr
@@ -3045,7 +3061,7 @@ opt_expr_list:
 | expr_list;
 
 expr_list:
-  expr { $$ = Exprs{$1} }
+  expr { $$ = IExprs{$1} }
 | expr_list ',' expr { $$ = append($1, $3) };
 
 ident_list_arg:
@@ -3211,29 +3227,31 @@ using_list:
 | using_list ',' ident;
 
 interval:
-  interval_time_stamp
-| DAY_HOUR_SYM
-| DAY_MICROSECOND_SYM
-| DAY_MINUTE_SYM
-| DAY_SECOND_SYM
-| HOUR_MICROSECOND_SYM
-| HOUR_MINUTE_SYM
-| HOUR_SECOND_SYM
-| MINUTE_MICROSECOND_SYM
-| MINUTE_SECOND_SYM
-| SECOND_MICROSECOND_SYM
-| YEAR_MONTH_SYM;
+  interval_time_stamp { $$ = $1 }
+| DAY_HOUR_SYM { $$ = $1 }
+| DAY_MICROSECOND_SYM { $$ = $1 }
+| DAY_MINUTE_SYM { $$ = $1 }
+| DAY_SECOND_SYM { $$ = $1 }
+| HOUR_MICROSECOND_SYM { $$ = $1 }
+| HOUR_MINUTE_SYM { $$ = $1 }
+| HOUR_SECOND_SYM { $$ = $1 }
+| MINUTE_MICROSECOND_SYM { $$ = $1 }
+| MINUTE_SECOND_SYM { $$ = $1 }
+| SECOND_MICROSECOND_SYM { $$ = $1 }
+| YEAR_MONTH_SYM { $$ = $1 }
+;
 
 interval_time_stamp:
-  DAY_SYM
-| WEEK_SYM
-| HOUR_SYM
-| MINUTE_SYM
-| MONTH_SYM
-| QUARTER_SYM
-| SECOND_SYM
-| MICROSECOND_SYM
-| YEAR_SYM;
+  DAY_SYM { $$ = $1 }
+| WEEK_SYM { $$ = $1 }
+| HOUR_SYM { $$ = $1 }
+| MINUTE_SYM { $$ = $1 }
+| MONTH_SYM { $$ = $1 }
+| QUARTER_SYM { $$ = $1 }
+| SECOND_SYM { $$ = $1 }
+| MICROSECOND_SYM { $$ = $1 }
+| YEAR_SYM { $$ = $1 }
+;
 
 date_time_type:
   DATE_SYM
@@ -3939,10 +3957,10 @@ load_data_set_elem:
   simple_ident_nospvar equal remember_name expr_or_default remember_end;
 
 text_literal:
-  TEXT_STRING
-| NCHAR_STRING
-| UNDERSCORE_CHARSET TEXT_STRING
-| text_literal TEXT_STRING_literal;
+  TEXT_STRING { $$ = $1 }
+| NCHAR_STRING { $$ = $1 }
+| UNDERSCORE_CHARSET TEXT_STRING { $$ = append($1, ' ', $2...) }
+| text_literal TEXT_STRING_literal { $$ = append($1, $2) };
 
 text_string:
   TEXT_STRING_literal
@@ -3950,7 +3968,7 @@ text_string:
 | BIN_NUM;
 
 param_marker:
-  PARAM_MARKER;
+  PARAM_MARKER { $$ = StrVal("?") };
 
 signed_literal:
   literal
@@ -3958,28 +3976,28 @@ signed_literal:
 | '-' NUM_literal;
 
 literal:
-  text_literal
-| NUM_literal
-| temporal_literal
-| NULL_SYM
-| FALSE_SYM
-| TRUE_SYM
-| HEX_NUM
-| BIN_NUM
-| UNDERSCORE_CHARSET HEX_NUM
-| UNDERSCORE_CHARSET BIN_NUM;
+  text_literal { $$ = $1 }
+| NUM_literal { $$ = $1 }
+| temporal_literal { $$ = $1 }
+| NULL_SYM { $$ = &NullVal{} }
+| FALSE_SYM { $$ = BoolVal(false) }
+| TRUE_SYM { $$ = BoolVal(true) }
+| HEX_NUM { $$ = HexVal{Val: $1} }
+| BIN_NUM { $$ = BinVal{Val: $1} }
+| UNDERSCORE_CHARSET HEX_NUM { $$ = HexVal{Val: $1, Charset: $1} }
+| UNDERSCORE_CHARSET BIN_NUM { $$ = HexVal{Val: $1, Charset: $1} };
 
 NUM_literal:
-  NUM
-| LONG_NUM
-| ULONGLONG_NUM
-| DECIMAL_NUM
-| FLOAT_NUM;
+  NUM { $$ = &NumVal($1) }
+| LONG_NUM { $$ = &NumVal($1) }
+| ULONGLONG_NUM { $$ = &NumVal($1) }
+| DECIMAL_NUM { $$ = &NumVal($1) }
+| FLOAT_NUM { $$ = &NumVal($1) };
 
 temporal_literal:
-  DATE_SYM TEXT_STRING
-| TIME_SYM TEXT_STRING
-| TIMESTAMP TEXT_STRING;
+  DATE_SYM TEXT_STRING { $$ = &TemporalVal{Prefix: $1, Text: $2} }
+| TIME_SYM TEXT_STRING { $$ = &TemporalVal{Prefix: $1, Text: $2} }
+| TIMESTAMP TEXT_STRING { $$ = &TemporalVal{Prefix: $1, Text: $2} };
 
 insert_ident:
   simple_ident_nospvar
@@ -4810,11 +4828,11 @@ query_specification:
 ;
 
 query_expression_body:
-  query_specification opt_union_order_or_limit
-| query_expression_body UNION_SYM union_option query_specification opt_union_order_or_limit;
+  query_specification opt_union_order_or_limit { $$ = $1 }
+| query_expression_body UNION_SYM union_option query_specification opt_union_order_or_limit { $$ = &Union{Left: $1, Right: $4} };
 
 subselect:
-  subselect_start query_expression_body subselect_end;
+  subselect_start query_expression_body subselect_end { $$ = &SubQuery{SelectStatement: $2} };
 
 subselect_start:
  ;

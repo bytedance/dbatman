@@ -1,126 +1,84 @@
 package sql
 
-// Expr represents an expression.
-type Expr interface {
+// IExpr represents an expression.
+type IExpr interface {
 	IExpr()
 }
 
-func (*AndExpr) IExpr()        {}
-func (*OrExpr) IExpr()         {}
-func (*XorExpr) IExpr()        {}
-func (*NotExpr) IExpr()        {}
-func (*ParenBoolExpr) IExpr()  {}
-func (*ComparisonExpr) IExpr() {}
-func (*RangeCond) IExpr()      {}
-func (*NullCheck) IExpr()      {}
-func (*IsCheck) IExpr()        {}
-func (*ExistsExpr) IExpr()     {}
-func (StrVal) IExpr()          {}
-func (NumVal) IExpr()          {}
-func (ValArg) IExpr()          {}
-func (*NullVal) IExpr()        {}
-func (*ColName) IExpr()        {}
-func (ValExprs) IExpr()        {}
-func (*SubQuery) IExpr()       {}
-func (*BinaryExpr) IExpr()     {}
-func (*UnaryExpr) IExpr()      {}
-func (*IntervalExpr) IExpr()   {}
-func (*FuncExpr) IExpr()       {}
-func (*CaseExpr) IExpr()       {}
+type IExprs []IExpr
+
+// expr and boolean_primary
+func (*OrExpr) IExpr()      {}
+func (*XorExpr) IExpr()     {}
+func (*AndExpr) IExpr()     {}
+func (*NotExpr) IExpr()     {}
+func (*IsCheck) IExpr()     {}
+func (*NullCheck) IExpr()   {}
+func (*CompareExpr) IExpr() {}
+func (*Predicate) IExpr()   {}
+
+// predicate
+func (*InCond) IExpr()    {}
+func (*RangeCond) IExpr() {}
+func (*LikeCond) IExpr()  {}
+
+// simple_expr
+func (StrVal) IExpr()        {}
+func (NumVal) IExpr()        {}
+func (ValArg) IExpr()        {}
+func (*NullVal) IExpr()      {}
+func (*SchemaObject) IExpr() {}
+func (IValExprs) IExpr()     {}
+func (*SubQuery) IExpr()     {}
+func (*BinaryExpr) IExpr()   {}
+func (*UnaryExpr) IExpr()    {}
+func (*IntervalExpr) IExpr() {}
+func (*FuncExpr) IExpr()     {}
+func (*CaseExpr) IExpr()     {}
+func (*CollateExpr) IExpr()  {}
 
 // BoolExpr represents a boolean expression.
-type BoolExpr interface {
+type IBoolExpr interface {
 	IBoolExpr()
-	Expr
+	IExpr
 }
 
-func (*AndExpr) IBoolExpr()        {}
-func (*OrExpr) IBoolExpr()         {}
-func (*XorExpr) IBoolExpr()        {}
-func (*NotExpr) IBoolExpr()        {}
-func (*ParenBoolExpr) IBoolExpr()  {}
-func (*ComparisonExpr) IBoolExpr() {}
-func (*RangeCond) IBoolExpr()      {}
-func (*NullCheck) IBoolExpr()      {}
-func (*IsCheck) IBoolExpr()        {}
-func (*ExistsExpr) IBoolExpr()     {}
+// expr
+func (*OrExpr) IBoolExpr()    {}
+func (*AndExpr) IBoolExpr()   {}
+func (*XorExpr) IBoolExpr()   {}
+func (*NotExpr) IBoolExpr()   {}
+func (*IsCheck) IBoolExpr()   {}
+func (*NullCheck) IBoolExpr() {}
+
+// boolean_primary
+func (*CompareExpr) IBoolExpr() {}
+func (*Predicate) IBoolExpr()   {}
 
 // AndExpr represents an AND expression.
 type AndExpr struct {
-	Left, Right BoolExpr
+	Left, Right IExpr
 }
 
 // OrExpr represents an OR expression.
 type OrExpr struct {
-	Left, Right BoolExpr
+	Left, Right IExpr
 }
 
 // XorExpr represents an OR expression.
 type XorExpr struct {
-	Left, Right BoolExpr
+	Left, Right IExpr
 }
 
 // NotExpr represents a NOT expression.
 type NotExpr struct {
-	Expr BoolExpr
+	Expr IExpr
 }
-
-// ParenBoolExpr represents a parenthesized boolean expression.
-type ParenBoolExpr struct {
-	Expr BoolExpr
-}
-
-// ComparisonExpr represents a two-value comparison expression.
-type ComparisonExpr struct {
-	Operator    string
-	Left, Right ValExpr
-}
-
-// ComparisonExpr.Operator
-const (
-	OP_EQ          = "="
-	OP_LT          = "<"
-	OP_GT          = ">"
-	OP_LE          = "<="
-	OP_GE          = ">="
-	OP_NE          = "!="
-	OP_NSE         = "<=>"
-	OP_LIKE        = "like"
-	OP_NOT_LIKE    = "not like"
-	OP_SOUNDS_LIKE = "sounds like"
-	OP_REGEXP      = "regexp"
-	OP_NOT_REGEXP  = "not regexp"
-)
-
-// InExpr
-type InExpr struct {
-	Operator string
-	Left     ValExpr
-	Right    Exprs
-}
-
-const (
-	OP_IN     = "in"
-	OP_NOT_IN = "not in"
-)
-
-// RangeCond represents a BETWEEN or a NOT BETWEEN expression.
-type RangeCond struct {
-	Operator string
-	Left     ValExpr
-	From, To ValExpr
-}
-
-// RangeCond.Operator
-const (
-	OP_BETWEEN     = "between"
-	OP_NOT_BETWEEN = "not between"
-)
 
 // IsCheck represents an IS TRUE | FALSE | UNKNOWN expression.
 type IsCheck struct {
 	Operator string
-	Expr     ValExpr
+	Expr     IBoolExpr
 }
 
 // IsCheck.Operator
@@ -136,7 +94,7 @@ const (
 // NullCheck represents an IS NULL or an IS NOT NULL expression.
 type NullCheck struct {
 	Operator string
-	Expr     ValExpr
+	Expr     IBoolExpr
 }
 
 // NullCheck.Operator
@@ -145,29 +103,106 @@ const (
 	OP_IS_NOT_NULL = "is not null"
 )
 
-// ExistsExpr represents an EXISTS expression.
-type ExistsExpr struct {
-	SubQuery *SubQuery
+// CompareExpr represents a two-value comparison expression.
+type CompareExpr struct {
+	Operator string
+	Left     IBoolExpr
+	Right    IValExpr
 }
 
-// ValExpr represents a value expression.
-type ValExpr interface {
+// CompareExpr.Operator
+const (
+	OP_EQ  = "="
+	OP_LT  = "<"
+	OP_GT  = ">"
+	OP_LE  = "<="
+	OP_GE  = ">="
+	OP_NE  = "!="
+	OP_NSE = "<=>"
+)
+
+type Predicate struct {
+	Expr IValExpr
+}
+
+// IValExpr represents a value expression.
+type IValExpr interface {
 	IValExpr()
-	Expr
+	IExpr
 }
 
-func (StrVal) IValExpr()        {}
+// subquery
+func (*SubQuery) IValExpr() {}
+
+// predicate
+func (*InCond) IValExpr()    {}
+func (*RangeCond) IValExpr() {}
+func (*LikeCond) IValExpr()  {}
+
+// bit_expr
+func (*BinaryExpr) IValExpr() {}
+
+// simple_expr
+func (StrVal) IValExpr()        {} // literal
 func (NumVal) IValExpr()        {}
-func (ValArg) IValExpr()        {}
 func (*NullVal) IValExpr()      {}
-func (*ColName) IValExpr()      {}
-func (ValExprs) IValExpr()      {}
-func (*SubQuery) IValExpr()     {}
-func (*BinaryExpr) IValExpr()   {}
-func (*UnaryExpr) IValExpr()    {}
-func (*IntervalExpr) IValExpr() {}
-func (*FuncExpr) IValExpr()     {}
+func (*SchemaObject) IValExpr() {} // identifier
+func (*FuncExpr) IValExpr()     {} // function
+func (*CollateExpr) IValExpr()  {} // function
+func (*OrOrExpr) IValExpr()     {} // || expr
+func (*OrOrExpr) IExpr()        {}
+func (*UnaryExpr) IValExpr()    {} // [+|-|~|!|BINARY] simple_expr
+func (IExprs) IValExpr()        {} // (expr [, expr] ...)
+func (IExprs) IExpr()           {}
+func (IValExprs) IValExpr()     {}
+func (*ExistsExpr) IValExpr()   {} // Exists (subquery)
+func (*ExistsExpr) IExpr()      {}
+func (ValArg) IValExpr()        {}
+func (*IdentExpr) IValExpr()    {}
+func (*IdentExpr) IExpr()       {}
+func (*MatchExpr) IValExpr()    {}
+func (*MatchExpr) IExpr()       {}
 func (*CaseExpr) IValExpr()     {}
+func (*IntervalExpr) IValExpr() {}
+
+// InCond
+type InCond struct {
+	Operator string
+	Left     IValExpr
+	Right    IExprs
+}
+
+const (
+	OP_IN     = "in"
+	OP_NOT_IN = "not in"
+)
+
+// RangeCond represents a BETWEEN or a NOT BETWEEN expression.
+type RangeCond struct {
+	Operator string
+	Left     IValExpr
+	From, To IValExpr
+}
+
+// RangeCond.Operator
+const (
+	OP_BETWEEN     = "between"
+	OP_NOT_BETWEEN = "not between"
+)
+
+type LikeCond struct {
+	Operator string
+	Left     IValExpr
+	Right    IValExpr
+}
+
+const (
+	OP_LIKE        = "like"
+	OP_NOT_LIKE    = "not like"
+	OP_SOUNDS_LIKE = "sounds like"
+	OP_REGEXP      = "regexp"
+	OP_NOT_REGEXP  = "not regexp"
+)
 
 // StrVal represents a string value.
 type StrVal []byte
@@ -181,19 +216,21 @@ type ValArg []byte
 // NullVal represents a NULL value.
 type NullVal struct{}
 
-// ColName represents a column name.
-type ColName struct {
-	Name, Qualifier []byte
+type BoolVal bool
+
+type TemporalVal struct {
+	Prefix []byte
+	Text   []byte
 }
 
-// ValExprs represents a list of value expressions.
+// IValExprs represents a list of value expressions.
 // It's not a valid expression because it's not parenthesized.
-type ValExprs []ValExpr
+type IValExprs []IValExpr
 
 // BinaryExpr represents a binary value expression.
 type BinaryExpr struct {
 	Operator    string
-	Left, Right Expr
+	Left, Right IExpr
 }
 
 // BinaryExpr.Operator
@@ -212,56 +249,59 @@ const (
 
 // UnaryExpr represents a unary value expression.
 type UnaryExpr struct {
-	Operator byte
-	Expr     Expr
+	Operator string
+	Expr     IExpr
 }
 
 // UnaryExpr.Operator
 const (
-	OP_UPLUS  = '+'
-	OP_UMINUS = '-'
-	OP_TILDA  = '~'
+	OP_UPLUS   = "+"
+	OP_UMINUS  = "-"
+	OP_TILDA   = "~"
+	OP_NOT2    = "!"
+	OP_UBINARY = "binary"
 )
 
 // IntervalExpr represents a date and time function param expression
 // -- http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html
 type IntervalExpr struct {
-	Expr     ValExpr
+	Expr     IExpr
 	Interval []byte
+}
+
+type OrOrExpr struct {
+	Left, Right IValExpr
 }
 
 // FuncExpr represents a function call.
 type FuncExpr struct {
 	Name     []byte
 	Distinct bool
-	Exprs    []Expr
+	Exprs    []IExpr
 }
 
 // CaseExpr represents a CASE expression.
 type CaseExpr struct {
-	Expr  ValExpr
+	Expr  IValExpr
 	Whens []*When
-	Else  ValExpr
+	Else  IValExpr
 }
 
 // When represents a WHEN sub-expression.
 type When struct {
-	Cond BoolExpr
-	Val  ValExpr
+	Cond IBoolExpr
+	Val  IValExpr
 }
 
-// Values represents a VALUES clause.
-type Values []Tuple
-
 // GroupBy represents a GROUP BY clause.
-type GroupBy []ValExpr
+type GroupBy []IValExpr
 
 // OrderBy represents an ORDER By clause.
 type OrderBy []*Order
 
 // Order represents an ordering expression.
 type Order struct {
-	Expr      ValExpr
+	Expr      IValExpr
 	Direction string
 }
 
@@ -273,7 +313,7 @@ const (
 
 // Limit represents a LIMIT clause.
 type Limit struct {
-	Offset, Rowcount ValExpr
+	Offset, Rowcount IValExpr
 }
 
 // SchemaObject
@@ -281,4 +321,25 @@ type SchemaObject struct {
 	Schema []byte
 	Table  []byte
 	Column []byte
+}
+
+// ExistsExpr
+type ExistsExpr struct {
+	SubQuery *SubQuery
+}
+
+// IdentExpr
+type IdentExpr struct {
+	Ident []byte
+	Expr  IExpr
+}
+
+// MatchExpr
+type MatchExpr struct {
+}
+
+// CollateExpr
+type CollateExpr struct {
+	Expr    IValExpr
+	Collate []byte
 }
