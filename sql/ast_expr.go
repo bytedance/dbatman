@@ -25,6 +25,9 @@ func (*LikeCond) IExpr()  {}
 // simple_expr
 func (StrVal) IExpr()        {}
 func (NumVal) IExpr()        {}
+func (BoolVal) IExpr()       {}
+func (HexVal) IExpr()        {}
+func (BinVal) IExpr()        {}
 func (ValArg) IExpr()        {}
 func (*NullVal) IExpr()      {}
 func (*SchemaObject) IExpr() {}
@@ -145,10 +148,15 @@ func (*BinaryExpr) IValExpr() {}
 // simple_expr
 func (StrVal) IValExpr()        {} // literal
 func (NumVal) IValExpr()        {}
+func (BoolVal) IValExpr()       {}
+func (HexVal) IValExpr()        {}
+func (BinVal) IValExpr()        {}
 func (*NullVal) IValExpr()      {}
 func (*SchemaObject) IValExpr() {} // identifier
 func (*FuncExpr) IValExpr()     {} // function
 func (*CollateExpr) IValExpr()  {} // function
+func (*Variable) IValExpr()     {} // variable
+func (*Variable) IExpr()        {}
 func (*OrOrExpr) IValExpr()     {} // || expr
 func (*OrOrExpr) IExpr()        {}
 func (*UnaryExpr) IValExpr()    {} // [+|-|~|!|BINARY] simple_expr
@@ -210,13 +218,15 @@ type StrVal []byte
 // NumVal represents a number.
 type NumVal []byte
 
+type BoolVal bool
+type HexVal []byte
+type BinVal []byte
+
 // ValArg represents a named bind var argument.
 type ValArg []byte
 
 // NullVal represents a NULL value.
 type NullVal struct{}
-
-type BoolVal bool
 
 type TemporalVal struct {
 	Prefix []byte

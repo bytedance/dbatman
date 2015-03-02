@@ -12,6 +12,9 @@ import (
     interf interface{}
     bytes []byte
     str string
+    strval StrVal
+    numval NumVal
+    
     statement IStatement
     select_statement ISelect
     subquery *SubQuery
@@ -739,7 +742,7 @@ import (
 /* MySQL Utility Statement */
 %type <statement> describe help use explanable_command
 
-%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias opt_db TEXT_STRING_sys ident_or_text interval interval_time_stamp TEXT_STRING_literal text_literal NUM_literal temporal_literal simple_ident_q 
+%type <bytes> ident IDENT_sys keyword keyword_sp ident_or_empty opt_wild opt_table_alias opt_db TEXT_STRING_sys ident_or_text interval interval_time_stamp TEXT_STRING_literal 
 
 %type <interf> insert_field_spec insert_values view_or_trigger_or_sp_or_event definer_tail no_definer_tail start_option_value_list_following_option_type
 
@@ -781,7 +784,7 @@ import (
 %type <expr> expr
 %type <exprs> expr_list
 %type <boolexpr> bool_pri
-%type <valexpr> predicate bit_expr simple_expr simple_ident literal param_marker variable 
+%type <valexpr> predicate bit_expr simple_expr simple_ident literal param_marker variable literal text_literal temporal_literal NUM_literal simple_ident_q  
 
 %%
 
@@ -2876,7 +2879,7 @@ simple_expr:
 | CONVERT_SYM '(' expr USING charset_name ')' { $$ = &FuncExpr{} }
 | DEFAULT '(' simple_ident ')' { $$ = &FuncExpr{} }
 | VALUES '(' simple_ident_nospvar ')' { $$ = &FuncExpr{} }
-| INTERVAL_SYM expr interval '+' expr %prec INTERVAL_SYM { $$ = &IntervalExpr{Expr: &BinaryExpr{Left: $2, Right: $5, Operator: OP_PLUS}, Interval: $3};
+| INTERVAL_SYM expr interval '+' expr %prec INTERVAL_SYM { $$ = &IntervalExpr{Expr: &BinaryExpr{Left: $2, Right: $5, Operator: OP_PLUS}, Interval: $3} };
 
 function_call_keyword:
   CHAR_SYM '(' expr_list ')'
@@ -3957,10 +3960,10 @@ load_data_set_elem:
   simple_ident_nospvar equal remember_name expr_or_default remember_end;
 
 text_literal:
-  TEXT_STRING { $$ = $1 }
-| NCHAR_STRING { $$ = $1 }
-| UNDERSCORE_CHARSET TEXT_STRING { $$ = append($1, ' ', $2...) }
-| text_literal TEXT_STRING_literal { $$ = append($1, $2) };
+  TEXT_STRING { $$ = StrVal($1) }
+| NCHAR_STRING { $$ = StrVal($1) }
+| UNDERSCORE_CHARSET TEXT_STRING { $$ = StrVal(append(append($1, ' '), $2...)) }
+| text_literal TEXT_STRING_literal { $$ = StrVal(append($1.(StrVal), $2...)) };
 
 text_string:
   TEXT_STRING_literal
@@ -3982,22 +3985,24 @@ literal:
 | NULL_SYM { $$ = &NullVal{} }
 | FALSE_SYM { $$ = BoolVal(false) }
 | TRUE_SYM { $$ = BoolVal(true) }
-| HEX_NUM { $$ = HexVal{Val: $1} }
-| BIN_NUM { $$ = BinVal{Val: $1} }
-| UNDERSCORE_CHARSET HEX_NUM { $$ = HexVal{Val: $1, Charset: $1} }
-| UNDERSCORE_CHARSET BIN_NUM { $$ = HexVal{Val: $1, Charset: $1} };
+| HEX_NUM { $$ = HexVal($1) }
+| BIN_NUM { $$ = BinVal($1) }
+| UNDERSCORE_CHARSET HEX_NUM { $$ = HexVal(append(append($1, ' '), $2...)) }
+| UNDERSCORE_CHARSET BIN_NUM { $$ = BinVal(append(append($1, ' '), $2...)) }
+;
 
 NUM_literal:
-  NUM { $$ = &NumVal($1) }
-| LONG_NUM { $$ = &NumVal($1) }
-| ULONGLONG_NUM { $$ = &NumVal($1) }
-| DECIMAL_NUM { $$ = &NumVal($1) }
-| FLOAT_NUM { $$ = &NumVal($1) };
+  NUM { $$ = NumVal($1) }
+| LONG_NUM { $$ = NumVal($1) }
+| ULONGLONG_NUM { $$ = NumVal($1) }
+| DECIMAL_NUM { $$ = NumVal($1) }
+| FLOAT_NUM { $$ = NumVal($1) };
 
 temporal_literal:
-  DATE_SYM TEXT_STRING { $$ = &TemporalVal{Prefix: $1, Text: $2} }
-| TIME_SYM TEXT_STRING { $$ = &TemporalVal{Prefix: $1, Text: $2} }
-| TIMESTAMP TEXT_STRING { $$ = &TemporalVal{Prefix: $1, Text: $2} };
+  DATE_SYM TEXT_STRING { $$ = StrVal(append($1, $2...)) }
+| TIME_SYM TEXT_STRING { $$ = StrVal(append($1, $2...)) }
+| TIMESTAMP TEXT_STRING { $$ = StrVal(append($1, $2...)) }
+;
 
 insert_ident:
   simple_ident_nospvar
