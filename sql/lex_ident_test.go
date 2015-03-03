@@ -30,6 +30,18 @@ func TestMultiIdentifier(t *testing.T) {
 	lexExpect(t, lex, lval, END_OF_INPUT)
 }
 
+func TestParamMarker(t *testing.T) {
+	str := "select ?,?,? from t1;"
+	lex, lval := getLexer(str)
+
+	lexExpect(t, lex, lval, SELECT_SYM)
+	lexExpect(t, lex, lval, PARAM_MARKER)
+	lexExpect(t, lex, lval, ',')
+	lexExpect(t, lex, lval, PARAM_MARKER)
+	lexExpect(t, lex, lval, ',')
+	lexExpect(t, lex, lval, PARAM_MARKER)
+}
+
 func TestMultiIdentifier1(t *testing.T) {
 	str := "s n insert `s` `` s"
 	lex, lval := getLexer(str)

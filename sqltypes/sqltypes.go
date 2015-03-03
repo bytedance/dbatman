@@ -10,10 +10,9 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"github.com/wangjild/go-mysql-proxy/hack"
 	"strconv"
 	"time"
-
-	"micode.be.xiaomi.com/wangjing1/go-mysql-proxy/hack"
 )
 
 var (

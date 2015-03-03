@@ -1,5 +1,10 @@
 package sql
 
+import (
+	"strconv"
+	"strings"
+)
+
 // IExpr represents an expression.
 type IExpr interface {
 	IExpr()
@@ -215,8 +220,24 @@ const (
 // StrVal represents a string value.
 type StrVal []byte
 
+func (s StrVal) Trim() string {
+	if len(s) < 1 {
+		return ""
+	}
+
+	return strings.Trim(string([]byte(s)), `"'`)
+}
+
 // NumVal represents a number.
 type NumVal []byte
+
+func (n NumVal) ParseInt() (int, error) {
+	if i, err := strconv.Atoi(string([]byte(n))); err != nil {
+		return 0, err
+	} else {
+		return i, nil
+	}
+}
 
 type BoolVal bool
 type HexVal []byte

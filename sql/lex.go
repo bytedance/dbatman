@@ -120,7 +120,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 			if c == ',' {
 				lex.tok_start = lex.ptr
-			} else if c == '?' && lex.stmt_prepare_mode && ident_map[lex.yyPeek()] != 0 {
+			} else if c == '?' && ident_map[lex.yyPeek()] == 0 {
 				retstate = PARAM_MARKER
 				goto TG_RET
 			}

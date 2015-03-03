@@ -1,1 +1,2 @@
 *.output
+sql_yacc.go
