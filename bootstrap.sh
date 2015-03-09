@@ -7,5 +7,4 @@ fi
 
 source ./dev.env
 
-go get micode.be.xiaomi.com/golib/v1/log
 go get gopkg.in/yaml.v2
