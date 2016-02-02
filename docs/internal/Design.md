@@ -99,7 +99,7 @@ SQL指纹：
 
 4. [Youtube Vitess](http://vitess.io/)
 	
-	Youtube开源的一个MySQL机器解决方案。不兼容MySQL Client-Server Protocol，必须使用官方提供的Client Library
+	Youtube开源的一个MySQL机器集群方案。不兼容MySQL Client-Server Protocol，必须使用官方提供的Client Library
 	
 5. [MyCAT](https://github.com/MyCATApache/Mycat-Server)
 
