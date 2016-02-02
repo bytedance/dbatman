@@ -54,8 +54,8 @@ SQL指纹：
 
 #### 3.2.1 MySQL主要协议兼容
 
-* 完全支持 [MySQL Internals](!https://dev.mysql.com/doc/internals/en/client-server-protocol.html) 中Chapter 14 中 1-4，6-7中的用户认证，包格式，Text Protocol和Prepare Statement协议
-* 完全支持 [SQL Syntax](!http://dev.mysql.com/doc/refman/5.6/en/sql-syntax.html) 规范中所有SQL语句，支持大部分CUID操作的SQL指纹识别和聚类
+* 完全支持 [MySQL Internals](https://dev.mysql.com/doc/internals/en/client-server-protocol.html) 中Chapter 14 中 1-4，6-7中的用户认证，包格式，Text Protocol和Prepare Statement协议
+* 完全支持 [SQL Syntax](http://dev.mysql.com/doc/refman/5.6/en/sql-syntax.html) 规范中所有SQL语句，支持大部分CUID操作的SQL指纹识别和聚类
 * 支持各语言常用的Client Library，保证语言兼容性
 
 #### 3.2.2 MySQL HA & Failover
@@ -85,23 +85,23 @@ SQL指纹：
 
 #### 4.1.1 相关开源项目
 
-1. [MySQL Proxy](!https://dev.mysql.com/doc/mysql-proxy/en/)
+1. [MySQL Proxy](https://dev.mysql.com/doc/mysql-proxy/en/)
 	
 	Oracle公司官方出品。目前已经停止维护。没有GA版本，因此不推荐在生产环境中使用。
 	
-2. [Qihoo360 Atlas](!https://github.com/Qihoo360/Atlas)
+2. [Qihoo360 Atlas](https://github.com/Qihoo360/Atlas)
 
 	基于 MySQL Proxy 0.8.2 版本进行二次开发的Proxy。具备读写分离，连接池，负载均衡，IP白名单等功能
 	
-3. [SOHU-DBProxy](!https://github.com/SOHUDBA/SOHU-DBProxy)
+3. [SOHU-DBProxy](https://github.com/SOHUDBA/SOHU-DBProxy)
 
 	基于 MySQL Proxy 0.8.3 版本进行二次开发的Proxy。除了具备Atlas同等的基本功能外，还添加了基于配置文件的SQL语句的过滤和审核功能
 
-4. [Youtube Vitess](!http://vitess.io/)
+4. [Youtube Vitess](http://vitess.io/)
 	
 	Youtube开源的一个MySQL解决方案。不兼容MySQL Client-Server Protocol，必须使用官方提供的Client Library
 	
-5. [MyCAT](!https://github.com/MyCATApache/Mycat-Server)
+5. [MyCAT](https://github.com/MyCATApache/Mycat-Server)
 
 	开源社区维护的，支持分库分表的MySQL中间层代理。但是由于本身是分布式的，有一定事务及跨库查询上面的限制
 
