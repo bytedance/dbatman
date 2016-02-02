@@ -36,19 +36,19 @@ func main() {
 	//Init(&Config{FilePath: *logFile, LogLevel: *logLevel},
 	//	&Config{FilePath: *logFile, LogLevel: *logLevel})
 
-	var svr *proxy.Server
-	svr, err = proxy.NewServer(cfg)
-	if err != nil {
-		SysLog.Fatal(err.Error())
-		return
-	}
-
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
+
+	var svr *proxy.Server
+	svr, err = proxy.NewServer(cfg)
+	if err != nil {
+		SysLog.Fatal(err.Error())
+		return
+	}
 
 	go func() {
 		http.ListenAndServe(":11888", nil)
