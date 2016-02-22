@@ -29,24 +29,28 @@ clusters:
             time_reconnect_interval：10
             weight: 1
         slaves:
-            - host: 10.4.4.2
-              port: 3306
-              username: pgc
-              password: pgc
-              dbname: pgc
-              max_connections: 100
-              max_connection_pool_size: 10
-              connect_timeout: 10
-              time_reconnect_interval：10
-            - host: 10.4.4.3
-              port: 3306
-              username: pgc
-              password: pgc
-              dbname: pgc
-              max_connections: 100
-              max_connection_pool_size: 10
-              connect_timeout: 10
-              time_reconnect_interval：10
+            slave1:
+                host: 10.4.4.2
+                port: 3306
+                username: pgc
+                password: pgc
+                dbname: pgc
+                max_connections: 100
+                max_connection_pool_size: 10
+                connect_timeout: 10
+                time_reconnect_interval：10
+                weight: 1
+            slave2:
+                host: 10.4.4.3
+                port: 3306
+                username: pgc
+                password: pgc
+                dbname: pgc
+                max_connections: 100
+                max_connection_pool_size: 10
+                connect_timeout: 10
+                time_reconnect_interval：10
+                weight: 1
 
 users:
     proxy_pgc_user:
