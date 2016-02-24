@@ -1,12 +1,11 @@
 global:
     port: 3306
     manage_port: 3307
-    max_threads: 10
+    max_connections: 10
     log_filename: /var/log/tiger/dbatman.log
     log_level: 1
     log_maxsize: 1024
     log_query_min_time: 0
-    timeout_check_interval: 20
     client_timeout: 1800
     server_timeout: 1800
     write_time_interval: 10
@@ -56,8 +55,8 @@ users:
     proxy_pgc_user:
         username: proxy_pgc_user
         password: pgc
-        max_server_threads: 1000
-        min_server_threads: 100
+        max_connections: 1000
+        min_connections: 100
         default_db: pgc
         default_charset: utf8mb4
         cluster_name: pgc_cluster
