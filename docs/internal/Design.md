@@ -228,9 +228,35 @@ SQL指纹：
 
  
 #### MySQL协议交互模块
-大部分时候PROXY并不解包，只进行数据的透传。
-准入控制时候需要解包以及构造授权包。
-管理进程返回PROXY状态构造MySQL结果包。
+MySQL客户端和服务端的交互遵循 [MySQL Client-Server Protocol](https://dev.mysql.com/doc/internals/en/client-server-protocol.html) 协议。Proxy作为中间代理，也需要实现这么一套协议。
+
+完整的Protocol交互分为两大阶段，开始是Connection Phase，其后是Command Phase。
+
+##### Connection Phase
+Connection Phase的生命周期与交互流程如下：
+
+![](./ConnectionLifecycle.jpg)
+
+更为详细的流程示意图如下：
+
+![](./ConnectionFlow.png)
+
+需要特别说明的是，由于我们的proxy设计的目标运行环境是企业内网环境，因此SSL Exchange这个子步骤我们不准备实现。
+
+##### Command Phase
+
+Command Phase的交互更为复杂。从Command的分类来看，分为4类：
+	
+	1. Text Protocol 【部分实现】
+	2. Prepared Statements 【部分实现】
+	3. Stored Procedures 【不实现】
+	4. Replication Protocol 【不实现】
+
+基于中间层的需求和角色，我们需要部分实现1，2类协议，对于3，4类协议则不予以实现。
+
+Command分类如下，带中划线的Command类型是不予以实现的：
+![](./Command.jpg)
+
  
 #### 权限与准入模块
 PROXY独立的授权用户名和密码。
