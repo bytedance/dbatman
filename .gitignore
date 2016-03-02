@@ -26,3 +26,6 @@ _testmain.go
 *.swp
 
 *.out
+
+# ignore IntelliJ IDEA config
+.idea
