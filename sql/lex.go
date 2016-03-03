@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/sql/charset"
-	. "github.com/wangjild/go-mysql-proxy/sql/state"
+	"github.com/bytedance/dbatman/sql/charset"
+	. "github.com/bytedance/dbatman/sql/state"
 	"strconv"
 	"strings"
 )

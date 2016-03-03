@@ -5,10 +5,10 @@
 // @version $Revision: 1.0 $
 // @brief
 
-package proxy 
+package proxy
 
 import (
-	. "github.com/wangjild/go-mysql-proxy/log"
+	. "github.com/bytedance/dbatman/log"
 	"os"
 )
 

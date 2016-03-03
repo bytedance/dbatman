@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"github.com/wangjild/go-mysql-proxy/config"
-	. "github.com/wangjild/go-mysql-proxy/log"
-	"github.com/wangjild/go-mysql-proxy/proxy"
+	"github.com/bytedance/dbatman/config"
+	"github.com/bytedance/dbatman/log"
+	"github.com/bytedance/dbatman/proxy"
 	"net/http"
 	_ "net/http/pprof"
 	"os"

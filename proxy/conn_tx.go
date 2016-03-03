@@ -1,8 +1,8 @@
 package proxy
 
 import (
-	"github.com/wangjild/go-mysql-proxy/client"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
+	"github.com/bytedance/dbatman/backend"
+	. "github.com/bytedance/dbatman/mysql"
 )
 
 func (c *Conn) isInTransaction() bool {

@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/hack"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
+	"github.com/bytedance/dbatman/hack"
+	. "github.com/bytedance/dbatman/mysql"
 	"strconv"
 )
 

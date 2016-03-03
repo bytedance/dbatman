@@ -3,7 +3,7 @@ package mysql
 import (
 	"bytes"
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/hack"
+	"github.com/bytedance/dbatman/hack"
 	"sort"
 )
 

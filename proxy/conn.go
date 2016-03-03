@@ -1,47 +1,76 @@
+// Copyright 2013 The Go-MySQL-Driver Authors. All rights reserved.
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
+
+// The MIT License (MIT)
+//
+// Copyright (c) 2014 siddontang
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// Copyright 2016 PinCAP, Inc.
+// Copyright 2016 ByteDance, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package proxy
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/client"
-	"github.com/wangjild/go-mysql-proxy/hack"
-	. "github.com/wangjild/go-mysql-proxy/log"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
+	"github.com/bytedance/dbatman/hack"
+	"github.com/bytedance/dbatman/mysql"
+	"github.com/juju/errors"
+	"github.com/ngaut/log"
 	"net"
-	//	"runtime"
 	"sync"
 	"sync/atomic"
+	"runtime"
 )
 
-var DEFAULT_CAPABILITY uint32 = CLIENT_LONG_PASSWORD | CLIENT_LONG_FLAG |
-	CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 |
-	CLIENT_TRANSACTIONS | CLIENT_SECURE_CONNECTION
+var DEFAULT_CAPABILITY uint32 = mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_LONG_FLAG |
+	mysql.CLIENT_CONNECT_WITH_DB | mysql.CLIENT_PROTOCOL_41 |
+	mysql.CLIENT_TRANSACTIONS | mysql.CLIENT_SECURE_CONNECTION
 
-//client <-> proxy
-type Conn struct {
+type frontConn struct {
 	sync.Mutex
 
-	pkg *PacketIO
-
-	c net.Conn
-
-	server *Server
-
+	pkg        *PacketIO
+	conn       net.Conn
+	server     *Server
 	capability uint32
-
-	connectionId uint32
+	connID     uint32
 
 	status    uint16
-	collation CollationId
+	collation uint8
 	charset   string
 
 	user    string
 	possdbs []string
 
+	db   string
 	salt []byte
 
-	db     string
 	schema *Schema
 
 	txConns map[*Node]*client.SqlConn
@@ -89,28 +118,25 @@ func (s *Server) newConn(co net.Conn) *Conn {
 	return c
 }
 
-func (c *Conn) Handshake() error {
+func (c *frontConn) handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
-		AppLog.Warn("send initial handshake error %s", err.Error())
-		return err
+		return errors.Trace(err)
 	}
 
 	if err := c.readHandshakeResponse(); err != nil {
-		AppLog.Warn("recv handshake response error %s", err.Error())
-
 		c.writeError(err)
-
-		return err
+		return errors.Trace(err)
 	}
 
+	// TODO here we should proceed PROTOCOL41 ?
+
 	if err := c.writeOK(nil); err != nil {
-		AppLog.Warn("write ok fail %s", err.Error())
-		return err
+		return errors.Trace(err)
 	}
 
 	c.pkg.Sequence = 0
 
-	return nil
+	return errors.Trace(c.flush())
 }
 
 func (c *Conn) Close() error {
@@ -137,48 +163,52 @@ func (c *Conn) writeInitialHandshake() error {
 	// preserved for write head
 	data := make([]byte, 4, 128)
 
-	//min version 10
+	// min version 10
 	data = append(data, 10)
 
-	//server version[00]
+	// server version[00]
 	data = append(data, ServerVersion...)
 	data = append(data, 0)
 
-	//connection id
+	// connection id
 	data = append(data, byte(c.connectionId), byte(c.connectionId>>8), byte(c.connectionId>>16), byte(c.connectionId>>24))
 
-	//auth-plugin-data-part-1
+	// auth-plugin-data-part-1
 	data = append(data, c.salt[0:8]...)
 
-	//filter [00]
+	// filter [00]
 	data = append(data, 0)
 
-	//capability flag lower 2 bytes, using default capability here
+	// capability flag lower 2 bytes, using default capability here
 	data = append(data, byte(DEFAULT_CAPABILITY), byte(DEFAULT_CAPABILITY>>8))
 
-	//charset, utf-8 default
+	// charset, utf-8 default
 	data = append(data, uint8(DEFAULT_COLLATION_ID))
 
-	//status
+	// status
 	data = append(data, byte(c.status), byte(c.status>>8))
 
-	//below 13 byte may not be used
-	//capability flag upper 2 bytes, using default capability here
+	// below 13 byte may not be used
+	// capability flag upper 2 bytes, using default capability here
 	data = append(data, byte(DEFAULT_CAPABILITY>>16), byte(DEFAULT_CAPABILITY>>24))
 
-	//filter [0x15], for wireshark dump, value is 0x15
+	// filter [0x15], for wireshark dump, value is 0x15
 	data = append(data, 0x00)
 
-	//reserved 10 [00]
+	// reserved 10 [00]
 	data = append(data, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
-	//auth-plugin-data-part-2
+	// auth-plugin-data-part-2
 	data = append(data, c.salt[8:]...)
 
-	//filter [00]
+	// filter [00]
 	data = append(data, 0)
 
-	return c.writePacket(data)
+	if err := c.writePacket(data); err != nil {
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.flush())
 }
 
 func (c *Conn) readPacket() ([]byte, error) {
@@ -192,7 +222,7 @@ func (c *Conn) writePacket(data []byte) error {
 func (c *Conn) readHandshakeResponse() error {
 	data, err := c.readPacket()
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	pos := 0
@@ -222,14 +252,15 @@ func (c *Conn) readHandshakeResponse() error {
 	pos += authLen
 
 	if c.capability&CLIENT_CONNECT_WITH_DB == 0 {
-		AppLog.Debug("connect without db")
 		if err := c.checkAuth(auth); err != nil {
-			return err
+			return errors.Trace(err）
 		}
-	} else { // connect with db
-		AppLog.Debug("connect with db")
+	} else {
+		// connect with db
 		if len(data[pos:]) == 0 {
-			return NewDefaultError(ER_ACCESS_DENIED_ERROR, c.c.RemoteAddr().String(), c.user, "Yes")
+			return errors.Trace(
+				NewDefaultError(ER_ACCESS_DENIED_ERROR, c.c.RemoteAddr().String(), c.user, "Yes")
+				)
 		}
 
 		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
@@ -237,7 +268,7 @@ func (c *Conn) readHandshakeResponse() error {
 
 		// check with db multi-user
 		if err := c.checkAuthWithDB(auth, db); err != nil {
-			return err
+			return errors.Trace(err)
 		}
 	}
 
@@ -246,15 +277,13 @@ func (c *Conn) readHandshakeResponse() error {
 
 func (c *Conn) Run() {
 	defer func() {
-		/*r := recover()
-		if err, ok := r.(error); ok {
+		r := recover()
+		if r != nil {
 			const size = 4096
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-
-			AppLog.Warn("%v", err)
-		}*/
-
+			log.Errorf("lastCmd %s, %v, %s", cc.lastCmd, r, buf)
+		}
 		c.Close()
 	}()
 

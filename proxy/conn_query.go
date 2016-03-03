@@ -2,10 +2,10 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/client"
-	"github.com/wangjild/go-mysql-proxy/hack"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
-	"github.com/wangjild/go-mysql-proxy/sql"
+	"github.com/bytedance/dbatman/backend"
+	"github.com/bytedance/dbatman/hack"
+	"github.com/bytedance/dbatman/mysql"
+	"github.com/bytedance/dbatman/sql"
 )
 
 func (c *Conn) handleQuery(sqlstmt string) (err error) {

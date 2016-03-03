@@ -2,7 +2,7 @@ package charset
 
 import (
 	"bytes"
-	. "github.com/wangjild/go-mysql-proxy/sql/state"
+	. "github.com/bytedance/dbatman/sql/state"
 )
 
 type (

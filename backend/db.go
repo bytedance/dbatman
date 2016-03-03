@@ -1,10 +1,10 @@
-package client
+package backend
 
 import (
 	"container/list"
 	"fmt"
+	. "github.com/bytedance/dbatman/mysql"
 	"math/rand"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -90,7 +90,7 @@ func (db *DB) GetConnNum() int {
 	return int(db.connNum)
 }
 
-func (db *DB) newConn() (*Conn, error) {
+func (db *DB) newConn() (*BackendConn, error) {
 	co := new(Conn)
 
 	if err := co.Connect(db.addr, db.user, db.password, db.db); err != nil {
@@ -100,7 +100,7 @@ func (db *DB) newConn() (*Conn, error) {
 	return co, nil
 }
 
-func (db *DB) tryReuse(co *Conn) error {
+func (db *DB) tryReuse(co *BackendConn) error {
 	if co.IsInTransaction() {
 		//we can not reuse a connection in transaction status
 		if err := co.Rollback(); err != nil {
@@ -126,7 +126,7 @@ func (db *DB) tryReuse(co *Conn) error {
 	return nil
 }
 
-func (db *DB) PopConn() (co *Conn, err error) {
+func (db *DB) PopConn() (co *BackendConn, err error) {
 	idx := rand.Intn(db.barrel)
 
 	db.Lock()
@@ -154,7 +154,7 @@ func (db *DB) PopConn() (co *Conn, err error) {
 	return
 }
 
-func (db *DB) PushConn(co *Conn, err error) {
+func (db *DB) PushConn(co *BackendConn, err error) {
 	var closeConn *Conn = nil
 
 	if err != nil {
@@ -185,7 +185,7 @@ func (db *DB) PushConn(co *Conn, err error) {
 }
 
 type SqlConn struct {
-	*Conn
+	*BackendConn
 
 	db *DB
 }

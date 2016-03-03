@@ -1,12 +1,12 @@
-package client
+package backend
 
 import (
 	"encoding/binary"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
+	. "github.com/bytedance/dbatman/mysql"
 )
 
 type Stmt struct {
-	conn  *Conn
+	conn  *BackendConn
 	id    uint32
 	query string
 
@@ -93,7 +93,7 @@ func (s *Stmt) Reset() (*Result, error) {
 	return s.conn.readOK()
 }
 
-func (c *Conn) Prepare(query string) (*Stmt, error) {
+func (c *BackendConn) Prepare(query string) (*Stmt, error) {
 	if err := c.writeCommandStr(COM_STMT_PREPARE, query); err != nil {
 		return nil, err
 	}

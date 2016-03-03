@@ -1,13 +1,13 @@
-package client
+package backend
 
 import (
 	"fmt"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
+	. "github.com/bytedance/dbatman/mysql"
 	"testing"
 )
 
 func newTestConn() *Conn {
-	c := new(Conn)
+	c := new(BackendConn)
 
 	if err := c.Connect("127.0.0.1:4306", "root", "", "go_proxy"); err != nil {
 		panic(err)
