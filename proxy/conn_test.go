@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	. "github.com/wangjild/go-mysql-proxy/mysql"
+	. "github.com/bytedance/dbatman/mysql"
 	"testing"
 )
 

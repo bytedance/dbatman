@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
+	"github.com/bytedance/dbatman/mysql"
 	"net"
 	"strings"
 	"time"
@@ -20,11 +20,11 @@ const (
 	noautoCommit = "set autocommit = 0"
 )
 
-//proxy <-> mysql server
-type Conn struct {
+// Connection fowards to MySQL Server
+type BackendConn struct {
 	conn net.Conn
 
-	pkg *PacketIO
+	pkg *mysql.PacketIO
 
 	addr     string
 	user     string
@@ -35,7 +35,7 @@ type Conn struct {
 
 	status uint16
 
-	collation CollationId
+	collation mysql.CollationId
 	charset   string
 	salt      []byte
 
@@ -44,20 +44,20 @@ type Conn struct {
 	pkgErr error
 }
 
-func (c *Conn) Connect(addr string, user string, password string, db string) error {
+func (c *BackendConn) Connect(addr string, user string, password string, db string) error {
 	c.addr = addr
 	c.user = user
 	c.password = password
 	c.db = db
 
 	//use utf8
-	c.collation = DEFAULT_COLLATION_ID
-	c.charset = DEFAULT_CHARSET
+	c.collation = mysql.DEFAULT_COLLATION_ID
+	c.charset = mysql.DEFAULT_CHARSET
 
 	return c.ReConnect()
 }
 
-func (c *Conn) ReConnect() error {
+func (c *BackendConn) ReConnect() error {
 	if c.conn != nil {
 		c.conn.Close()
 	}
@@ -73,7 +73,7 @@ func (c *Conn) ReConnect() error {
 	}
 
 	c.conn = netConn
-	c.pkg = NewPacketIO(netConn)
+	c.pkg = mysql.NewPacketIO(netConn)
 
 	if err := c.readInitialHandshake(); err != nil {
 		c.conn.Close()
@@ -105,7 +105,7 @@ func (c *Conn) ReConnect() error {
 	return nil
 }
 
-func (c *Conn) Close() error {
+func (c *BackendConn) Close() error {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
@@ -114,29 +114,29 @@ func (c *Conn) Close() error {
 	return nil
 }
 
-func (c *Conn) readPacket() ([]byte, error) {
+func (c *BackendConn) readPacket() ([]byte, error) {
 	d, err := c.pkg.ReadPacket()
 	c.pkgErr = err
 	return d, err
 }
 
-func (c *Conn) writePacket(data []byte) error {
+func (c *BackendConn) writePacket(data []byte) error {
 	err := c.pkg.WritePacket(data)
 	c.pkgErr = err
 	return err
 }
 
-func (c *Conn) readInitialHandshake() error {
+func (c *BackendConn) readInitialHandshake() error {
 	data, err := c.readPacket()
 	if err != nil {
 		return err
 	}
 
-	if data[0] == ERR_HEADER {
+	if data[0] == mysql.ERR_HEADER {
 		return errors.New("read initial handshake error")
 	}
 
-	if data[0] < MinProtocolVersion {
+	if data[0] < mysql.MinProtocolVersion {
 		return fmt.Errorf("invalid protocol version %d, must >= 10", data[0])
 	}
 
@@ -181,10 +181,10 @@ func (c *Conn) readInitialHandshake() error {
 	return nil
 }
 
-func (c *Conn) writeAuthHandshake() error {
+func (c *BackendConn) writeAuthHandshake() error {
 	// Adjust client capability flags based on server support
-	capability := CLIENT_PROTOCOL_41 | CLIENT_SECURE_CONNECTION |
-		CLIENT_LONG_PASSWORD | CLIENT_TRANSACTIONS | CLIENT_LONG_FLAG
+	capability := mysql.CLIENT_PROTOCOL_41 | mysql.CLIENT_SECURE_CONNECTION |
+		mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_TRANSACTIONS | mysql.CLIENT_LONG_FLAG
 
 	capability &= c.capability
 
@@ -199,12 +199,12 @@ func (c *Conn) writeAuthHandshake() error {
 	length += len(c.user) + 1
 
 	//we only support secure connection
-	auth := CalcPassword(c.salt, []byte(c.password))
+	auth := mysql.CalcPassword(c.salt, []byte(c.password))
 
 	length += 1 + len(auth)
 
 	if len(c.db) > 0 {
-		capability |= CLIENT_CONNECT_WITH_DB
+		capability |= mysql.CLIENT_CONNECT_WITH_DB
 
 		length += len(c.db) + 1
 	}
@@ -251,7 +251,7 @@ func (c *Conn) writeAuthHandshake() error {
 	return c.writePacket(data)
 }
 
-func (c *Conn) writeCommand(command byte) error {
+func (c *BackendConn) writeCommand(command byte) error {
 	c.pkg.Sequence = 0
 
 	return c.writePacket([]byte{
@@ -263,7 +263,7 @@ func (c *Conn) writeCommand(command byte) error {
 	})
 }
 
-func (c *Conn) writeCommandBuf(command byte, arg []byte) error {
+func (c *BackendConn) writeCommandBuf(command byte, arg []byte) error {
 	c.pkg.Sequence = 0
 
 	length := len(arg) + 1
@@ -277,7 +277,7 @@ func (c *Conn) writeCommandBuf(command byte, arg []byte) error {
 	return c.writePacket(data)
 }
 
-func (c *Conn) writeCommandStr(command byte, arg string) error {
+func (c *BackendConn) writeCommandStr(command byte, arg string) error {
 
 	c.pkg.Sequence = 0
 
@@ -292,7 +292,7 @@ func (c *Conn) writeCommandStr(command byte, arg string) error {
 	return c.writePacket(data)
 }
 
-func (c *Conn) writeCommandUint32(command byte, arg uint32) error {
+func (c *BackendConn) writeCommandUint32(command byte, arg uint32) error {
 	c.pkg.Sequence = 0
 
 	return c.writePacket([]byte{
@@ -310,7 +310,7 @@ func (c *Conn) writeCommandUint32(command byte, arg uint32) error {
 	})
 }
 
-func (c *Conn) writeCommandStrStr(command byte, arg1 string, arg2 string) error {
+func (c *BackendConn) writeCommandStrStr(command byte, arg1 string, arg2 string) error {
 	c.pkg.Sequence = 0
 
 	data := make([]byte, 4, 6+len(arg1)+len(arg2))
@@ -323,11 +323,11 @@ func (c *Conn) writeCommandStrStr(command byte, arg1 string, arg2 string) error 
 	return c.writePacket(data)
 }
 
-func (c *Conn) Ping() error {
+func (c *BackendConn) Ping() error {
 	n := time.Now().Unix()
 
 	if n-c.lastPing > pingPeriod {
-		if err := c.writeCommand(COM_PING); err != nil {
+		if err := c.writeCommand(mysql.COM_PING); err != nil {
 			return err
 		}
 
@@ -341,12 +341,12 @@ func (c *Conn) Ping() error {
 	return nil
 }
 
-func (c *Conn) UseDB(dbName string) error {
+func (c *BackendConn) UseDB(dbName string) error {
 	if c.db == dbName {
 		return nil
 	}
 
-	if err := c.writeCommandStr(COM_INIT_DB, dbName); err != nil {
+	if err := c.writeCommandStr(mysql.COM_INIT_DB, dbName); err != nil {
 		return err
 	}
 
@@ -358,36 +358,36 @@ func (c *Conn) UseDB(dbName string) error {
 	return nil
 }
 
-func (c *Conn) GetDB() string {
+func (c *BackendConn) GetDB() string {
 	return c.db
 }
 
-func (c *Conn) Execute(command string) (*Result, error) {
+func (c *BackendConn) Execute(command string) (*mysql.Result, error) {
 	return c.exec(command)
 }
 
-func (c *Conn) Begin() error {
+func (c *BackendConn) Begin() error {
 	_, err := c.exec("begin")
 	return err
 }
 
-func (c *Conn) Commit() error {
+func (c *BackendConn) Commit() error {
 	_, err := c.exec("commit")
 	return err
 }
 
-func (c *Conn) Rollback() error {
+func (c *BackendConn) Rollback() error {
 	_, err := c.exec("rollback")
 	return err
 }
 
-func (c *Conn) SetCharset(charset string) error {
+func (c *BackendConn) SetCharset(charset string) error {
 	charset = strings.Trim(charset, "\"'`")
 	if c.charset == charset {
 		return nil
 	}
 
-	cid, ok := CharsetIds[charset]
+	cid, ok := mysql.CharsetIds[charset]
 	if !ok {
 		return fmt.Errorf("invalid charset %s", charset)
 	}
@@ -400,8 +400,8 @@ func (c *Conn) SetCharset(charset string) error {
 	}
 }
 
-func (c *Conn) FieldList(table string, wildcard string) ([]*Field, error) {
-	if err := c.writeCommandStrStr(COM_FIELD_LIST, table, wildcard); err != nil {
+func (c *BackendConn) FieldList(table string, wildcard string) ([]*mysql.Field, error) {
+	if err := c.writeCommandStrStr(mysql.COM_FIELD_LIST, table, wildcard); err != nil {
 		return nil, err
 	}
 
@@ -410,9 +410,9 @@ func (c *Conn) FieldList(table string, wildcard string) ([]*Field, error) {
 		return nil, err
 	}
 
-	fs := make([]*Field, 0, 8)
-	var f *Field
-	if data[0] == ERR_HEADER {
+	fs := make([]*mysql.Field, 0, 8)
+	var f *mysql.Field
+	if data[0] == mysql.ERR_HEADER {
 		return nil, c.handleErrorPacket(data)
 	} else {
 		for {
@@ -421,7 +421,7 @@ func (c *Conn) FieldList(table string, wildcard string) ([]*Field, error) {
 				return fs, nil
 			}
 
-			if f, err = FieldData(data).Parse(); err != nil {
+			if f, err = mysql.FieldData(data).Parse(); err != nil {
 				return nil, err
 			}
 			fs = append(fs, f)
@@ -435,32 +435,32 @@ func (c *Conn) FieldList(table string, wildcard string) ([]*Field, error) {
 	return nil, fmt.Errorf("field list error")
 }
 
-func (c *Conn) exec(query string) (*Result, error) {
-	if err := c.writeCommandStr(COM_QUERY, query); err != nil {
+func (c *BackendConn) exec(query string) (*mysql.Result, error) {
+	if err := c.writeCommandStr(mysql.COM_QUERY, query); err != nil {
 		return nil, err
 	}
 
 	return c.readResult(false)
 }
 
-func (c *Conn) readResultset(data []byte, binary bool) (*Result, error) {
-	result := &Result{
+func (c *BackendConn) readResultset(data []byte, binary bool) (*mysql.Result, error) {
+	result := &mysql.Result{
 		Warnings:     0,
 		Status:       0,
 		InsertId:     0,
 		AffectedRows: 0,
 
-		Resultset: &Resultset{},
+		Resultset: &mysql.Resultset{},
 	}
 
 	// column count
-	count, _, n := LengthEncodedInt(data)
+	count, _, n := mysql.LengthEncodedInt(data)
 
 	if n-len(data) != 0 {
-		return nil, ErrMalformPacket
+		return nil, mysql.ErrMalformPacket
 	}
 
-	result.Fields = make([]*Field, count)
+	result.Fields = make([]*mysql.Field, count)
 	result.FieldNames = make(map[string]int, count)
 
 	if err := c.readResultColumns(result); err != nil {
@@ -474,7 +474,7 @@ func (c *Conn) readResultset(data []byte, binary bool) (*Result, error) {
 	return result, nil
 }
 
-func (c *Conn) readResultColumns(result *Result) (err error) {
+func (c *BackendConn) readResultColumns(result *mysql.Result) (err error) {
 	var i int = 0
 	var data []byte
 
@@ -486,7 +486,7 @@ func (c *Conn) readResultColumns(result *Result) (err error) {
 
 		// EOF Packet
 		if c.isEOFPacket(data) {
-			if c.capability&CLIENT_PROTOCOL_41 > 0 {
+			if c.capability&mysql.CLIENT_PROTOCOL_41 > 0 {
 				//result.Warnings = binary.LittleEndian.Uint16(data[1:])
 				//todo add strict_mode, warning will be treat as error
 				result.Status = binary.LittleEndian.Uint16(data[3:])
@@ -494,7 +494,7 @@ func (c *Conn) readResultColumns(result *Result) (err error) {
 			}
 
 			if i != len(result.Fields) {
-				err = ErrMalformPacket
+				err = mysql.ErrMalformPacket
 			}
 
 			return
@@ -515,7 +515,7 @@ func (c *Conn) readResultColumns(result *Result) (err error) {
 	}
 }
 
-func (c *Conn) readResultRows(result *Result, isBinary bool) (err error) {
+func (c *BackendConn) readResultRows(result *mysql.Result, isBinary bool) (err error) {
 	var data []byte
 
 	for {
@@ -556,7 +556,7 @@ func (c *Conn) readResultRows(result *Result, isBinary bool) (err error) {
 	return nil
 }
 
-func (c *Conn) readUntilEOF(predict int) (ret [][]byte, err error) {
+func (c *BackendConn) readUntilEOF(predict int) (ret [][]byte, err error) {
 
 	ret = make([][]byte, 0, predict+1)
 	var data []byte
@@ -577,15 +577,15 @@ func (c *Conn) readUntilEOF(predict int) (ret [][]byte, err error) {
 	return
 }
 
-func (c *Conn) isEOFPacket(data []byte) bool {
+func (c *BackendConn) isEOFPacket(data []byte) bool {
 	return data[0] == EOF_HEADER && len(data) <= 5
 }
 
-func (c *Conn) isErrPacket(data []byte) bool {
+func (c *BackendConn) isErrPacket(data []byte) bool {
 	return data[0] == ERR_HEADER
 }
 
-func (c *Conn) handleOKPacket(data []byte) (*Result, error) {
+func (c *BackendConn) handleOKPacket(data []byte) (*mysql.Result, error) {
 	var n int
 	var pos int = 1
 
@@ -614,7 +614,7 @@ func (c *Conn) handleOKPacket(data []byte) (*Result, error) {
 	return r, nil
 }
 
-func (c *Conn) handleErrorPacket(data []byte) error {
+func (c *BackendConn) handleErrorPacket(data []byte) error {
 	e := new(SqlError)
 
 	var pos int = 1
@@ -634,7 +634,7 @@ func (c *Conn) handleErrorPacket(data []byte) error {
 	return e
 }
 
-func (c *Conn) readOK() (*Result, error) {
+func (c *BackendConn) readOK() (*mysql.Result, error) {
 	data, err := c.readPacket()
 	if err != nil {
 		return nil, err
@@ -649,7 +649,7 @@ func (c *Conn) readOK() (*Result, error) {
 	}
 }
 
-func (c *Conn) readResult(binary bool) (*Result, error) {
+func (c *BackendConn) readResult(binary bool) (*mysql.Result, error) {
 	data, err := c.readPacket()
 	if err != nil {
 		return nil, err
@@ -666,19 +666,19 @@ func (c *Conn) readResult(binary bool) (*Result, error) {
 	return c.readResultset(data, binary)
 }
 
-func (c *Conn) IsAutoCommit() bool {
+func (c *BackendConn) IsAutoCommit() bool {
 	return c.status&SERVER_STATUS_AUTOCOMMIT > 0
 }
 
-func (c *Conn) IsInTransaction() bool {
+func (c *BackendConn) IsInTransaction() bool {
 	return c.status&SERVER_STATUS_IN_TRANS > 0
 }
 
-func (c *Conn) GetCharset() string {
+func (c *BackendConn) GetCharset() string {
 	return c.charset
 }
 
-func (c *Conn) SetAutocommit(f bool) (err error) {
+func (c *BackendConn) SetAutocommit(f bool) (err error) {
 
 	if f == c.IsAutoCommit() {
 		return

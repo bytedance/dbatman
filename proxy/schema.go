@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/config"
+	"github.com/bytedance/dbatman/config"
 )
 
 type Schema struct {

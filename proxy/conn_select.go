@@ -3,8 +3,8 @@ package proxy
 import (
 	"bytes"
 	"fmt"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
-	"github.com/wangjild/go-mysql-proxy/sql"
+	. "github.com/bytedance/dbatman/mysql"
+	"github.com/bytedance/dbatman/sql"
 )
 
 func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {

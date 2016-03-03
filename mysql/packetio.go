@@ -2,8 +2,8 @@ package mysql
 
 import (
 	"bufio"
+	. "github.com/bytedance/dbatman/log"
 	"io"
-	. "github.com/wangjild/go-mysql-proxy/log"
 	"net"
 )
 

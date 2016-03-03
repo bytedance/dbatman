@@ -1,9 +1,9 @@
 package proxy
 
 import (
-	"github.com/wangjild/go-mysql-proxy/hack"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
-	"github.com/wangjild/go-mysql-proxy/sql"
+	"github.com/bytedance/dbatman/hack"
+	. "github.com/bytedance/dbatman/mysql"
+	"github.com/bytedance/dbatman/sql"
 )
 
 func (c *Conn) handleShow(strsql string, stmt sql.IShow) error {

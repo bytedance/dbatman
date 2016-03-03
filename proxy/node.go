@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/client"
-	"github.com/wangjild/go-mysql-proxy/config"
-	. "github.com/wangjild/go-mysql-proxy/log"
+	"github.com/bytedance/dbatman/backend"
+	"github.com/bytedance/dbatman/config"
+	. "github.com/bytedance/dbatman/log"
 	"sync"
 	"time"
 )

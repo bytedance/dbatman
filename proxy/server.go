@@ -1,8 +1,8 @@
 package proxy
 
 import (
-	"github.com/wangjild/go-mysql-proxy/config"
-	. "github.com/wangjild/go-mysql-proxy/log"
+	"github.com/bytedance/dbatman/config"
+	. "github.com/bytedance/dbatman/log"
 	"net"
 	//	"runtime"
 )

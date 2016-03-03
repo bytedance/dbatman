@@ -3,10 +3,10 @@ package proxy
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/client"
-	. "github.com/wangjild/go-mysql-proxy/log"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
-	"github.com/wangjild/go-mysql-proxy/sql"
+	"github.com/bytedance/dbatman/backend"
+	. "github.com/bytedance/dbatman/log"
+	. "github.com/bytedance/dbatman/mysql"
+	"github.com/bytedance/dbatman/sql"
 	"strconv"
 )
 

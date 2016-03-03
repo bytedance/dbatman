@@ -3,8 +3,8 @@ package mysql
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/bytedance/dbatman/hack"
 	"math"
-	"github.com/wangjild/go-mysql-proxy/hack"
 	"strconv"
 )
 

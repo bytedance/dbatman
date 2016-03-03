@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"bytes"
-	. "github.com/wangjild/go-mysql-proxy/log"
-	. "github.com/wangjild/go-mysql-proxy/mysql"
+	. "github.com/bytedance/dbatman/log"
+	. "github.com/bytedance/dbatman/mysql"
 )
 
 func (c *Conn) checkAuth(auth []byte) error {
