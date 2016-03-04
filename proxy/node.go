@@ -22,10 +22,10 @@ type Node struct {
 	cfg config.NodeConfig
 
 	//running master db
-	db *client.DB
+	db *backend.DB
 
-	master *client.DB
-	slave  *client.DB
+	master *backend.DB
+	slave  *backend.DB
 
 	downAfterNoAlive time.Duration
 
@@ -56,7 +56,7 @@ func (n *Node) String() string {
 	return n.cfg.Name
 }
 
-func (n *Node) getMasterConn() (*client.SqlConn, error) {
+func (n *Node) getMasterConn() (*backend.SqlConn, error) {
 	n.Lock()
 	db := n.db
 	n.Unlock()
@@ -68,8 +68,8 @@ func (n *Node) getMasterConn() (*client.SqlConn, error) {
 	return db.GetConn()
 }
 
-func (n *Node) getSelectConn() (*client.SqlConn, error) {
-	var db *client.DB
+func (n *Node) getSelectConn() (*backend.SqlConn, error) {
+	var db *backend.DB
 
 	n.Lock()
 	if n.cfg.RWSplit && n.slave != nil {
@@ -130,8 +130,8 @@ func (n *Node) checkSlave() {
 	}
 }
 
-func (n *Node) openDB(addr string) (*client.DB, error) {
-	db, err := client.Open(addr, n.cfg.User, n.cfg.Password, "")
+func (n *Node) openDB(addr string) (*backend.DB, error) {
+	db, err := backend.Open(addr, n.cfg.User, n.cfg.Password, "")
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (n *Node) openDB(addr string) (*client.DB, error) {
 	return db, nil
 }
 
-func (n *Node) checkUpDB(addr string) (*client.DB, error) {
+func (n *Node) checkUpDB(addr string) (*backend.DB, error) {
 	db, err := n.openDB(addr)
 	if err != nil {
 		return nil, err

@@ -7,7 +7,7 @@ import (
 	"github.com/bytedance/dbatman/sql"
 )
 
-func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
+func (c *frontConn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
 	field := &Field{}
 
 	field.Name = name
@@ -30,7 +30,7 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 	return r, nil
 }
 
-func (c *Conn) handleFieldList(data []byte) error {
+func (c *frontConn) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
 	table := string(data[0:index])
 	wildcard := string(data[index+1:])
@@ -56,7 +56,7 @@ func (c *Conn) handleFieldList(data []byte) error {
 	}
 }
 
-func (c *Conn) writeFieldList(status uint16, fs []*Field) error {
+func (c *frontConn) writeFieldList(status uint16, fs []*Field) error {
 	c.affectedRows = int64(-1)
 
 	data := make([]byte, 4, 1024)
@@ -75,7 +75,7 @@ func (c *Conn) writeFieldList(status uint16, fs []*Field) error {
 	return nil
 }
 
-func (c *Conn) handleSelect(stmt sql.IStatement, sqlstmt string) error {
+func (c *frontConn) handleSelect(stmt sql.IStatement, sqlstmt string) error {
 
 	if err := c.checkDB(); err != nil {
 		return err

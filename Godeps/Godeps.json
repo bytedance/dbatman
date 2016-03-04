@@ -1,5 +1,21 @@
 {
 	"ImportPath": "github.com/bytedance/dbatman",
 	"GoVersion": "go1.5",
-	"Deps": []
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/juju/errors",
+			"Rev": "b2c7a7da5b2995941048f60146e67702a292e468"
+		},
+		{
+			"ImportPath": "github.com/ngaut/log",
+			"Rev": "37d3e0f43b4fe05429e1adb75e835bf31fc1bba6"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "f7716cbe52baa25d2e9b0d0da546fcf909fc16b4"
+		}
+	]
 }

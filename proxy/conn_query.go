@@ -8,7 +8,7 @@ import (
 	"github.com/bytedance/dbatman/sql"
 )
 
-func (c *Conn) handleQuery(sqlstmt string) (err error) {
+func (c *frontConn) handleQuery(sqlstmt string) (err error) {
 	/*defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("execute %s error %v", sql, e)
@@ -63,7 +63,7 @@ func (c *Conn) handleQuery(sqlstmt string) (err error) {
 	return nil
 }
 
-func (c *Conn) getConn(n *Node, isSelect bool) (co *client.SqlConn, err error) {
+func (c *frontConn) getConn(n *Node, isSelect bool) (co *backend.SqlConn, err error) {
 	if !c.needBeginTx() {
 		if isSelect {
 			co, err = n.getSelectConn()
@@ -110,7 +110,7 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *client.SqlConn, err error) {
 	return
 }
 
-func (c *Conn) closeDBConn(co *client.SqlConn, rollback bool) {
+func (c *frontConn) closeDBConn(co *backend.SqlConn, rollback bool) {
 	// since we have DDL, and when server is not in autoCommit,
 	// we do not release the connection and will reuse it later
 	if c.isInTransaction() || !c.isAutoCommit() {
@@ -134,7 +134,7 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *Conn) handleExec(stmt sql.IStatement, sqlstmt string, isread bool) error {
+func (c *frontConn) handleExec(stmt sql.IStatement, sqlstmt string, isread bool) error {
 
 	if err := c.checkDB(); err != nil {
 		return err
@@ -147,7 +147,7 @@ func (c *Conn) handleExec(stmt sql.IStatement, sqlstmt string, isread bool) erro
 		return fmt.Errorf("no available connection")
 	}
 
-	var rs *Result
+	var rs *mysql.Result
 	rs, err = conn.Execute(sqlstmt)
 
 	c.closeDBConn(conn, err != nil)
@@ -159,7 +159,7 @@ func (c *Conn) handleExec(stmt sql.IStatement, sqlstmt string, isread bool) erro
 	return err
 }
 
-func (c *Conn) mergeSelectResult(rs *Result) error {
+func (c *frontConn) mergeSelectResult(rs *mysql.Result) error {
 	r := rs.Resultset
 	status := c.status | rs.Status
 	return c.writeResultset(status, r)

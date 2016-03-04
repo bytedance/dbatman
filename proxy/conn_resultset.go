@@ -61,7 +61,7 @@ func formatField(field *Field, value interface{}) error {
 	return nil
 }
 
-func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultset, error) {
+func (c *frontConn) buildResultset(names []string, values [][]interface{}) (*Resultset, error) {
 	r := new(Resultset)
 
 	r.Fields = make([]*Field, len(names))
@@ -100,7 +100,7 @@ func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 	return r, nil
 }
 
-func (c *Conn) writeResultset(status uint16, r *Resultset) error {
+func (c *frontConn) writeResultset(status uint16, r *Resultset) error {
 	c.affectedRows = int64(-1)
 
 	columnLen := PutLengthEncodedInt(uint64(len(r.Fields)))

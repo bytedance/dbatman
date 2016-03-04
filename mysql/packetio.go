@@ -7,20 +7,23 @@ import (
 	"net"
 )
 
+const (
+	defaultReaderSize = 16 * 1024
+	defaultWriterSize = 16 * 1024
+)
+
 type PacketIO struct {
-	reader io.Reader
-	writer io.Writer
+	reader *bufio.Reader
+	writer *bufio.Writer
 
 	Sequence uint8
 }
 
 func NewPacketIO(conn net.Conn) *PacketIO {
-	p := new(PacketIO)
-
-	p.reader = bufio.NewReader(conn)
-	p.writer = conn
-
-	p.Sequence = 0
+	p := &PacketIO{
+		reader: bufio.NewReaderSize(conn, defaultReaderSize),
+		writer: bufio.NewWriterSize(conn, defaultWriterSize),
+	}
 
 	return p
 }
@@ -110,4 +113,8 @@ func (p *PacketIO) WritePacket(data []byte) error {
 		p.Sequence++
 		return nil
 	}
+}
+
+func (p *PacketIO) Flush() error {
+	return p.writer.Flush()
 }

@@ -10,7 +10,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/wangjild/go-mysql-proxy/hack"
+	"github.com/bytedance/dbatman/hack"
 	"strconv"
 	"time"
 )

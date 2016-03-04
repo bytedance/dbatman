@@ -6,7 +6,7 @@ import (
 	"github.com/bytedance/dbatman/sql"
 )
 
-func (c *Conn) handleShow(strsql string, stmt sql.IShow) error {
+func (c *frontConn) handleShow(strsql string, stmt sql.IShow) error {
 	var err error
 
 	switch stmt.(type) {
@@ -20,7 +20,7 @@ func (c *Conn) handleShow(strsql string, stmt sql.IShow) error {
 
 }
 
-func (c *Conn) handleShowDatabases() error {
+func (c *frontConn) handleShowDatabases() error {
 	dbs := make([]interface{}, 0, len(c.server.schemas))
 	for key := range c.server.schemas {
 		dbs = append(dbs, key)
@@ -33,7 +33,7 @@ func (c *Conn) handleShowDatabases() error {
 	}
 }
 
-func (c *Conn) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {
+func (c *frontConn) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {
 
 	r := new(Resultset)
 
