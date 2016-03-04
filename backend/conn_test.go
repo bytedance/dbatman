@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func newTestConn() *Conn {
+func newTestConn() *BackendConn {
 	c := new(BackendConn)
 
 	if err := c.Connect("127.0.0.1:4306", "root", "", "go_proxy"); err != nil {
