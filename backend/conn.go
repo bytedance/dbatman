@@ -504,7 +504,7 @@ func (c *BackendConn) readResultColumns(result *mysql.Result) (err error) {
 
 		}
 
-		result.Fields[i], err = FieldData(data).Parse()
+		result.Fields[i], err = mysql.FieldData(data).Parse()
 		if err != nil {
 			return
 		}
@@ -526,7 +526,7 @@ func (c *BackendConn) readResultRows(result *mysql.Result, isBinary bool) (err e
 
 		// EOF Packet
 		if c.isEOFPacket(data) {
-			if c.capability&CLIENT_PROTOCOL_41 > 0 {
+			if c.capability&mysql.CLIENT_PROTOCOL_41 > 0 {
 				//result.Warnings = binary.LittleEndian.Uint16(data[1:])
 				//todo add strict_mode, warning will be treat as error
 				result.Status = binary.LittleEndian.Uint16(data[3:])
@@ -578,25 +578,25 @@ func (c *BackendConn) readUntilEOF(predict int) (ret [][]byte, err error) {
 }
 
 func (c *BackendConn) isEOFPacket(data []byte) bool {
-	return data[0] == EOF_HEADER && len(data) <= 5
+	return data[0] == mysql.EOF_HEADER && len(data) <= 5
 }
 
 func (c *BackendConn) isErrPacket(data []byte) bool {
-	return data[0] == ERR_HEADER
+	return data[0] == mysql.ERR_HEADER
 }
 
 func (c *BackendConn) handleOKPacket(data []byte) (*mysql.Result, error) {
 	var n int
 	var pos int = 1
 
-	r := new(Result)
+	r := new(mysql.Result)
 
-	r.AffectedRows, _, n = LengthEncodedInt(data[pos:])
+	r.AffectedRows, _, n = mysql.LengthEncodedInt(data[pos:])
 	pos += n
-	r.InsertId, _, n = LengthEncodedInt(data[pos:])
+	r.InsertId, _, n = mysql.LengthEncodedInt(data[pos:])
 	pos += n
 
-	if c.capability&CLIENT_PROTOCOL_41 > 0 {
+	if c.capability&mysql.CLIENT_PROTOCOL_41 > 0 {
 		r.Status = binary.LittleEndian.Uint16(data[pos:])
 		c.status = r.Status
 		pos += 2
@@ -604,7 +604,7 @@ func (c *BackendConn) handleOKPacket(data []byte) (*mysql.Result, error) {
 		//todo:strict_mode, check warnings as error
 		r.Warnings = binary.LittleEndian.Uint16(data[pos:])
 		pos += 2
-	} else if c.capability&CLIENT_TRANSACTIONS > 0 {
+	} else if c.capability&mysql.CLIENT_TRANSACTIONS > 0 {
 		r.Status = binary.LittleEndian.Uint16(data[pos:])
 		c.status = r.Status
 		pos += 2
@@ -615,14 +615,14 @@ func (c *BackendConn) handleOKPacket(data []byte) (*mysql.Result, error) {
 }
 
 func (c *BackendConn) handleErrorPacket(data []byte) error {
-	e := new(SqlError)
+	e := new(mysql.SqlError)
 
 	var pos int = 1
 
 	e.Code = binary.LittleEndian.Uint16(data[pos:])
 	pos += 2
 
-	if c.capability&CLIENT_PROTOCOL_41 > 0 {
+	if c.capability&mysql.CLIENT_PROTOCOL_41 > 0 {
 		//skip '#'
 		pos++
 		e.State = string(data[pos : pos+5])
@@ -640,9 +640,9 @@ func (c *BackendConn) readOK() (*mysql.Result, error) {
 		return nil, err
 	}
 
-	if data[0] == OK_HEADER {
+	if data[0] == mysql.OK_HEADER {
 		return c.handleOKPacket(data)
-	} else if data[0] == ERR_HEADER {
+	} else if data[0] == mysql.ERR_HEADER {
 		return nil, c.handleErrorPacket(data)
 	} else {
 		return nil, errors.New("invalid ok packet")
@@ -655,23 +655,23 @@ func (c *BackendConn) readResult(binary bool) (*mysql.Result, error) {
 		return nil, err
 	}
 
-	if data[0] == OK_HEADER {
+	if data[0] == mysql.OK_HEADER {
 		return c.handleOKPacket(data)
-	} else if data[0] == ERR_HEADER {
+	} else if data[0] == mysql.ERR_HEADER {
 		return nil, c.handleErrorPacket(data)
-	} else if data[0] == LocalInFile_HEADER {
-		return nil, ErrMalformPacket
+	} else if data[0] == mysql.LocalInFile_HEADER {
+		return nil, mysql.ErrMalformPacket
 	}
 
 	return c.readResultset(data, binary)
 }
 
 func (c *BackendConn) IsAutoCommit() bool {
-	return c.status&SERVER_STATUS_AUTOCOMMIT > 0
+	return c.status&mysql.SERVER_STATUS_AUTOCOMMIT > 0
 }
 
 func (c *BackendConn) IsInTransaction() bool {
-	return c.status&SERVER_STATUS_IN_TRANS > 0
+	return c.status&mysql.SERVER_STATUS_IN_TRANS > 0
 }
 
 func (c *BackendConn) GetCharset() string {

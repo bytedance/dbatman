@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (c *Conn) handleSet(stmt *sql.Set, sql string) error {
+func (c *frontConn) handleSet(stmt *sql.Set, sql string) error {
 	if len(stmt.VarList) < 1 {
 		return fmt.Errorf("must set one item at least")
 	}
@@ -27,7 +27,7 @@ func (c *Conn) handleSet(stmt *sql.Set, sql string) error {
 	return c.handleOtherSet(stmt, sql)
 }
 
-func (c *Conn) handleSetAutoCommit(val sql.IExpr) error {
+func (c *frontConn) handleSetAutoCommit(val sql.IExpr) error {
 
 	var stmt *sql.Predicate
 	var ok bool
@@ -67,7 +67,7 @@ func (c *Conn) handleSetAutoCommit(val sql.IExpr) error {
 	return nil
 }
 
-func (c *Conn) handleSetNames(val sql.IValExpr) error {
+func (c *frontConn) handleSetNames(val sql.IValExpr) error {
 	value, ok := val.(sql.StrVal)
 	if !ok {
 		return fmt.Errorf("set names charset error")
@@ -85,6 +85,6 @@ func (c *Conn) handleSetNames(val sql.IValExpr) error {
 	return c.writeOK(nil)
 }
 
-func (c *Conn) handleOtherSet(stmt sql.IStatement, sql string) error {
+func (c *frontConn) handleOtherSet(stmt sql.IStatement, sql string) error {
 	return c.handleExec(stmt, sql, false)
 }

@@ -35,7 +35,7 @@ type Stmt struct {
 
 	sqlstmt string
 
-	cstmt *client.Stmt
+	cstmt *backend.Stmt
 }
 
 func (s *Stmt) ClearParams() {
@@ -46,7 +46,7 @@ func (s *Stmt) Close() {
 	s.cstmt.Close(true)
 }
 
-func (c *Conn) handleComStmtPrepare(sqlstmt string) error {
+func (c *frontConn) handleComStmtPrepare(sqlstmt string) error {
 	if c.schema == nil {
 		return NewDefaultError(ER_NO_DB_ERROR)
 	}
@@ -61,7 +61,7 @@ func (c *Conn) handleComStmtPrepare(sqlstmt string) error {
 
 	s.sqlstmt = sqlstmt
 
-	var co *client.SqlConn
+	var co *backend.SqlConn
 	co, err = c.schema.node.getMasterConn()
 	// TODO tablename for select
 	if err != nil {
@@ -98,7 +98,7 @@ func (c *Conn) handleComStmtPrepare(sqlstmt string) error {
 	return nil
 }
 
-func (c *Conn) writePrepare(s *Stmt) error {
+func (c *frontConn) writePrepare(s *Stmt) error {
 	data := make([]byte, 4, 128)
 
 	//status ok
@@ -151,7 +151,7 @@ func (c *Conn) writePrepare(s *Stmt) error {
 	return nil
 }
 
-func (c *Conn) handleComStmtExecute(data []byte) error {
+func (c *frontConn) handleComStmtExecute(data []byte) error {
 	if len(data) < 9 {
 		AppLog.Warn("ErrMalFormPacket: length %d", len(data))
 		return ErrMalformPacket
@@ -191,7 +191,7 @@ func (c *Conn) handleComStmtExecute(data []byte) error {
 	return err
 }
 
-func (c *Conn) handleComStmtSendLongData(data []byte) error {
+func (c *frontConn) handleComStmtSendLongData(data []byte) error {
 	if len(data) < 6 {
 		AppLog.Warn("ErrMalFormPacket")
 		return ErrMalformPacket
@@ -214,7 +214,7 @@ func (c *Conn) handleComStmtSendLongData(data []byte) error {
 	return nil
 }
 
-func (c *Conn) handleComStmtReset(data []byte) error {
+func (c *frontConn) handleComStmtReset(data []byte) error {
 	if len(data) < 4 {
 		AppLog.Warn("ErrMalFormPacket")
 		return ErrMalformPacket
@@ -236,7 +236,7 @@ func (c *Conn) handleComStmtReset(data []byte) error {
 	}
 }
 
-func (c *Conn) handleComStmtClose(data []byte) error {
+func (c *frontConn) handleComStmtClose(data []byte) error {
 	if len(data) < 4 {
 		return nil
 	}
@@ -253,7 +253,7 @@ func (c *Conn) handleComStmtClose(data []byte) error {
 }
 
 //
-func (c *Conn) handleStmtExec(prepared *Stmt, data []byte, resultSet bool) error {
+func (c *frontConn) handleStmtExec(prepared *Stmt, data []byte, resultSet bool) error {
 
 	res, err := prepared.cstmt.Execute(data)
 	if err != nil {

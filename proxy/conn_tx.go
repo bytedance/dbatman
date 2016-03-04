@@ -5,20 +5,20 @@ import (
 	. "github.com/bytedance/dbatman/mysql"
 )
 
-func (c *Conn) isInTransaction() bool {
+func (c *frontConn) isInTransaction() bool {
 	return c.status&SERVER_STATUS_IN_TRANS > 0
 }
 
-func (c *Conn) isAutoCommit() bool {
+func (c *frontConn) isAutoCommit() bool {
 	return c.status&SERVER_STATUS_AUTOCOMMIT > 0
 }
 
-func (c *Conn) handleBegin() error {
+func (c *frontConn) handleBegin() error {
 	c.status |= SERVER_STATUS_IN_TRANS
 	return c.writeOK(nil)
 }
 
-func (c *Conn) handleCommit() (err error) {
+func (c *frontConn) handleCommit() (err error) {
 	if err := c.commit(); err != nil {
 		return err
 	} else {
@@ -26,7 +26,7 @@ func (c *Conn) handleCommit() (err error) {
 	}
 }
 
-func (c *Conn) handleRollback() (err error) {
+func (c *frontConn) handleRollback() (err error) {
 	if err := c.rollback(); err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (c *Conn) handleRollback() (err error) {
 	return c.writeOK(nil)
 }
 
-func (c *Conn) commit() (err error) {
+func (c *frontConn) commit() (err error) {
 	c.status &= ^SERVER_STATUS_IN_TRANS
 
 	for _, co := range c.txConns {
@@ -44,12 +44,12 @@ func (c *Conn) commit() (err error) {
 		co.Close()
 	}
 
-	c.txConns = map[*Node]*client.SqlConn{}
+	c.txConns = map[*Node]*backend.SqlConn{}
 
 	return
 }
 
-func (c *Conn) rollback() (err error) {
+func (c *frontConn) rollback() (err error) {
 	c.status &= ^SERVER_STATUS_IN_TRANS
 
 	for _, co := range c.txConns {
@@ -59,7 +59,7 @@ func (c *Conn) rollback() (err error) {
 		co.Close()
 	}
 
-	c.txConns = map[*Node]*client.SqlConn{}
+	c.txConns = map[*Node]*backend.SqlConn{}
 
 	return
 }
@@ -67,6 +67,6 @@ func (c *Conn) rollback() (err error) {
 //if status is in_trans, need
 //else if status is not autocommit, need
 //else no need
-func (c *Conn) needBeginTx() bool {
+func (c *frontConn) needBeginTx() bool {
 	return c.isInTransaction() || !c.isAutoCommit()
 }

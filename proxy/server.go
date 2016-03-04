@@ -93,7 +93,7 @@ func (s *Server) onConn(c net.Conn) {
 		conn.Close()
 	}()
 
-	if err := conn.Handshake(); err != nil {
+	if err := conn.handshake(); err != nil {
 		AppLog.Warn("handshake error %s", err.Error())
 		c.Close()
 		return

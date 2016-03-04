@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/bytedance/dbatman/config"
-	"github.com/bytedance/dbatman/log"
+	. "github.com/bytedance/dbatman/log"
 	"github.com/bytedance/dbatman/proxy"
 	"net/http"
 	_ "net/http/pprof"

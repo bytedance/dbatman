@@ -59,7 +59,7 @@ func (db *DB) Close() error {
 	for i := range db.idleConns {
 		if db.idleConns[i].Len() > 0 {
 			v := db.idleConns[i].Back()
-			co := v.Value.(*Conn)
+			co := v.Value.(*BackendConn)
 			db.idleConns[i].Remove(v)
 			co.Close()
 		} else {
@@ -91,7 +91,7 @@ func (db *DB) GetConnNum() int {
 }
 
 func (db *DB) newConn() (*BackendConn, error) {
-	co := new(Conn)
+	co := new(BackendConn)
 
 	if err := co.Connect(db.addr, db.user, db.password, db.db); err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func (db *DB) PopConn() (co *BackendConn, err error) {
 	db.Lock()
 	if db.idleConns[idx].Len() > 0 {
 		v := db.idleConns[idx].Front()
-		co = v.Value.(*Conn)
+		co = v.Value.(*BackendConn)
 		db.idleConns[idx].Remove(v)
 	}
 	db.Unlock()
@@ -155,7 +155,7 @@ func (db *DB) PopConn() (co *BackendConn, err error) {
 }
 
 func (db *DB) PushConn(co *BackendConn, err error) {
-	var closeConn *Conn = nil
+	var closeConn *BackendConn = nil
 
 	if err != nil {
 		closeConn = co
@@ -165,7 +165,7 @@ func (db *DB) PushConn(co *BackendConn, err error) {
 			db.Lock()
 			if db.idleConns[idx].Len() >= db.maxIdleConns {
 				v := db.idleConns[idx].Front()
-				closeConn = v.Value.(*Conn)
+				closeConn = v.Value.(*BackendConn)
 				db.idleConns[idx].Remove(v)
 			}
 			db.idleConns[idx].PushBack(co)
@@ -191,9 +191,9 @@ type SqlConn struct {
 }
 
 func (p *SqlConn) Close() {
-	if p.Conn != nil {
-		p.db.PushConn(p.Conn, p.Conn.pkgErr)
-		p.Conn = nil
+	if p.BackendConn != nil {
+		p.db.PushConn(p.BackendConn, p.BackendConn.pkgErr)
+		p.BackendConn = nil
 	}
 }
 
