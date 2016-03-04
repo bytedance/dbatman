@@ -1,7 +1,10 @@
 language: go
-
+sudo: false
 go:
   - 1.5
+
+before_install:
+  - go get golang.org/x/tools/cmd/cover
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
