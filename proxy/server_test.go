@@ -1,5 +1,6 @@
 package proxy
 
+/*
 import (
 	"github.com/bytedance/dbatman/backend"
 	"github.com/bytedance/dbatman/config"
@@ -11,55 +12,55 @@ import (
 var testServerOnce sync.Once
 var testServer *Server
 var testDBOnce sync.Once
-var testDB *client.DB
+var testDB *backend.DB
 
 var testConfigData = []byte(`
 addr : 127.0.0.1:4000
 user : root
-password : root 
+password : root
 
 nodes :
-- 
-    name : node1 
+-
+    name : node1
     down_after_noalive : 300
     idle_conns : 16
     rw_split: false
     user: root
-    password: 
+    password:
     master : 127.0.0.1:4306
-    slave : 
-- 
+    slave :
+-
     name : node2
     down_after_noalive : 300
     idle_conns : 16
     rw_split: false
     user: root
-    password: 
+    password:
     master : 127.0.0.1:4307
 
-- 
-    name : node3 
+-
+    name : node3
     down_after_noalive : 300
     idle_conns : 16
     rw_split: false
     user: root
-    password: 
+    password:
     master : 127.0.0.1:4308
 
 schemas :
 -
-    db : proxy_test 
+    db : proxy_test
     nodes: [node1, node2, node3]
     rules:
-        default: node1 
+        default: node1
         shard:
-            -   
+            -
                 table: proxy_test_shard_hash
                 key: id
                 nodes: [node2, node3]
                 type: hash
 
-            -   
+            -
                 table: proxy_test_shard_range
                 key: id
                 nodes: [node2, node3]
@@ -89,12 +90,12 @@ func newTestServer(t *testing.T) *Server {
 	return testServer
 }
 
-func newTestDB(t *testing.T) *client.DB {
+func newTestDB(t *testing.T) *backend.DB {
 	newTestServer(t)
 
 	f := func() {
 		var err error
-		testDB, err = client.Open("127.0.0.1:4000", "root", "", "go_proxy")
+		testDB, err = backend.Open("127.0.0.1:4000", "root", "", "go_proxy")
 
 		if err != nil {
 			t.Fatal(err)
@@ -107,7 +108,7 @@ func newTestDB(t *testing.T) *client.DB {
 	return testDB
 }
 
-func newTestDBConn(t *testing.T) *client.SqlConn {
+func newTestDBConn(t *testing.T) *backend.SqlConn {
 	db := newTestDB(t)
 
 	c, err := db.GetConn()
@@ -122,3 +123,4 @@ func newTestDBConn(t *testing.T) *client.SqlConn {
 func TestServer(t *testing.T) {
 	newTestServer(t)
 }
+*/

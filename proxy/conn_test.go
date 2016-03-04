@@ -1,5 +1,6 @@
 package proxy
 
+/*
 import (
 	. "github.com/bytedance/dbatman/mysql"
 	"testing"
@@ -377,3 +378,4 @@ func TestConn_SelectVersion(t *testing.T) {
 		}
 	}
 }
+*/

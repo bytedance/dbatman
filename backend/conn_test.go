@@ -1,10 +1,12 @@
 package backend
 
+/*
 import (
 	"fmt"
 	. "github.com/bytedance/dbatman/mysql"
 	"testing"
 )
+
 
 func newTestConn() *BackendConn {
 	c := new(BackendConn)
@@ -149,3 +151,5 @@ func TestConn_SetCharset(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+*/
