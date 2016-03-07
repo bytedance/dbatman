@@ -8,15 +8,24 @@
 
 package mysql
 
-type mysqlResult struct {
-	affectedRows int64
-	insertId     int64
+type mysqlTx struct {
+	mc *mysqlConn
 }
 
-func (res *mysqlResult) LastInsertId() (int64, error) {
-	return res.insertId, nil
+func (tx *mysqlTx) Commit() (err error) {
+	if tx.mc == nil || tx.mc.netConn == nil {
+		return ErrInvalidConn
+	}
+	err = tx.mc.exec("COMMIT")
+	tx.mc = nil
+	return
 }
 
-func (res *mysqlResult) RowsAffected() (int64, error) {
-	return res.affectedRows, nil
+func (tx *mysqlTx) Rollback() (err error) {
+	if tx.mc == nil || tx.mc.netConn == nil {
+		return ErrInvalidConn
+	}
+	err = tx.mc.exec("ROLLBACK")
+	tx.mc = nil
+	return
 }

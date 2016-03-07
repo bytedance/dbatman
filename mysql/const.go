@@ -1,152 +1,163 @@
+// Go MySQL Driver - A MySQL-Driver for Go's database/sql package
+//
+// Copyright 2012 The Go-MySQL-Driver Authors. All rights reserved.
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
+
 package mysql
 
 const (
-	MinProtocolVersion byte   = 10
-	MaxPayloadLen      int    = 1<<24 - 1
-	TimeFormat         string = "2006-01-02 15:04:05"
-	ServerVersion      string = "5.5.31-go_proxy-0.1"
+	minProtocolVersion byte = 10
+	maxPacketSize           = 1<<24 - 1
+	timeFormat              = "2006-01-02 15:04:05.999999"
+)
+
+// MySQL constants documentation:
+// http://dev.mysql.com/doc/internals/en/client-server-protocol.html
+
+const (
+	iOK          byte = 0x00
+	iLocalInFile byte = 0xfb
+	iEOF         byte = 0xfe
+	iERR         byte = 0xff
+)
+
+// https://dev.mysql.com/doc/internals/en/capability-flags.html#packet-Protocol::CapabilityFlags
+type clientFlag uint32
+
+const (
+	clientLongPassword clientFlag = 1 << iota
+	clientFoundRows
+	clientLongFlag
+	clientConnectWithDB
+	clientNoSchema
+	clientCompress
+	clientODBC
+	clientLocalFiles
+	clientIgnoreSpace
+	clientProtocol41
+	clientInteractive
+	clientSSL
+	clientIgnoreSIGPIPE
+	clientTransactions
+	clientReserved
+	clientSecureConn
+	clientMultiStatements
+	clientMultiResults
+	clientPSMultiResults
+	clientPluginAuth
+	clientConnectAttrs
+	clientPluginAuthLenEncClientData
+	clientCanHandleExpiredPasswords
+	clientSessionTrack
+	clientDeprecateEOF
 )
 
 const (
-	OK_HEADER          byte = 0x00
-	ERR_HEADER         byte = 0xff
-	EOF_HEADER         byte = 0xfe
-	LocalInFile_HEADER byte = 0xfb
+	comQuit byte = iota + 1
+	comInitDB
+	comQuery
+	comFieldList
+	comCreateDB
+	comDropDB
+	comRefresh
+	comShutdown
+	comStatistics
+	comProcessInfo
+	comConnect
+	comProcessKill
+	comDebug
+	comPing
+	comTime
+	comDelayedInsert
+	comChangeUser
+	comBinlogDump
+	comTableDump
+	comConnectOut
+	comRegisterSlave
+	comStmtPrepare
+	comStmtExecute
+	comStmtSendLongData
+	comStmtClose
+	comStmtReset
+	comSetOption
+	comStmtFetch
 )
 
+// https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnType
 const (
-	SERVER_STATUS_IN_TRANS             uint16 = 0x0001
-	SERVER_STATUS_AUTOCOMMIT           uint16 = 0x0002
-	SERVER_MORE_RESULTS_EXISTS         uint16 = 0x0008
-	SERVER_STATUS_NO_GOOD_INDEX_USED   uint16 = 0x0010
-	SERVER_STATUS_NO_INDEX_USED        uint16 = 0x0020
-	SERVER_STATUS_CURSOR_EXISTS        uint16 = 0x0040
-	SERVER_STATUS_LAST_ROW_SEND        uint16 = 0x0080
-	SERVER_STATUS_DB_DROPPED           uint16 = 0x0100
-	SERVER_STATUS_NO_BACKSLASH_ESCAPED uint16 = 0x0200
-	SERVER_STATUS_METADATA_CHANGED     uint16 = 0x0400
-	SERVER_QUERY_WAS_SLOW              uint16 = 0x0800
-	SERVER_PS_OUT_PARAMS               uint16 = 0x1000
+	fieldTypeDecimal byte = iota
+	fieldTypeTiny
+	fieldTypeShort
+	fieldTypeLong
+	fieldTypeFloat
+	fieldTypeDouble
+	fieldTypeNULL
+	fieldTypeTimestamp
+	fieldTypeLongLong
+	fieldTypeInt24
+	fieldTypeDate
+	fieldTypeTime
+	fieldTypeDateTime
+	fieldTypeYear
+	fieldTypeNewDate
+	fieldTypeVarChar
+	fieldTypeBit
+)
+const (
+	fieldTypeJSON byte = iota + 0xf5
+	fieldTypeNewDecimal
+	fieldTypeEnum
+	fieldTypeSet
+	fieldTypeTinyBLOB
+	fieldTypeMediumBLOB
+	fieldTypeLongBLOB
+	fieldTypeBLOB
+	fieldTypeVarString
+	fieldTypeString
+	fieldTypeGeometry
 )
 
-const (
-	COM_SLEEP byte = iota
-	COM_QUIT
-	COM_INIT_DB
-	COM_QUERY
-	COM_FIELD_LIST
-	COM_CREATE_DB
-	COM_DROP_DB
-	COM_REFRESH
-	COM_SHUTDOWN
-	COM_STATISTICS
-	COM_PROCESS_INFO
-	COM_CONNECT
-	COM_PROCESS_KILL
-	COM_DEBUG
-	COM_PING
-	COM_TIME
-	COM_DELAYED_INSERT
-	COM_CHANGE_USER
-	COM_BINLOG_DUMP
-	COM_TABLE_DUMP
-	COM_CONNECT_OUT
-	COM_REGISTER_SLAVE
-	COM_STMT_PREPARE
-	COM_STMT_EXECUTE        // 23
-	COM_STMT_SEND_LONG_DATA // 24
-	COM_STMT_CLOSE
-	COM_STMT_RESET
-	COM_SET_OPTION
-	COM_STMT_FETCH
-	COM_DAEMON
-	COM_BINLOG_DUMP_GTID
-	COM_RESET_CONNECTION
-)
+type fieldFlag uint16
 
 const (
-	CLIENT_LONG_PASSWORD uint32 = 1 << iota
-	CLIENT_FOUND_ROWS
-	CLIENT_LONG_FLAG
-	CLIENT_CONNECT_WITH_DB
-	CLIENT_NO_SCHEMA
-	CLIENT_COMPRESS
-	CLIENT_ODBC
-	CLIENT_LOCAL_FILES
-	CLIENT_IGNORE_SPACE
-	CLIENT_PROTOCOL_41
-	CLIENT_INTERACTIVE
-	CLIENT_SSL
-	CLIENT_IGNORE_SIGPIPE
-	CLIENT_TRANSACTIONS
-	CLIENT_RESERVED
-	CLIENT_SECURE_CONNECTION
-	CLIENT_MULTI_STATEMENTS
-	CLIENT_MULTI_RESULTS
-	CLIENT_PS_MULTI_RESULTS
-	CLIENT_PLUGIN_AUTH
-	CLIENT_CONNECT_ATTRS
-	CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
+	flagNotNULL fieldFlag = 1 << iota
+	flagPriKey
+	flagUniqueKey
+	flagMultipleKey
+	flagBLOB
+	flagUnsigned
+	flagZeroFill
+	flagBinary
+	flagEnum
+	flagAutoIncrement
+	flagTimestamp
+	flagSet
+	flagUnknown1
+	flagUnknown2
+	flagUnknown3
+	flagUnknown4
 )
 
-const (
-	MYSQL_TYPE_DECIMAL byte = iota
-	MYSQL_TYPE_TINY
-	MYSQL_TYPE_SHORT
-	MYSQL_TYPE_LONG
-	MYSQL_TYPE_FLOAT
-	MYSQL_TYPE_DOUBLE
-	MYSQL_TYPE_NULL
-	MYSQL_TYPE_TIMESTAMP
-	MYSQL_TYPE_LONGLONG
-	MYSQL_TYPE_INT24
-	MYSQL_TYPE_DATE
-	MYSQL_TYPE_TIME
-	MYSQL_TYPE_DATETIME
-	MYSQL_TYPE_YEAR
-	MYSQL_TYPE_NEWDATE
-	MYSQL_TYPE_VARCHAR
-	MYSQL_TYPE_BIT
-)
+// http://dev.mysql.com/doc/internals/en/status-flags.html
+type statusFlag uint16
 
 const (
-	MYSQL_TYPE_NEWDECIMAL byte = iota + 0xf6
-	MYSQL_TYPE_ENUM
-	MYSQL_TYPE_SET
-	MYSQL_TYPE_TINY_BLOB
-	MYSQL_TYPE_MEDIUM_BLOB
-	MYSQL_TYPE_LONG_BLOB
-	MYSQL_TYPE_BLOB
-	MYSQL_TYPE_VAR_STRING
-	MYSQL_TYPE_STRING
-	MYSQL_TYPE_GEOMETRY
-)
-
-const (
-	NOT_NULL_FLAG       = 1
-	PRI_KEY_FLAG        = 2
-	UNIQUE_KEY_FLAG     = 4
-	BLOB_FLAG           = 16
-	UNSIGNED_FLAG       = 32
-	ZEROFILL_FLAG       = 64
-	BINARY_FLAG         = 128
-	ENUM_FLAG           = 256
-	AUTO_INCREMENT_FLAG = 512
-	TIMESTAMP_FLAG      = 1024
-	SET_FLAG            = 2048
-	NUM_FLAG            = 32768
-	PART_KEY_FLAG       = 16384
-	GROUP_FLAG          = 32768
-	UNIQUE_FLAG         = 65536
-)
-
-const (
-	AUTH_NAME = "mysql_native_password"
-)
-
-const (
-	CURSOR_TYPE_NO_CURSOR byte = iota
-	CURSOR_TYPE_READ_ONLY
-	CURSOR_TYPE_FOR_UPDATE
-	CURSOR_TYPE_SCROLLABLE
+	statusInTrans statusFlag = 1 << iota
+	statusInAutocommit
+	statusReserved // Not in documentation
+	statusMoreResultsExists
+	statusNoGoodIndexUsed
+	statusNoIndexUsed
+	statusCursorExists
+	statusLastRowSent
+	statusDbDropped
+	statusNoBackslashEscapes
+	statusMetadataChanged
+	statusQueryWasSlow
+	statusPsOutParams
+	statusInTransReadonly
+	statusSessionStateChanged
 )
