@@ -80,12 +80,12 @@ func (s *Server) onConn(c net.Conn) {
 	conn := s.newConn(c)
 
 	defer func() {
-		/*if err := recover(); err != nil {
+		if err := recover(); err != nil {
 			const size = 4096
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
 			AppLog.Warn("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
-		}*/
+		}
 
 		conn.Close()
 	}()
