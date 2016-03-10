@@ -31,3 +31,4 @@ _testmain.go
 .idea
 
 *.log
+coverage.txt

@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"github.com/bytedance/dbatman/config"
-	. "github.com/bytedance/dbatman/log"
 	"github.com/bytedance/dbatman/proxy"
 	"net/http"
 	_ "net/http/pprof"
@@ -13,9 +12,11 @@ import (
 	"syscall"
 )
 
-var configFile *string = flag.String("config", "etc/proxy.yaml", "go mysql proxy config file")
-var logLevel *int = flag.Int("loglevel", 0, "0-debug| 1-notice|2-warn|3-fatal")
-var logFile *string = flag.String("logfile", "log/proxy.log", "go mysql proxy logfile")
+var (
+	configFile *string = flag.String("config", "etc/proxy.yaml", "go mysql proxy config file")
+	logLevel   *int    = flag.Int("loglevel", 0, "0-debug| 1-notice|2-warn|3-fatal")
+	logFile    *string = flag.String("logfile", "log/proxy.log", "go mysql proxy logfile")
+)
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
