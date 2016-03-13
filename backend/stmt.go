@@ -2,7 +2,7 @@ package backend
 
 import (
 	"encoding/binary"
-	. "github.com/bytedance/dbatman/mysql"
+	. "github.com/bytedance/dbatman/database/sql/driver/mysql"
 )
 
 type Stmt struct {

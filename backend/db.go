@@ -3,7 +3,7 @@ package backend
 import (
 	"container/list"
 	"fmt"
-	. "github.com/bytedance/dbatman/mysql"
+	. "github.com/bytedance/dbatman/database/sql/driver/mysql"
 	"math/rand"
 	"runtime"
 	"sync"
