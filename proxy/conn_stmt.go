@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/bytedance/dbatman/backend"
+	"github.com/bytedance/dbatman/database/sql/driver/mysql"
 	. "github.com/bytedance/dbatman/log"
-	. "github.com/bytedance/dbatman/mysql"
 	"github.com/bytedance/dbatman/sql"
 	"strconv"
 )

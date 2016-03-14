@@ -20,6 +20,8 @@ import (
 	"github.com/juju/errors"
 )
 
+// MySQLServer is a server-side interface of 1-time-connection
+//
 type MySQLServer interface {
 	ConnID() uint32
 	Salt() []byte
@@ -35,12 +37,14 @@ type MySQLServer interface {
 	ServerName() []byte
 }
 
+// Connection between mysql client <-> mysql server
+// here we wrap the go-mysql-driver.mysqlConn
 type MySQLServerConn struct {
 	*mysqlConn
 	MySQLServer
 }
 
-func NewmysqlConn(s MySQLServer) *MySQLServerConn {
+func NewMySQLServerConn(s MySQLServer) *MySQLServerConn {
 	return &MySQLServerConn{
 		MySQLServer: s,
 	}
@@ -50,6 +54,8 @@ func NewmysqlConn(s MySQLServer) *MySQLServerConn {
 *                          Server-Side MySQL Error                            *
 ******************************************************************************/
 
+// SqlError is used for server-side, it represent a error during mysql connect or
+// query phase
 type SqlError struct {
 	*MySQLError
 	State string
@@ -84,7 +90,7 @@ func NewSqlError(errno uint16, args ...interface{}) *SqlError {
 
 // Handshake Initialization Packet
 // http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
-func (mc *MySQLServerConn) writeInitPacket() error {
+func (mc *MySQLServerConn) WriteInitPacket() error {
 	// preserved for write head
 	data := make([]byte, 4, 128)
 
@@ -136,7 +142,11 @@ func (mc *MySQLServerConn) writeInitPacket() error {
 	return nil
 }
 
-func (mc *MySQLServerConn) readHandshakeResponse() error {
+// ReadHandshakeResponse read the client handshake response, set the collations and
+// capability, check the authetication info.
+// for futher infomation, read the doc:
+// http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
+func (mc *MySQLServerConn) ReadHandshakeResponse() error {
 	data, err := mc.readPacket()
 	if err != nil {
 		return err
@@ -169,11 +179,11 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 	pos += authLen
 
 	if mc.Cap()&uint32(clientConnectWithDB) == 0 {
-		if err := mc.CheckAuth(user, auth, mc.DefaultDB()); err != nil {
+		if err := mc.CheckAuth(user, auth, ""); err != nil {
 			return err
 		}
 	} else {
-		// connect with db
+		// connect must with db, otherwise it will deny the access
 		if len(data[pos:]) == 0 {
 			return errors.Trace(NewSqlError(ER_ACCESS_DENIED_ERROR, mc.netConn.RemoteAddr().String(), user, "Yes"))
 		}
@@ -181,7 +191,7 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
 		pos += len(db) + 1
 
-		// check with db multi-user
+		// check with user
 		if err := mc.CheckAuth(user, auth, db); err != nil {
 			return errors.Trace(err)
 		}
@@ -189,6 +199,10 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 
 	return nil
 }
+
+/******************************************************************************
+*                   Function Wrapper for Export Visiable                      *
+******************************************************************************/
 
 func (mc *mysqlConn) HandleOkPacket(data []byte) error {
 	return mc.handleOkPacket(data)

@@ -3,7 +3,7 @@ package proxy
 import (
 	"bytes"
 	"fmt"
-	. "github.com/bytedance/dbatman/mysql"
+	. "github.com/bytedance/dbatman/database/sql/driver/mysql"
 	"github.com/bytedance/dbatman/sql"
 )
 
