@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/bytedance/dbatman/mysql"
+	"github.com/bytedance/dbatman/database/sql/driver/mysql"
 	"net"
 	"strings"
 	"time"

@@ -76,6 +76,16 @@ type Queryer interface {
 	Query(query string, args []Value) (Rows, error)
 }
 
+// RawQueryer is an optional interface that may be implemented by a Conn.
+//
+// If a Conn does not implememnt RawQueryer, the sql package's DB.RawQuery will
+// first prepare a query, execute the statement, and the clonse the statement.
+//
+// RawQueryer may return ErrSkip
+type RawQueryer interface {
+	RawQuery(query string, args []Value) (Value, error)
+}
+
 // Conn is a connection to a database. It is not used concurrently
 // by multiple goroutines.
 //
