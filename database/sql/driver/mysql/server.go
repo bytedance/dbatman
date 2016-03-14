@@ -17,7 +17,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	_ "github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/juju/errors"
+	"net"
 )
 
 // MySQLServer is a server-side interface of 1-time-connection
@@ -30,6 +32,8 @@ type MySQLServer interface {
 
 	Cap() uint32
 	SetCap(c uint32)
+
+	ResetSequence()
 
 	CheckAuth(user string, auth []byte, db string) error
 
@@ -44,10 +48,43 @@ type MySQLServerConn struct {
 	MySQLServer
 }
 
-func NewMySQLServerConn(s MySQLServer) *MySQLServerConn {
-	return &MySQLServerConn{
-		MySQLServer: s,
+// Hnadshake init handshake package to the client, wait for client autheticate
+// response.
+func Handshake(s MySQLServer, conn net.Conn) (*MySQLServerConn, error) {
+	c := new(MySQLServerConn)
+	var err error = nil
+
+	c.MySQLServer = s
+
+	c.mysqlConn = &mysqlConn{
+		maxPacketAllowed: maxPacketSize,
+		maxWriteSize:     maxPacketSize - 1,
+		netConn:          conn,
 	}
+
+	c.buf = newBuffer(c.netConn)
+
+	// Handeshake
+	if err = c.writeInitPacket(); err != nil {
+		c.cleanup()
+		return nil, errors.Trace(err)
+	}
+
+	if err = c.readHandshakeResponse(); err != nil {
+		c.WriteError(err)
+		c.cleanup()
+		return nil, errors.Trace(err)
+	}
+
+	// TODO here we should proceed PROTOCOL41 ?
+	if err = c.WriteOK(nil); err != nil {
+		c.cleanup()
+		return nil, errors.Trace(err)
+	}
+
+	c.ResetSequence()
+
+	return c, err
 }
 
 /******************************************************************************
@@ -90,7 +127,7 @@ func NewSqlError(errno uint16, args ...interface{}) *SqlError {
 
 // Handshake Initialization Packet
 // http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
-func (mc *MySQLServerConn) WriteInitPacket() error {
+func (mc *MySQLServerConn) writeInitPacket() error {
 	// preserved for write head
 	data := make([]byte, 4, 128)
 
@@ -146,7 +183,7 @@ func (mc *MySQLServerConn) WriteInitPacket() error {
 // capability, check the authetication info.
 // for futher infomation, read the doc:
 // http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
-func (mc *MySQLServerConn) ReadHandshakeResponse() error {
+func (mc *MySQLServerConn) readHandshakeResponse() error {
 	data, err := mc.readPacket()
 	if err != nil {
 		return err
@@ -193,11 +230,66 @@ func (mc *MySQLServerConn) ReadHandshakeResponse() error {
 
 		// check with user
 		if err := mc.CheckAuth(user, auth, db); err != nil {
-			return errors.Trace(err)
+			return err
 		}
 	}
 
 	return nil
+}
+
+/******************************************************************************
+*                   Function Send Packets to front client                     *
+******************************************************************************/
+
+type MySQLResult struct {
+	*mysqlResult
+	Status   uint16
+	Warnings uint16
+}
+
+// WriteError write error package to the client
+func (mc *MySQLServerConn) WriteError(e error) error {
+	var m *SqlError
+	var ok bool
+	if m, ok = e.(*SqlError); !ok {
+		m = NewSqlError(ER_UNKNOWN_ERROR, e.Error())
+	}
+
+	data := mc.buf.takeSmallBuffer(16 + len(m.Message))
+
+	data = append(data, ERR)
+	data = append(data, byte(m.Number), byte(m.Number>>8))
+
+	if mc.Cap()&uint32(clientProtocol41) > 0 {
+		data = append(data, '#')
+		data = append(data, m.State...)
+	}
+
+	data = append(data, m.Message...)
+
+	return mc.writePacket(data)
+}
+
+// WriteOk write ok package to the client
+func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
+	if r == nil {
+		r = &MySQLResult{Status: mc.Status()}
+	}
+	data := mc.buf.takeSmallBuffer(32)
+
+	data = append(data, OK)
+
+	rows, _ := r.RowsAffected()
+	insertId, _ := r.LastInsertId()
+	data = append(data, PutLengthEncodedInt(uint64(rows))...)
+	data = append(data, PutLengthEncodedInt(uint64(insertId))...)
+
+	if mc.Cap()&uint32(clientProtocol41) > 0 {
+		data = append(data, byte(r.Status), byte(r.Status>>8))
+		data = append(data, byte(r.Warnings), byte(r.Warnings>>8))
+	}
+
+	return mc.writePacket(data)
 }
 
 /******************************************************************************
