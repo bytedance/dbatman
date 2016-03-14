@@ -14,7 +14,10 @@
 package mysql
 
 import (
+	"bytes"
 	"encoding/binary"
+	"fmt"
+	"github.com/juju/errors"
 )
 
 type MySQLServer interface {
@@ -22,7 +25,14 @@ type MySQLServer interface {
 	Salt() []byte
 	Collation() uint8
 	Status() uint16
+
 	Cap() uint32
+	SetCap(c uint32)
+
+	CheckAuth(user string, auth []byte, db string) error
+
+	DefaultDB() string
+	ServerName() []byte
 }
 
 type MySQLServerConn struct {
@@ -37,10 +47,40 @@ func NewMySQLConn(s MySQLServer) *MySQLServerConn {
 }
 
 /******************************************************************************
-*                           Initialisation Process                            *
+*                          Server-Side MySQL Error                            *
 ******************************************************************************/
 
-const serverVersion = "dbatman mysql-proxy 1.0"
+type SqlError struct {
+	*MySQLError
+	State string
+}
+
+func NewSqlError(errno uint16, args ...interface{}) *SqlError {
+
+	e := &SqlError{
+		MySQLError: &MySQLError{},
+	}
+	e.Number = errno
+
+	if s, ok := MySQLState[errno]; ok {
+		e.State = s
+	} else {
+		e.State = DEFAULT_MYSQL_STATE
+	}
+
+	if format, ok := MySQLErrName[errno]; ok {
+		e.Message = fmt.Sprintf(format, args...)
+	} else {
+		e.Message = fmt.Sprint(args...)
+	}
+
+	return e
+
+}
+
+/******************************************************************************
+*                   Server-Side Initialisation Process                        *
+******************************************************************************/
 
 // Handshake Initialization Packet
 // http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
@@ -52,7 +92,7 @@ func (mc *MySQLServerConn) writeInitPacket() error {
 	data = append(data, 10)
 
 	// server version[00]
-	data = append(data, serverVersion...)
+	data = append(data, mc.ServerName()...)
 	data = append(data, 0)
 
 	// connection id
@@ -96,7 +136,7 @@ func (mc *MySQLServerConn) writeInitPacket() error {
 	return nil
 }
 
-func (mc *MySQLConn) readHandshakeResponse() error {
+func (mc *MySQLServerConn) readHandshakeResponse() error {
 	data, err := mc.readPacket()
 	if err != nil {
 		return err
@@ -105,7 +145,7 @@ func (mc *MySQLConn) readHandshakeResponse() error {
 	pos := 0
 
 	//capability
-	mc.capability = binary.LittleEndian.Uint32(data[:4])
+	mc.SetCap(binary.LittleEndian.Uint32(data[:4]))
 	pos += 4
 
 	//skip max packet size
@@ -119,8 +159,8 @@ func (mc *MySQLConn) readHandshakeResponse() error {
 	pos += 23
 
 	//user name
-	c.user = string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
-	pos += len(c.user) + 1
+	user := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
+	pos += len(user) + 1
 
 	//auth length and auth
 	authLen := int(data[pos])
@@ -128,21 +168,21 @@ func (mc *MySQLConn) readHandshakeResponse() error {
 	auth := data[pos : pos+authLen]
 	pos += authLen
 
-	if c.capability&mysql.CLIENT_CONNECT_WITH_DB == 0 {
-		if err := c.checkAuth(auth); err != nil {
+	if mc.Cap()&uint32(clientConnectWithDB) == 0 {
+		if err := mc.CheckAuth(user, auth, mc.DefaultDB()); err != nil {
 			return err
 		}
 	} else {
 		// connect with db
 		if len(data[pos:]) == 0 {
-			return errors.Trace(mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.conn.RemoteAddr().String(), c.user, "Yes"))
+			return errors.Trace(NewSqlError(ER_ACCESS_DENIED_ERROR, mc.netConn.RemoteAddr().String(), user, "Yes"))
 		}
 
 		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
-		pos += len(c.db) + 1
+		pos += len(db) + 1
 
 		// check with db multi-user
-		if err := c.checkAuthWithDB(auth, db); err != nil {
+		if err := mc.CheckAuth(user, auth, db); err != nil {
 			return errors.Trace(err)
 		}
 	}
