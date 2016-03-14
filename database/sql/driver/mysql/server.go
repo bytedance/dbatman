@@ -36,11 +36,11 @@ type MySQLServer interface {
 }
 
 type MySQLServerConn struct {
-	*MySQLConn
+	*mysqlConn
 	MySQLServer
 }
 
-func NewMySQLConn(s MySQLServer) *MySQLServerConn {
+func NewmysqlConn(s MySQLServer) *MySQLServerConn {
 	return &MySQLServerConn{
 		MySQLServer: s,
 	}
@@ -190,10 +190,10 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 	return nil
 }
 
-func (mc *MySQLConn) HandleOkPacket(data []byte) error {
+func (mc *mysqlConn) HandleOkPacket(data []byte) error {
 	return mc.handleOkPacket(data)
 }
 
-func (mc *MySQLConn) HandleErrorPacket(data []byte) error {
+func (mc *mysqlConn) HandleErrorPacket(data []byte) error {
 	return mc.handleErrorPacket(data)
 }

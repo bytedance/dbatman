@@ -48,8 +48,8 @@ func RegisterDial(net string, dial DialFunc) {
 func (d MySQLDriver) Open(dsn string) (driver.Conn, error) {
 	var err error
 
-	// New MySQLConn
-	mc := &MySQLConn{
+	// New mysqlConn
+	mc := &mysqlConn{
 		maxPacketAllowed: maxPacketSize,
 		maxWriteSize:     maxPacketSize - 1,
 	}
@@ -130,7 +130,7 @@ func (d MySQLDriver) Open(dsn string) (driver.Conn, error) {
 	return mc, nil
 }
 
-func handleAuthResult(mc *MySQLConn, cipher []byte) error {
+func handleAuthResult(mc *mysqlConn, cipher []byte) error {
 	// Read Result Packet
 	err := mc.readResultOK()
 	if err == nil {

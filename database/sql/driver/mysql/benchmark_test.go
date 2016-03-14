@@ -215,7 +215,7 @@ func BenchmarkRoundtripBin(b *testing.B) {
 }
 
 func BenchmarkInterpolation(b *testing.B) {
-	mc := &MySQLConn{
+	mc := &mysqlConn{
 		cfg: &Config{
 			InterpolateParams: true,
 			Loc:               time.UTC,

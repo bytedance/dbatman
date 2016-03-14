@@ -22,7 +22,7 @@ type mysqlField struct {
 }
 
 type mysqlRows struct {
-	mc      *MySQLConn
+	mc      *mysqlConn
 	columns []mysqlField
 }
 

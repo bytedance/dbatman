@@ -9,7 +9,7 @@
 package mysql
 
 type mysqlTx struct {
-	mc *MySQLConn
+	mc *mysqlConn
 }
 
 func (tx *mysqlTx) Commit() (err error) {
