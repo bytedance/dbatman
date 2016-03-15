@@ -40,7 +40,6 @@ import (
 	"fmt"
 	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/juju/errors"
 	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
-	"github.com/bytedance/dbatman/backend"
 	"github.com/bytedance/dbatman/database/sql/driver/mysql"
 	"github.com/bytedance/dbatman/hack"
 	"net"
