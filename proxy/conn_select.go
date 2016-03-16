@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/sql"
+	"github.com/bytedance/dbatman/parser"
 )
 
 func (c *frontConn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
@@ -36,7 +36,7 @@ func (c *frontConn) handleFieldList(data []byte) error {
 	wildcard := string(data[index+1:])
 
 	if c.schema == nil {
-		return NewDefaultError(ER_NO_DB_ERROR)
+		return NewDefaultError(mysql.ER_NO_DB_ERROR)
 	}
 
 	co, err := c.schema.node.getMasterConn()
@@ -82,7 +82,7 @@ func (c *frontConn) handleSelect(stmt sql.IStatement, sqlstmt string) error {
 	}
 
 	isread := false
-	if s, ok := stmt.(sql.ISelect); ok {
+	if s, ok := stmt.(parser.ISelect); ok {
 		isread = !s.IsLocked()
 	} else if _, sok := stmt.(sql.IShow); sok {
 		isread = true

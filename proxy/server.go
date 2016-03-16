@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"github.com/bytedance/dbatman/config"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/juju/errors"
 	"github.com/ngaut/log"
 	"net"
@@ -53,13 +54,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) Run() error {
+func (s *Server) Serve() error {
 	s.running = true
 
 	for s.running {
 		conn, err := s.listener.Accept()
 		if err != nil {
-			SysLog.Warn("accept error %s", err.Error())
+			log.Warning("accept error %s", err.Error())
 			continue
 		}
 
@@ -69,32 +70,36 @@ func (s *Server) Run() error {
 	return nil
 }
 
+// TODO check this function if it need routine-safe
 func (s *Server) Close() {
 	s.running = false
 	if s.listener != nil {
 		s.listener.Close()
+		s.listener = nil
 	}
 }
 
 func (s *Server) onConn(c net.Conn) {
-	conn := s.newConn(c)
+	ctx := s.newCtx()
+	mc := mysql.NewMySQLServerConn(ctx, c)
 
 	defer func() {
 		if err := recover(); err != nil {
 			const size = 4096
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			AppLog.Warn("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
+			log.Fatal("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
 		}
 
-		conn.Close()
+		ctx.Close()
 	}()
 
-	if err := conn.handshake(); err != nil {
-		AppLog.Warn("handshake error %s", err.Error())
-		c.Close()
+	if err := mysql.Handshake(); err != nil {
+		log.Warning("handshake error: %s", err.Error())
 		return
 	}
 
-	conn.Run()
+	ctx.front = mc
+
+	ctx.Run()
 }
