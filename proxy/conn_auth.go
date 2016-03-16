@@ -2,8 +2,7 @@ package proxy
 
 import (
 	"bytes"
-	. "github.com/bytedance/dbatman/database/sql/driver/mysql"
-	. "github.com/bytedance/dbatman/log"
+	"github.com/bytedance/dbatman/database/mysql"
 )
 
 func (c *frontConn) checkAuth(auth []byte) error {

@@ -2,18 +2,12 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/database/sql/driver/mysql"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/sql"
 )
 
 func (c *frontConn) handleQuery(sqlstmt string) (err error) {
-	/*defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("execute %s error %v", sql, e)
-			return
-		}
-	}()*/
 
 	var stmt sql.IStatement
 	stmt, err = sql.Parse(sqlstmt)

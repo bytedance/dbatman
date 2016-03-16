@@ -40,7 +40,7 @@ import (
 	"fmt"
 	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/juju/errors"
 	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
-	"github.com/bytedance/dbatman/database/sql/driver/mysql"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 	"net"
 	"runtime"
@@ -51,40 +51,6 @@ import (
 var DEFAULT_CAPABILITY uint32 = mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_LONG_FLAG |
 	mysql.CLIENT_CONNECT_WITH_DB | mysql.CLIENT_PROTOCOL_41 |
 	mysql.CLIENT_TRANSACTIONS | mysql.CLIENT_SECURE_CONNECTION
-
-type frontConn struct {
-	sync.Mutex
-
-	pkg        *mysql.PacketIO
-	conn       net.Conn
-	server     *Server
-	capability uint32
-	connID     uint32
-
-	status    uint16
-	collation mysql.CollationId
-	charset   string
-
-	user    string
-	possdbs []string
-
-	db   string
-	salt []byte
-
-	schema *Schema
-
-	txConns map[*Node]*backend.SqlConn
-
-	closed bool
-
-	lastInsertId int64
-	affectedRows int64
-	lastCmd      string
-
-	stmtId uint32
-
-	stmts map[uint32]*Stmt
-}
 
 var baseConnId uint32 = 10000
 

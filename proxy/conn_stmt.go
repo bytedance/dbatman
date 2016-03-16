@@ -3,7 +3,7 @@ package proxy
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/bytedance/dbatman/database/sql/driver/mysql"
+	"github.com/bytedance/dbatman/database/mysql"
 	. "github.com/bytedance/dbatman/log"
 	"github.com/bytedance/dbatman/sql"
 	"strconv"
@@ -33,8 +33,6 @@ type Stmt struct {
 	s sql.IStatement
 
 	sqlstmt string
-
-	cstmt *backend.Stmt
 }
 
 func (s *Stmt) ClearParams() {

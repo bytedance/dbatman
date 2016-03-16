@@ -2,9 +2,8 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/backend"
 	"github.com/bytedance/dbatman/config"
-	. "github.com/bytedance/dbatman/log"
+	"github.com/bytedance/dbatman/database/sql"
 	"sync"
 	"time"
 )
@@ -22,10 +21,10 @@ type Node struct {
 	cfg config.NodeConfig
 
 	//running master db
-	db *backend.DB
+	db *sql.DB
 
-	master *backend.DB
-	slave  *backend.DB
+	master *sql.DB
+	slave  *sql.DB
 
 	downAfterNoAlive time.Duration
 
