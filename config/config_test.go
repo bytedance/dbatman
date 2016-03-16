@@ -17,7 +17,7 @@ func TestConfig(t *testing.T) {
 		Port:              3306,
 		ManagePort:        3307,
 		MaxConnections:    10,
-		LogFilename:       "/var/log/tiger/dbatman.log",
+		LogFilename:       "./log/dbatman.log",
 		LogLevel:          1,
 		LogMaxSize:        1024,
 		ClientTimeout:     1800,
