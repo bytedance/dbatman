@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
 	"github.com/bytedance/dbatman/Godeps/_workspace/src/gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -9,9 +10,9 @@ import (
 	"time"
 )
 
-var conf CONF
+var conf Conf
 
-type CONF struct {
+type Conf struct {
 	path             string
 	lastModifiedTime time.Time
 	mu               sync.RWMutex
@@ -70,12 +71,12 @@ type UserConfig struct {
 
 func (p *ProxyConfig) GetMasterNodefromClusterByName(clusterName string) *NodeConfig {
 	if p == nil || p.Clusters == nil {
-		fmt.Printf("GetMasterNodefromClusterByName p==nil or p.Clusters==nil")
+		log.Errorf("GetMasterNodefromClusterByName p==nil or p.Clusters==nil")
 		return nil
 	}
 	node := p.Clusters[clusterName]
 	if node == nil || node.Master == nil {
-		fmt.Printf("GetMasterNodefromClusterByName cluster %s do not exist", clusterName)
+		log.Errorf("GetMasterNodefromClusterByName cluster %s do not exist", clusterName)
 		return nil
 	}
 	return node.Master
@@ -83,12 +84,12 @@ func (p *ProxyConfig) GetMasterNodefromClusterByName(clusterName string) *NodeCo
 
 func (p *ProxyConfig) GetSlaveNodesfromClusterByName(clusterName string) []*NodeConfig {
 	if p == nil || p.Clusters == nil {
-		fmt.Printf("GetSlaveNodesfromCluster p==nil or p.Clusters==nil")
+		log.Errorf("GetSlaveNodesfromCluster p==nil or p.Clusters==nil")
 		return nil
 	}
 	node := p.Clusters[clusterName]
 	if node == nil {
-		fmt.Printf("GetSlaveNodesfromCluster cluster %s do not exist", clusterName)
+		log.Errorf("GetSlaveNodesfromCluster cluster %s do not exist", clusterName)
 		return nil
 	}
 	return node.Slaves
@@ -96,18 +97,18 @@ func (p *ProxyConfig) GetSlaveNodesfromClusterByName(clusterName string) []*Node
 
 func (p *ProxyConfig) GetUserByName(username string) *UserConfig {
 	if p == nil || p.Users == nil {
-		fmt.Printf("GetUserByName p==nil or p.Users==nil")
+		log.Errorf("GetUserByName p==nil or p.Users==nil")
 		return nil
 	}
 	user := p.Users[username]
 	if user == nil {
-		fmt.Printf("GetUserByName user %s do not exist", username)
+		log.Errorf("GetUserByName user %s do not exist", username)
 		return nil
 	}
 	return user
 }
 
-func (c *CONF) parseConfigFile(proxyConfig *ProxyConfig) error {
+func (c *Conf) parseConfigFile(proxyConfig *ProxyConfig) error {
 	data, err := ioutil.ReadFile(c.path)
 	if err == nil {
 		err = yaml.Unmarshal([]byte(data), proxyConfig)
@@ -121,45 +122,45 @@ func (c *CONF) parseConfigFile(proxyConfig *ProxyConfig) error {
 	return err
 }
 
-func (c *CONF) GetConfig() *ProxyConfig {
+func (c *Conf) GetConfig() *ProxyConfig {
 	c.mu.RLock()
 	proxyConfig := c.proxyConfig
 	c.mu.RUnlock()
 	return proxyConfig
 }
 
-func (c *CONF) CheckConfigUpdate() {
+func (c *Conf) CheckConfigUpdate() {
 	if c.proxyConfig.Global.ConfAutoload == 1 {
 		for {
 			time.Sleep(time.Minute)
-			fmt.Printf("CheckConfigUpdate checking")
+			log.Infof("CheckConfigUpdate checking")
 			fileinfo, err := os.Stat(c.path)
 			if err != nil {
-				fmt.Printf("CheckConfigUpdate error %s", err.Error())
+				log.Errorf("CheckConfigUpdate error %s", err.Error())
 				continue
 			}
-			//配置文件发生修改
+			//config been modified
 			if c.lastModifiedTime.Before(fileinfo.ModTime()) {
-				fmt.Printf("CheckConfigUpdate config change and load new config")
+				log.Infof("CheckConfigUpdate config change and load new config")
 				defaultProxyConfig := getDefaultProxyConfig()
 				err = c.parseConfigFile(defaultProxyConfig)
 				if err != nil {
-					fmt.Printf("CheckConfigUpdate error %s", err.Error())
+					log.Errorf("CheckConfigUpdate error %s", err.Error())
 					continue
 				}
 				c.lastModifiedTime = fileinfo.ModTime()
-				//单独goroutine执行加锁
+				//goroutine need mutex lock
 				c.mu.Lock()
 				c.proxyConfig = defaultProxyConfig
 				c.mu.Unlock()
-				fmt.Printf("CheckConfigUpdate new config load success")
+				log.Infof("CheckConfigUpdate new config load success")
 			}
 		}
 
 	}
 }
 
-func LoadConfig(path string) (*CONF, error) {
+func LoadConfig(path string) (*Conf, error) {
 	fileinfo, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -175,33 +176,32 @@ func LoadConfig(path string) (*CONF, error) {
 	return &conf, err
 }
 
-//检查配置文件的有效性
 func validateConfig(cfg *ProxyConfig) bool {
 	if cfg == nil {
 		return false
 	}
 
 	if len(cfg.Clusters) == 0 {
-		fmt.Printf("ValidateConfig 0 cluster")
+		log.Errorf("ValidateConfig 0 cluster")
 		return false
 	}
 
 	if len(cfg.Users) == 0 {
-		fmt.Printf("ValidateConfig 0 user")
+		log.Errorf("ValidateConfig 0 user")
 		return false
 	}
 
 	for username, user := range cfg.Users {
 		clusterName := user.ClusterName
 		if _, ok := cfg.Clusters[clusterName]; !ok {
-			fmt.Printf("ValidateConfig cluster %s belong to user %s do not exist", clusterName, username)
+			log.Errorf("ValidateConfig cluster %s belong to user %s do not exist", clusterName, username)
 			return false
 		}
 	}
 
 	for clusterName, cluster := range cfg.Clusters {
 		if cluster.Master == nil {
-			fmt.Printf("ValidateConfig cluster %s do not have master node", clusterName)
+			log.Errorf("ValidateConfig cluster %s do not have master node", clusterName)
 			return false
 		}
 	}
