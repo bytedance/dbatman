@@ -13,7 +13,11 @@
 
 package proxy
 
-import ()
+import (
+	"github.com/bytedance/dbatman/database/cluster"
+	"github.com/bytedance/dbatman/database/mysql"
+	"net"
+)
 
 var DEFAULT_CAPABILITY uint32 = mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_LONG_FLAG |
 	mysql.CLIENT_CONNECT_WITH_DB | mysql.CLIENT_PROTOCOL_41 |
@@ -21,7 +25,7 @@ var DEFAULT_CAPABILITY uint32 = mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_LONG_F
 
 var baseConnId uint32 = 10000
 
-type Context struct {
+type Session struct {
 	s         *Server
 	connID    uint32
 	status    uint32
@@ -29,26 +33,32 @@ type Context struct {
 	charset   uint32
 
 	salt []byte
+
+	cluster *cluster.Cluster
+
+	fc *mysql.MySQLServerConn
 }
 
-func (s *Server) newCtx() *Context {
-	c := new(Context)
+func (s *Server) newSession(conn net.Conn) *Session {
+	session := new(Session)
 
-	c.server = s
+	session.server = s
 
-	c.connID = atomic.AddUint32(&baseConnId, 1)
+	session.connID = atomic.AddUint32(&baseConnId, 1)
 
-	c.status = mysql.SERVER_STATUS_AUTOCOMMIT
+	session.status = mysql.SERVER_STATUS_AUTOCOMMIT
 
-	c.salt, _ = mysql.RandomBuf(20)
+	session.salt, _ = mysql.RandomBuf(20)
 
-	c.collation = mysql.DEFAULT_COLLATION_ID
-	c.charset = mysql.DEFAULT_CHARSET
+	session.collation = mysql.DEFAULT_COLLATION_ID
+	session.charset = mysql.DEFAULT_CHARSET
 
-	return c
+	session.fc = mysql.NewMySQLServerConn(session, conn)
+
+	return session
 }
 
-func (c *Context) Run() error {
+func (c *Session) Run() error {
 
 	for {
 		data, err := c.front.ReadPacket()

@@ -5,7 +5,7 @@ import (
 	"github.com/bytedance/dbatman/database/mysql"
 )
 
-func (c *Context) checkAuth(auth []byte) error {
+func (c *Session) checkAuth(auth []byte) error {
 	AppLog.Debug("checkAuth")
 	auths := c.server.getUserAuth(c.user)
 	if auths == nil {
@@ -23,7 +23,7 @@ func (c *Context) checkAuth(auth []byte) error {
 	return NewDefaultError(ER_ACCESS_DENIED_ERROR, c.conn.RemoteAddr().String(), c.user, "Yes")
 }
 
-func (c *Context) checkAuthWithDB(auth []byte, db string) error {
+func (c *Session) checkAuthWithDB(auth []byte, db string) error {
 	var s *Schema
 	if s = c.server.getSchema(db); s == nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)

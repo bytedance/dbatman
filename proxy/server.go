@@ -80,8 +80,7 @@ func (s *Server) Close() {
 }
 
 func (s *Server) onConn(c net.Conn) {
-	ctx := s.newCtx()
-	mc := mysql.NewMySQLServerConn(ctx, c)
+	session := s.newSession(c)
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -91,15 +90,16 @@ func (s *Server) onConn(c net.Conn) {
 			log.Fatal("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
 		}
 
-		ctx.Close()
+		session.Close()
 	}()
 
-	if err := mysql.Handshake(); err != nil {
+	// Handshake error, here we do not need to close the conn
+	if err := session.HandshakeWithFront(); err != nil {
 		log.Warning("handshake error: %s", err.Error())
 		return
 	}
 
-	ctx.front = mc
+	session.front = mc
 
-	ctx.Run()
+	session.Run()
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/bytedance/dbatman/parser"
 )
 
-func (c *Context) handleQuery(sqlstmt string) (err error) {
+func (c *Session) handleQuery(sqlstmt string) (err error) {
 
 	var stmt sql.IStatement
 	stmt, err = parser.Parse(sqlstmt)
@@ -56,7 +56,7 @@ func (c *Context) handleQuery(sqlstmt string) (err error) {
 	return nil
 }
 
-func (c *Context) getConn(n *Node, isSelect bool) (co *backend.SqlConn, err error) {
+func (c *Session) getConn(n *Node, isSelect bool) (co *backend.SqlConn, err error) {
 	if !c.needBeginTx() {
 		if isSelect {
 			co, err = n.getSelectConn()
@@ -103,7 +103,7 @@ func (c *Context) getConn(n *Node, isSelect bool) (co *backend.SqlConn, err erro
 	return
 }
 
-func (c *Context) closeDBConn(co *backend.SqlConn, rollback bool) {
+func (c *Session) closeDBConn(co *backend.SqlConn, rollback bool) {
 	// since we have DDL, and when server is not in autoCommit,
 	// we do not release the connection and will reuse it later
 	if c.isInTransaction() || !c.isAutoCommit() {
@@ -127,7 +127,7 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *Context) handleExec(stmt sql.IStatement, sqlstmt string, isread bool) error {
+func (c *Session) handleExec(stmt parser.IStatement, sqlstmt string, isread bool) error {
 
 	if err := c.checkDB(); err != nil {
 		return err
@@ -152,7 +152,7 @@ func (c *Context) handleExec(stmt sql.IStatement, sqlstmt string, isread bool) e
 	return err
 }
 
-func (c *Context) mergeSelectResult(rs *mysql.Result) error {
+func (c *Session) mergeSelectResult(rs *mysql.Result) error {
 	r := rs.Resultset
 	status := c.status | rs.Status
 	return c.writeResultset(status, r)

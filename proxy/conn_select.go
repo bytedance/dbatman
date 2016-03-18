@@ -7,7 +7,7 @@ import (
 	"github.com/bytedance/dbatman/parser"
 )
 
-func (c *frontConn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
+func (c *Session) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
 	field := &Field{}
 
 	field.Name = name
@@ -30,7 +30,7 @@ func (c *frontConn) buildSimpleSelectResult(value interface{}, name []byte, asNa
 	return r, nil
 }
 
-func (c *frontConn) handleFieldList(data []byte) error {
+func (c *Session) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
 	table := string(data[0:index])
 	wildcard := string(data[index+1:])
@@ -56,7 +56,7 @@ func (c *frontConn) handleFieldList(data []byte) error {
 	}
 }
 
-func (c *frontConn) writeFieldList(status uint16, fs []*Field) error {
+func (c *Session) writeFieldList(status uint16, fs []*Field) error {
 	c.affectedRows = int64(-1)
 
 	data := make([]byte, 4, 1024)
@@ -75,7 +75,7 @@ func (c *frontConn) writeFieldList(status uint16, fs []*Field) error {
 	return nil
 }
 
-func (c *frontConn) handleSelect(stmt sql.IStatement, sqlstmt string) error {
+func (c *Session) handleSelect(stmt parser.IStatement, sqlstmt string) error {
 
 	if err := c.checkDB(); err != nil {
 		return err
@@ -84,24 +84,23 @@ func (c *frontConn) handleSelect(stmt sql.IStatement, sqlstmt string) error {
 	isread := false
 	if s, ok := stmt.(parser.ISelect); ok {
 		isread = !s.IsLocked()
-	} else if _, sok := stmt.(sql.IShow); sok {
+	} else if _, sok := stmt.(parser.IShow); sok {
 		isread = true
 	}
 
-	conn, err := c.getConn(c.schema.node, isread)
+	db, err := c.cluster.DB(isread)
 
+	// TODO here if db is nil, then we should return a error?
 	if err != nil {
 		return err
-	} else if conn == nil {
+	} else if db == nil {
 		// r := c.newEmptyResultset(stmt)
 		// return c.writeResultset(c.status, r)
-		return fmt.Errorf("no available connection")
+		return fmt.Errorf("no available backend db")
 	}
 
 	var res *Result
-	res, err = conn.Execute(sqlstmt)
-
-	c.closeDBConn(conn, false)
+	res, err = db.Query(sqlstmt)
 
 	if err == nil {
 		err = c.mergeSelectResult(res)

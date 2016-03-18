@@ -41,7 +41,7 @@ import (
 	"github.com/bytedance/dbatman/hack"
 )
 
-func (ctx *Context) Close() error {
+func (ctx *Session) Close() error {
 	if ctx.closed {
 		return nil
 	}
@@ -60,7 +60,7 @@ func (ctx *Context) Close() error {
 	return nil
 }
 
-func (c *Context) dispatch(data []byte) error {
+func (c *Session) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
 
@@ -99,7 +99,7 @@ func (c *Context) dispatch(data []byte) error {
 	return nil
 }
 
-func (c *Context) useDB(db string) error {
+func (c *Session) useDB(db string) error {
 	if s := c.server.getSchema(db); s == nil {
 		return mysql.NewDefaultError(mysql.ER_BAD_DB_ERROR, db)
 	} else {
@@ -109,11 +109,11 @@ func (c *Context) useDB(db string) error {
 	return nil
 }
 
-func (c *Context) IsAutoCommit() bool {
+func (c *Session) IsAutoCommit() bool {
 	return c.status&mysql.SERVER_STATUS_AUTOCOMMIT > 0
 }
 
-func (c *Context) checkDB() error {
+func (c *Session) checkDB() error {
 	if c.schema != nil {
 		return nil
 	}
