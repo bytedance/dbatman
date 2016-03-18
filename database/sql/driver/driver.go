@@ -83,7 +83,7 @@ type Queryer interface {
 //
 // RawQueryer may return ErrSkip
 type RawQueryer interface {
-	RawQuery(query string, args []Value) (Value, error)
+	RawQuery(query string, args []Value) (ResultSet, error)
 }
 
 // Conn is a connection to a database. It is not used concurrently
@@ -118,6 +118,12 @@ type Result interface {
 	// RowsAffected returns the number of rows affected by the
 	// query.
 	RowsAffected() (int64, error)
+}
+
+// TODO @linfanps fix this
+type ResultSet interface {
+	RawResultSet() ([]byte, error)
+	Result
 }
 
 // Stmt is a prepared statement. It is bound to a Conn and not

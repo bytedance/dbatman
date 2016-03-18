@@ -18,8 +18,8 @@
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 
-// Copyright 2016 PinCAP, Inc.
-// Copyright 2016 ByteDance, Inc.
+// Copyright 2016 PinCAP, Insession.
+// Copyright 2016 ByteDance, Insession.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,55 +41,55 @@ import (
 	"github.com/bytedance/dbatman/hack"
 )
 
-func (ctx *Session) Close() error {
-	if ctx.closed {
+func (session *Session) Close() error {
+	if session.closed {
 		return nil
 	}
 
-	ctx.conn.Close()
+	session.conn.Close()
 
-	ctx.rollback()
-	for _, s := range c.stmts {
+	session.rollback()
+	for _, s := range session.stmts {
 		s.Close()
 	}
 
-	c.stmts = nil
+	session.stmts = nil
 
-	c.closed = true
+	session.closed = true
 
 	return nil
 }
 
-func (c *Session) dispatch(data []byte) error {
+func (session *Session) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
 
 	switch cmd {
 	case mysql.COM_QUIT:
-		c.Close()
+		session.Close()
 		return nil
 	case mysql.COM_QUERY:
-		return c.handleQuery(hack.String(data))
+		return session.handleQuery(hack.String(data))
 	case mysql.COM_PING:
-		return c.writeOK(nil)
+		return session.writeOK(nil)
 	case mysql.COM_INIT_DB:
-		if err := c.useDB(hack.String(data)); err != nil {
+		if err := session.useDB(hack.String(data)); err != nil {
 			return err
 		} else {
-			return c.writeOK(nil)
+			return session.writeOK(nil)
 		}
 	case mysql.COM_FIELD_LIST:
-		return c.handleFieldList(data)
+		return session.handleFieldList(data)
 	case mysql.COM_STMT_PREPARE:
-		return c.handleComStmtPrepare(hack.String(data))
+		return session.handleComStmtPrepare(hack.String(data))
 	case mysql.COM_STMT_EXECUTE:
-		return c.handleComStmtExecute(data)
+		return session.handleComStmtExecute(data)
 	case mysql.COM_STMT_CLOSE:
-		return c.handleComStmtClose(data)
+		return session.handleComStmtClose(data)
 	case mysql.COM_STMT_SEND_LONG_DATA:
-		return c.handleComStmtSendLongData(data)
+		return session.handleComStmtSendLongData(data)
 	case mysql.COM_STMT_RESET:
-		return c.handleComStmtReset(data)
+		return session.handleComStmtReset(data)
 	default:
 		msg := fmt.Sprintf("command %d not supported now", cmd)
 		log.Warnf(msg)
@@ -99,27 +99,27 @@ func (c *Session) dispatch(data []byte) error {
 	return nil
 }
 
-func (c *Session) useDB(db string) error {
-	if s := c.server.getSchema(db); s == nil {
+func (session *Session) useDB(db string) error {
+	if s := session.server.getSchema(db); s == nil {
 		return mysql.NewDefaultError(mysql.ER_BAD_DB_ERROR, db)
 	} else {
-		c.schema = s
-		c.db = db
+		session.schema = s
+		session.db = db
 	}
 	return nil
 }
 
 func (c *Session) IsAutoCommit() bool {
-	return c.status&mysql.SERVER_STATUS_AUTOCOMMIT > 0
+	return session.status&mysql.SERVER_STATUS_AUTOCOMMIT > 0
 }
 
 func (c *Session) checkDB() error {
-	if c.schema != nil {
+	if session.schema != nil {
 		return nil
 	}
 
-	if c.db != "" {
-		return c.useDB(c.db)
+	if session.db != "" {
+		return session.useDB(session.db)
 	}
 
 	return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)

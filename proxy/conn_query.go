@@ -56,6 +56,7 @@ func (c *Session) handleQuery(sqlstmt string) (err error) {
 	return nil
 }
 
+/*
 func (c *Session) getConn(n *Node, isSelect bool) (co *backend.SqlConn, err error) {
 	if !c.needBeginTx() {
 		if isSelect {
@@ -116,6 +117,7 @@ func (c *Session) closeDBConn(co *backend.SqlConn, rollback bool) {
 
 	co.Close()
 }
+*/
 
 func makeBindVars(args []interface{}) map[string]interface{} {
 	bindVars := make(map[string]interface{}, len(args))

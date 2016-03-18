@@ -58,17 +58,21 @@ func (s *Server) newSession(conn net.Conn) *Session {
 	return session
 }
 
-func (c *Session) Run() error {
+func (session *Session) HandshakeWithFront() error {
+	return session.fc.Handshake()
+}
+
+func (session *Session) Run() error {
 
 	for {
-		data, err := c.front.ReadPacket()
+		data, err := session.front.ReadPacket()
 		if err != nil {
 			return err
 		}
 
-		if err := c.dispatch(data); err != nil {
+		if err := session.dispatch(data); err != nil {
 			if err != mysql.ErrBadConn {
-				c.writeError(err)
+				session.writeError(err)
 				return nil
 			}
 
@@ -76,11 +80,11 @@ func (c *Session) Run() error {
 			return err
 		}
 
-		if c.closed {
+		if session.closed {
 			return
 		}
 
-		c.ResetSequence()
+		session.ResetSequence()
 	}
 
 	return nil
