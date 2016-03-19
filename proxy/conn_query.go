@@ -3,6 +3,7 @@ package proxy
 import (
 	"fmt"
 	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 )
@@ -129,13 +130,13 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *Session) handleExec(stmt parser.IStatement, sqlstmt string, isread bool) error {
+func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isread bool) error {
 
-	if err := c.checkDB(); err != nil {
+	if err := session.checkDB(); err != nil {
 		return err
 	}
 
-	conn, err := c.getConn(c.schema.node, isread)
+	conn, err := session.getConn(session.schema.node, isread)
 	if err != nil {
 		return err
 	} else if conn == nil {
@@ -154,7 +155,7 @@ func (c *Session) handleExec(stmt parser.IStatement, sqlstmt string, isread bool
 	return err
 }
 
-func (c *Session) mergeSelectResult(rs *mysql.Result) error {
+func (c *Session) mergeSelectResult(rs *driver.ResultSet) error {
 	r := rs.Resultset
 	status := c.status | rs.Status
 	return c.writeResultset(status, r)

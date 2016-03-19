@@ -19,6 +19,7 @@ import "errors"
 //   []byte
 //   string   [*] everywhere except from Rows.Next.
 //   time.Time
+//   driver.RawPacket (added by wangjing@bytedance.com), used as a raw bytes packet
 type Value interface{}
 
 // Driver is the interface that must be implemented by a database
@@ -76,16 +77,6 @@ type Queryer interface {
 	Query(query string, args []Value) (Rows, error)
 }
 
-// RawQueryer is an optional interface that may be implemented by a Conn.
-//
-// If a Conn does not implememnt RawQueryer, the sql package's DB.RawQuery will
-// first prepare a query, execute the statement, and the clonse the statement.
-//
-// RawQueryer may return ErrSkip
-type RawQueryer interface {
-	RawQuery(query string, args []Value) (ResultSet, error)
-}
-
 // Conn is a connection to a database. It is not used concurrently
 // by multiple goroutines.
 //
@@ -118,12 +109,6 @@ type Result interface {
 	// RowsAffected returns the number of rows affected by the
 	// query.
 	RowsAffected() (int64, error)
-}
-
-// TODO @linfanps fix this
-type ResultSet interface {
-	RawResultSet() ([]byte, error)
-	Result
 }
 
 // Stmt is a prepared statement. It is bound to a Conn and not
@@ -187,6 +172,17 @@ type Rows interface {
 	//
 	// Next should return io.EOF when there are no more rows.
 	Next(dest []Value) error
+
+	// For proxy and middleware usage, we need expose to function
+	// that will return the hole columns packet and rows packets
+	// the ColumnPacket will return the raw column definetion packet
+	ColumnPacket(dest Value) error
+
+	// NextPacket will return a bool value indicate is there a more row should exist
+	NextRow() bool
+
+	// Row return a raw packet that contains a single row.
+	Row(dest Value) error
 }
 
 // Tx is a transaction.
