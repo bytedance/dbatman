@@ -334,7 +334,7 @@ func (mc *mysqlConn) Query(query string, args []driver.Value) (driver.Rows, erro
 				return emptyRows{}, nil
 			}
 			// Columns
-			rows.columns, err = mc.readColumns(resLen, true)
+			rows.columns, err = mc.readColumns(resLen)
 			return rows, err
 		}
 	}

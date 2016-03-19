@@ -19,9 +19,6 @@ type mysqlField struct {
 	flags     fieldFlag
 	fieldType byte
 	decimals  byte
-
-	rawbytes []byte
-	lazy     bool
 }
 
 type mysqlRows struct {
@@ -38,14 +35,6 @@ type textRows struct {
 }
 
 type emptyRows struct{}
-
-func (rows *mysqlRows) columnField(i int) *mysqlField {
-	if rows.columns[i].lazy {
-		decodeColumns(rows.mc.cfg.ColumnsWithAlias, &rows.columns[i], rows.columns[i].rawbytes)
-	}
-
-	return &rows.columns[i]
-}
 
 func (rows *mysqlRows) Columns() []string {
 	columns := make([]string, len(rows.columns))
