@@ -2,22 +2,16 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/backend"
-	"github.com/bytedance/dbatman/database/sql/driver/mysql"
+	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
-	"github.com/bytedance/dbatman/sql"
+	"github.com/bytedance/dbatman/parser"
 )
 
-func (c *frontConn) handleQuery(sqlstmt string) (err error) {
-	/*defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("execute %s error %v", sql, e)
-			return
-		}
-	}()*/
+func (c *Session) handleQuery(sqlstmt string) (err error) {
 
 	var stmt sql.IStatement
-	stmt, err = sql.Parse(sqlstmt)
+	stmt, err = parser.Parse(sqlstmt)
 	if err != nil {
 		return fmt.Errorf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
 	}
@@ -63,7 +57,8 @@ func (c *frontConn) handleQuery(sqlstmt string) (err error) {
 	return nil
 }
 
-func (c *frontConn) getConn(n *Node, isSelect bool) (co *backend.SqlConn, err error) {
+/*
+func (c *Session) getConn(n *Node, isSelect bool) (co *backend.SqlConn, err error) {
 	if !c.needBeginTx() {
 		if isSelect {
 			co, err = n.getSelectConn()
@@ -110,7 +105,7 @@ func (c *frontConn) getConn(n *Node, isSelect bool) (co *backend.SqlConn, err er
 	return
 }
 
-func (c *frontConn) closeDBConn(co *backend.SqlConn, rollback bool) {
+func (c *Session) closeDBConn(co *backend.SqlConn, rollback bool) {
 	// since we have DDL, and when server is not in autoCommit,
 	// we do not release the connection and will reuse it later
 	if c.isInTransaction() || !c.isAutoCommit() {
@@ -123,6 +118,7 @@ func (c *frontConn) closeDBConn(co *backend.SqlConn, rollback bool) {
 
 	co.Close()
 }
+*/
 
 func makeBindVars(args []interface{}) map[string]interface{} {
 	bindVars := make(map[string]interface{}, len(args))
@@ -134,13 +130,13 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *frontConn) handleExec(stmt sql.IStatement, sqlstmt string, isread bool) error {
+func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isread bool) error {
 
-	if err := c.checkDB(); err != nil {
+	if err := session.checkDB(); err != nil {
 		return err
 	}
 
-	conn, err := c.getConn(c.schema.node, isread)
+	conn, err := session.getConn(session.schema.node, isread)
 	if err != nil {
 		return err
 	} else if conn == nil {
@@ -159,7 +155,7 @@ func (c *frontConn) handleExec(stmt sql.IStatement, sqlstmt string, isread bool)
 	return err
 }
 
-func (c *frontConn) mergeSelectResult(rs *mysql.Result) error {
+func (c *Session) mergeSelectResult(rs *driver.ResultSet) error {
 	r := rs.Resultset
 	status := c.status | rs.Status
 	return c.writeResultset(status, r)

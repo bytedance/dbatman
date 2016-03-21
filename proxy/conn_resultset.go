@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	. "github.com/bytedance/dbatman/database/sql/driver/mysql"
 	"github.com/bytedance/dbatman/hack"
 	"strconv"
 )
@@ -61,7 +60,7 @@ func formatField(field *Field, value interface{}) error {
 	return nil
 }
 
-func (c *frontConn) buildResultset(names []string, values [][]interface{}) (*Resultset, error) {
+func (c *Session) buildResultset(names []string, values [][]interface{}) (*ResultSet, error) {
 	r := new(Resultset)
 
 	r.Fields = make([]*Field, len(names))
@@ -100,7 +99,7 @@ func (c *frontConn) buildResultset(names []string, values [][]interface{}) (*Res
 	return r, nil
 }
 
-func (c *frontConn) writeResultset(status uint16, r *Resultset) error {
+func (c *Session) writeResultset(status uint16, r *ResultSet) error {
 	c.affectedRows = int64(-1)
 
 	columnLen := PutLengthEncodedInt(uint64(len(r.Fields)))

@@ -2,13 +2,12 @@ package proxy
 
 import (
 	"fmt"
-	. "github.com/bytedance/dbatman/database/sql/driver/mysql"
-	. "github.com/bytedance/dbatman/log"
-	"github.com/bytedance/dbatman/sql"
+	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/parser"
 	"strings"
 )
 
-func (c *frontConn) handleSet(stmt *sql.Set, sql string) error {
+func (c *frontConn) handleSet(stmt *parser.Set, sql string) error {
 	if len(stmt.VarList) < 1 {
 		return fmt.Errorf("must set one item at least")
 	}
@@ -74,7 +73,7 @@ func (c *frontConn) handleSetNames(val sql.IValExpr) error {
 	}
 
 	charset := strings.ToLower(string(value))
-	cid, ok := CharsetIds[charset]
+	cid, ok := mysql.CharsetIds[charset]
 	if !ok {
 		return fmt.Errorf("invalid charset %s", charset)
 	}

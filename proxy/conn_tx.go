@@ -1,8 +1,7 @@
 package proxy
 
 import (
-	"github.com/bytedance/dbatman/backend"
-	"github.com/bytedance/dbatman/database/sql/driver/mysql"
+	"github.com/bytedance/dbatman/database/mysql"
 )
 
 func (c *frontConn) isInTransaction() bool {

@@ -1,12 +1,12 @@
 package proxy
 
 import (
-	"github.com/bytedance/dbatman/database/sql/driver/mysql"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
-	"github.com/bytedance/dbatman/sql"
+	"github.com/bytedance/dbatman/parser"
 )
 
-func (c *frontConn) handleShow(strsql string, stmt sql.IShow) error {
+func (c *frontConn) handleShow(strsql string, stmt parser.IShow) error {
 	var err error
 
 	switch stmt.(type) {
@@ -41,7 +41,7 @@ func (c *frontConn) buildSimpleShowResultset(values []interface{}, name string) 
 
 	field.Name = hack.Slice(name)
 	field.Charset = 33
-	field.Type = MYSQL_TYPE_VAR_STRING
+	field.Type = mysql.MYSQL_TYPE_VAR_STRING
 
 	r.Fields = []*Field{field}
 

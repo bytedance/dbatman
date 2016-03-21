@@ -3,10 +3,8 @@ package proxy
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/bytedance/dbatman/backend"
-	"github.com/bytedance/dbatman/database/sql/driver/mysql"
-	. "github.com/bytedance/dbatman/log"
-	"github.com/bytedance/dbatman/sql"
+	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/parser"
 	"strconv"
 )
 
@@ -14,7 +12,7 @@ var paramFieldData []byte
 var columnFieldData []byte
 
 func init() {
-	var p = &Field{Name: []byte("?")}
+	var p = &mysql.Field{Name: []byte("?")}
 	var c = &Field{}
 
 	paramFieldData = p.Dump()
@@ -34,8 +32,6 @@ type Stmt struct {
 	s sql.IStatement
 
 	sqlstmt string
-
-	cstmt *backend.Stmt
 }
 
 func (s *Stmt) ClearParams() {

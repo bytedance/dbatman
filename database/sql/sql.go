@@ -1644,6 +1644,13 @@ func (rs *Rows) Next() bool {
 	return true
 }
 
+func (rs *Rows) NextPacket() bool {
+	if rs.closed {
+		return false
+	}
+
+}
+
 // Err returns the error, if any, that was encountered during iteration.
 // Err may be called after an explicit or implicit Close.
 func (rs *Rows) Err() error {
@@ -1664,6 +1671,18 @@ func (rs *Rows) Columns() ([]string, error) {
 		return nil, errors.New("sql: no Rows available")
 	}
 	return rs.rowsi.Columns(), nil
+}
+
+func (rs *Rows) ColumnPacket(dest driver.Value) error {
+	if rs.closed {
+		return errors.New("sql: Rows are closed")
+	}
+	if rs.rowsi == nil {
+		return errors.New("sql: no Rows available")
+	}
+
+	dest = rs.rowsi.ColumnsPacket()
+	return nil
 }
 
 // Scan copies the columns in the current row into the values pointed

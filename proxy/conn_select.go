@@ -3,11 +3,11 @@ package proxy
 import (
 	"bytes"
 	"fmt"
-	. "github.com/bytedance/dbatman/database/sql/driver/mysql"
-	"github.com/bytedance/dbatman/sql"
+	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/parser"
 )
 
-func (c *frontConn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
+func (c *Session) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
 	field := &Field{}
 
 	field.Name = name
@@ -30,13 +30,13 @@ func (c *frontConn) buildSimpleSelectResult(value interface{}, name []byte, asNa
 	return r, nil
 }
 
-func (c *frontConn) handleFieldList(data []byte) error {
+func (c *Session) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
 	table := string(data[0:index])
 	wildcard := string(data[index+1:])
 
 	if c.schema == nil {
-		return NewDefaultError(ER_NO_DB_ERROR)
+		return NewDefaultError(mysql.ER_NO_DB_ERROR)
 	}
 
 	co, err := c.schema.node.getMasterConn()
@@ -56,7 +56,7 @@ func (c *frontConn) handleFieldList(data []byte) error {
 	}
 }
 
-func (c *frontConn) writeFieldList(status uint16, fs []*Field) error {
+func (c *Session) writeFieldList(status uint16, fs []*Field) error {
 	c.affectedRows = int64(-1)
 
 	data := make([]byte, 4, 1024)
@@ -75,33 +75,32 @@ func (c *frontConn) writeFieldList(status uint16, fs []*Field) error {
 	return nil
 }
 
-func (c *frontConn) handleSelect(stmt sql.IStatement, sqlstmt string) error {
+func (c *Session) handleSelect(stmt parser.IStatement, sqlstmt string) error {
 
 	if err := c.checkDB(); err != nil {
 		return err
 	}
 
 	isread := false
-	if s, ok := stmt.(sql.ISelect); ok {
+	if s, ok := stmt.(parser.ISelect); ok {
 		isread = !s.IsLocked()
-	} else if _, sok := stmt.(sql.IShow); sok {
+	} else if _, sok := stmt.(parser.IShow); sok {
 		isread = true
 	}
 
-	conn, err := c.getConn(c.schema.node, isread)
+	db, err := c.cluster.DB(isread)
 
+	// TODO here if db is nil, then we should return a error?
 	if err != nil {
 		return err
-	} else if conn == nil {
+	} else if db == nil {
 		// r := c.newEmptyResultset(stmt)
 		// return c.writeResultset(c.status, r)
-		return fmt.Errorf("no available connection")
+		return fmt.Errorf("no available backend db")
 	}
 
 	var res *Result
-	res, err = conn.Execute(sqlstmt)
-
-	c.closeDBConn(conn, false)
+	res, err = db.Query(sqlstmt)
 
 	if err == nil {
 		err = c.mergeSelectResult(res)
