@@ -1644,11 +1644,18 @@ func (rs *Rows) Next() bool {
 	return true
 }
 
-func (rs *Rows) NextPacket() bool {
+func (rs *Rows) NextRowPacket() bool {
 	if rs.closed {
 		return false
 	}
 
+	rs.lasterr = rs.rowsi.NextRowPacket()
+	if rs.lasterr != nil {
+		rs.Close()
+		return false
+	}
+
+	return true
 }
 
 // Err returns the error, if any, that was encountered during iteration.
@@ -1673,16 +1680,16 @@ func (rs *Rows) Columns() ([]string, error) {
 	return rs.rowsi.Columns(), nil
 }
 
-func (rs *Rows) ColumnPacket(dest driver.Value) error {
+func (rs *Rows) ColumnPackets() ([]driver.RawPacket, error) {
 	if rs.closed {
-		return errors.New("sql: Rows are closed")
+		return nil, errors.New("sql: Rows are closed")
 	}
 	if rs.rowsi == nil {
-		return errors.New("sql: no Rows available")
+		return nil, errors.New("sql: no Rows available")
 	}
 
-	dest = rs.rowsi.ColumnsPacket()
-	return nil
+	dest := rs.rowsi.DumpColumns()
+	return dest, nil
 }
 
 // Scan copies the columns in the current row into the values pointed

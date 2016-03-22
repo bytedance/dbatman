@@ -102,9 +102,13 @@ func (c *Session) handleSelect(stmt parser.IStatement, sqlstmt string) error {
 	var res *Result
 	res, err = db.Query(sqlstmt)
 
-	if err == nil {
-		err = c.mergeSelectResult(res)
+	if err != nil {
+		return err
 	}
 
 	return err
+}
+
+func (c *Session) doQuery(sqlstmt string) error {
+
 }
