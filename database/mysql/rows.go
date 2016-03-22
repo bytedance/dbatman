@@ -97,11 +97,11 @@ func (rows *mysqlRows) Columns() []string {
 	return columns
 }
 
-func (rows *mysqlRows) DumpColumns() []driver.RawPacket {
-	pkgs := make([]driver.RawPacket, len(rows.columns))
+func (rows *mysqlRows) DumpColumns() []driver.RawPayload {
+	pkgs := make([]driver.RawPayload, len(rows.columns))
 
 	for i, column := range rows.columns {
-		pkgs[i] = driver.RawPacket(column.Dump())
+		pkgs[i] = driver.RawPayload(column.Dump())
 	}
 
 	return pkgs
@@ -128,7 +128,7 @@ func (rows *mysqlRows) Close() error {
 	return err
 }
 
-func (rows *mysqlRows) NextRowPacket() (driver.RawPacket, error) {
+func (rows *mysqlRows) NextRowPayload() (driver.RawPayload, error) {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
 			return nil, ErrInvalidConn
@@ -177,10 +177,10 @@ func (rows emptyRows) Next(dest []driver.Value) error {
 	return io.EOF
 }
 
-func (rows emptyRows) DumpColumns() []driver.RawPacket {
+func (rows emptyRows) DumpColumns() []driver.RawPayload {
 	return nil
 }
 
-func (rows emptyRows) NextRowPacket() (driver.RawPacket, error) {
+func (rows emptyRows) NextRowPayload() (driver.RawPayload, error) {
 	return nil, nil
 }
