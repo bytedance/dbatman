@@ -11,9 +11,9 @@ package mysql
 import (
 	"bytes"
 	"crypto/tls"
-	"database/sql"
-	"database/sql/driver"
 	"fmt"
+	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"io"
 	"io/ioutil"
 	"log"

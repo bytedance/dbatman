@@ -9,7 +9,7 @@
 package mysql
 
 import (
-	"database/sql/driver"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"net"
 	"strconv"
 	"strings"

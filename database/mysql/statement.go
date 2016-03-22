@@ -9,8 +9,8 @@
 package mysql
 
 import (
-	"database/sql/driver"
 	"fmt"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"reflect"
 	"strconv"
 )

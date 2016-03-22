@@ -17,8 +17,8 @@
 package mysql
 
 import (
-	"database/sql"
-	"database/sql/driver"
+	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"net"
 )
 
