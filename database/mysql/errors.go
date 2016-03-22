@@ -9,9 +9,9 @@
 package mysql
 
 import (
-	"database/sql/driver"
 	"errors"
 	"fmt"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"io"
 	"log"
 	"os"

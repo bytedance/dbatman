@@ -11,9 +11,9 @@ package mysql
 import (
 	"crypto/sha1"
 	"crypto/tls"
-	"database/sql/driver"
 	"encoding/binary"
 	"fmt"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"io"
 	"strings"
 	"time"

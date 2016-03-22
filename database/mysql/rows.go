@@ -128,6 +128,19 @@ func (rows *mysqlRows) Close() error {
 	return err
 }
 
+func (rows *mysqlRows) NextRowPacket() (driver.RawPacket, error) {
+	if mc := rows.mc; mc != nil {
+		if mc.netConn == nil {
+			return nil, ErrInvalidConn
+		}
+
+		// Fetch next row from stream
+		// dest = rows.readRowPacket(dest)
+		return nil, nil
+	}
+	return nil, io.EOF
+}
+
 func (rows *binaryRows) Next(dest []driver.Value) error {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
@@ -152,19 +165,6 @@ func (rows *textRows) Next(dest []driver.Value) error {
 	return io.EOF
 }
 
-func (rows *textRows) NextPacket(dest driver.Value) error {
-	if mc := rows.mc; mc != nil {
-		if mc.netConn == nil {
-			return ErrInvalidConn
-		}
-
-		// Fetch next row from stream
-		// dest = rows.readRowPacket(dest)
-		return nil
-	}
-	return io.EOF
-}
-
 func (rows emptyRows) Columns() []string {
 	return nil
 }
@@ -175,4 +175,12 @@ func (rows emptyRows) Close() error {
 
 func (rows emptyRows) Next(dest []driver.Value) error {
 	return io.EOF
+}
+
+func (rows emptyRows) DumpColumns() []driver.RawPacket {
+	return nil
+}
+
+func (rows emptyRows) NextRowPacket() (driver.RawPacket, error) {
+	return nil, nil
 }

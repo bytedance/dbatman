@@ -1619,6 +1619,7 @@ type Rows struct {
 
 	closed    bool
 	lastcols  []driver.Value
+	lastrow   driver.RawPacket
 	lasterr   error       // non-nil only if closed is true
 	closeStmt driver.Stmt // if non-nil, statement to Close on close
 }
@@ -1649,13 +1650,21 @@ func (rs *Rows) NextRowPacket() bool {
 		return false
 	}
 
-	rs.lasterr = rs.rowsi.NextRowPacket()
+	rs.lastrow, rs.lasterr = rs.rowsi.NextRowPacket()
 	if rs.lasterr != nil {
 		rs.Close()
 		return false
 	}
 
 	return true
+}
+
+func (rs *Rows) ScanRowPacket(dest *driver.RawPacket) error {
+	if rs.closed {
+		return errors.New("sql: Rows are closed")
+	}
+
+	return nil
 }
 
 // Err returns the error, if any, that was encountered during iteration.

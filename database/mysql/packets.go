@@ -11,10 +11,10 @@ package mysql
 import (
 	"bytes"
 	"crypto/tls"
-	"database/sql/driver"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"io"
 	"math"
 	"time"

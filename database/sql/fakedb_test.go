@@ -743,8 +743,8 @@ func (rc *rowsCursor) DumpColumns() []driver.RawPacket {
 	return nil
 }
 
-func (rc *rowsCursor) NextRowPacket() error {
-	return nil
+func (rc *rowsCursor) NextRowPacket() (driver.RawPacket, error) {
+	return nil, nil
 }
 
 var rowsCursorNextHook func(dest []driver.Value) error

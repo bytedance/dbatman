@@ -10,8 +10,8 @@ package mysql
 
 import (
 	"bytes"
-	"database/sql"
-	"database/sql/driver"
+	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"math"
 	"strings"
 	"sync"

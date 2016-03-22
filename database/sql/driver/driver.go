@@ -182,7 +182,7 @@ type Rows interface {
 
 	// NextRowPacket will return a error indicate is there a more row should exist
 	// if there is no more packet, this function should return io.EOF
-	NextRowPacket() error
+	NextRowPacket() (RawPacket, error)
 }
 
 // Tx is a transaction.
