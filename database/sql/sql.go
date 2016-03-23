@@ -1645,26 +1645,19 @@ func (rs *Rows) Next() bool {
 	return true
 }
 
-func (rs *Rows) NextRowPacket() bool {
+func (rs *Rows) NextRowPacket() (driver.RawPayload, error) {
 	if rs.closed {
-		return false
+		return nil, errors.New("sql: Rows are closed")
 	}
 
-	rs.lastrow, rs.lasterr = rs.rowsi.NextRowPayload()
+	var row driver.RawPayload
+	row, rs.lasterr = rs.rowsi.NextRowPayload()
 	if rs.lasterr != nil {
 		rs.Close()
-		return false
+		return row, rs.lasterr
 	}
 
-	return true
-}
-
-func (rs *Rows) ScanRowPacket(dest *driver.RawPayload) error {
-	if rs.closed {
-		return errors.New("sql: Rows are closed")
-	}
-
-	return nil
+	return row, nil
 }
 
 // Err returns the error, if any, that was encountered during iteration.
