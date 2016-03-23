@@ -135,8 +135,7 @@ func (rows *mysqlRows) NextRowPayload() (driver.RawPayload, error) {
 		}
 
 		// Fetch next row from stream
-		// dest = rows.readRowPacket(dest)
-		return nil, nil
+		return rows.readRowPayload()
 	}
 	return nil, io.EOF
 }
