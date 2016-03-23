@@ -59,7 +59,11 @@ func (s *Server) newSession(conn net.Conn) *Session {
 }
 
 func (session *Session) HandshakeWithFront() error {
+
 	return session.fc.Handshake()
+
+	// TODO set cluster with auth info
+	// session.cluster = cluster.New(db)
 }
 
 func (session *Session) Run() error {
