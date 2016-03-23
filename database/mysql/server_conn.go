@@ -17,7 +17,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	_ "github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/juju/errors"
 	"net"
 )
@@ -293,6 +293,15 @@ func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 		data = append(data, byte(r.Status), byte(r.Status>>8))
 		data = append(data, byte(r.Warnings), byte(r.Warnings>>8))
 	}
+
+	return mc.writePacket(data)
+}
+
+func (mc *MySQLServerConn) WritePacket(payload driver.RawPayload) error {
+	data := mc.buf.takeSmallBuffer(4 + len(payload))
+
+	// reserved for packet header
+	data = append(data[:4], payload...)
 
 	return mc.writePacket(data)
 }

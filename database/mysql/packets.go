@@ -1261,3 +1261,29 @@ func (rows *binaryRows) readRow(dest []driver.Value) error {
 
 	return nil
 }
+
+func (rows *mysqlRows) readRowPayload() (driver.RawPayload, error) {
+	data, err := rows.mc.readPacket()
+	if err != nil {
+		return nil, err
+	}
+
+	// packet indicator [1 byte]
+	if data[0] != iOK {
+		// EOF Packet
+		if data[0] == iEOF && len(data) == 5 {
+			rows.mc.status = readStatus(data[3:])
+			if err := rows.mc.discardResults(); err != nil {
+				return nil, err
+			}
+			rows.mc = nil
+			return nil, io.EOF
+		}
+		rows.mc = nil
+
+		// Error otherwise
+		return nil, rows.mc.handleErrorPacket(data)
+	}
+
+	return data, nil
+}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/parser"
 )
 
@@ -75,9 +76,9 @@ func (c *Session) writeFieldList(status uint16, fs []*Field) error {
 	return nil
 }
 
-func (c *Session) handleSelect(stmt parser.IStatement, sqlstmt string) error {
+func (session *Session) handleSelect(stmt parser.IStatement, sqlstmt string) error {
 
-	if err := c.checkDB(); err != nil {
+	if err := session.checkDB(); err != nil {
 		return err
 	}
 
@@ -88,7 +89,7 @@ func (c *Session) handleSelect(stmt parser.IStatement, sqlstmt string) error {
 		isread = true
 	}
 
-	db, err := c.cluster.DB(isread)
+	db, err := session.cluster.DB(isread)
 
 	// TODO here if db is nil, then we should return a error?
 	if err != nil {
@@ -99,16 +100,39 @@ func (c *Session) handleSelect(stmt parser.IStatement, sqlstmt string) error {
 		return fmt.Errorf("no available backend db")
 	}
 
-	var res *Result
-	res, err = db.Query(sqlstmt)
+	var rs *driver.rows
+	rs, err = db.Query(sqlstmt)
 
+	// TODO here should handler error
 	if err != nil {
 		return err
 	}
 
-	return err
+	defer rs.Close()
+
+	if err := session.fc.WritePacket(res.DumpColumns()...); err != nil {
+		return err
+	}
+
+	var payload driver.RawPayload
+	for {
+		payload, err := rs.NextRowPayload()
+		if err != nil {
+			if merr, ok := err.(*MySQLError); ok {
+				session.fc.WriteError(merr)
+			}
+			return err
+		}
+
+		if err := session.fc.WritePacket(payload); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
+// TODO
 func (c *Session) doQuery(sqlstmt string) error {
-
+	return nil
 }
