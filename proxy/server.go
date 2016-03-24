@@ -17,7 +17,7 @@ type Server struct {
 
 	schemas map[string]*Schema
 
-	users    *userAuth
+	// users    *userAuth
 	listener net.Listener
 	running  bool
 }

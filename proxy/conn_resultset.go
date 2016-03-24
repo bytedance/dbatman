@@ -41,6 +41,7 @@ func formatValue(value interface{}) ([]byte, error) {
 	}
 }
 
+/*
 func formatField(field *Field, value interface{}) error {
 	switch value.(type) {
 	case int8, int16, int32, int64, int:
@@ -98,7 +99,9 @@ func (c *Session) buildResultset(names []string, values [][]interface{}) (*Resul
 
 	return r, nil
 }
+*/
 
+/*
 func (c *Session) writeResultset(status uint16, r *ResultSet) error {
 	c.affectedRows = int64(-1)
 
@@ -137,3 +140,4 @@ func (c *Session) writeResultset(status uint16, r *ResultSet) error {
 
 	return nil
 }
+*/

@@ -6,10 +6,9 @@ import (
 )
 
 func (c *Session) checkAuth(auth []byte) error {
-	AppLog.Debug("checkAuth")
+
 	auths := c.server.getUserAuth(c.user)
 	if auths == nil {
-		AppLog.Warn("connect without db, auths is nil")
 		return NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.conn.RemoteAddr().String(), c.user, "Yes")
 	}
 

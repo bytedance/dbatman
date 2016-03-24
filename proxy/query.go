@@ -79,7 +79,9 @@ func (session *Session) dispatch(data []byte) error {
 			return session.writeOK(nil)
 		}
 	case mysql.COM_FIELD_LIST:
-		return session.handleFieldList(data)
+		// return session.handleFieldList(data)
+		// TODO
+		return nil
 	case mysql.COM_STMT_PREPARE:
 		return session.handleComStmtPrepare(hack.String(data))
 	case mysql.COM_STMT_EXECUTE:
