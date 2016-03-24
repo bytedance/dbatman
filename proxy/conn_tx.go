@@ -4,20 +4,20 @@ import (
 	"github.com/bytedance/dbatman/database/mysql"
 )
 
-func (c *frontConn) isInTransaction() bool {
-	return c.status&SERVER_STATUS_IN_TRANS > 0
+func (c *Session) isInTransaction() bool {
+	return c.status&mysql.SERVER_STATUS_IN_TRANS > 0
 }
 
-func (c *frontConn) isAutoCommit() bool {
+func (c *Session) isAutoCommit() bool {
 	return c.status&SERVER_STATUS_AUTOCOMMIT > 0
 }
 
-func (c *frontConn) handleBegin() error {
+func (c *Session) handleBegin() error {
 	c.status |= SERVER_STATUS_IN_TRANS
 	return c.writeOK(nil)
 }
 
-func (c *frontConn) handleCommit() (err error) {
+func (c *Session) handleCommit() (err error) {
 	if err := c.commit(); err != nil {
 		return err
 	} else {
@@ -25,7 +25,7 @@ func (c *frontConn) handleCommit() (err error) {
 	}
 }
 
-func (c *frontConn) handleRollback() (err error) {
+func (c *Session) handleRollback() (err error) {
 	if err := c.rollback(); err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (c *frontConn) handleRollback() (err error) {
 	return c.writeOK(nil)
 }
 
-func (c *frontConn) commit() (err error) {
+func (c *Session) commit() (err error) {
 	c.status &= ^SERVER_STATUS_IN_TRANS
 
 	for _, co := range c.txConns {
@@ -48,7 +48,7 @@ func (c *frontConn) commit() (err error) {
 	return
 }
 
-func (c *frontConn) rollback() (err error) {
+func (c *Session) rollback() (err error) {
 	c.status &= ^SERVER_STATUS_IN_TRANS
 
 	for _, co := range c.txConns {
@@ -66,6 +66,6 @@ func (c *frontConn) rollback() (err error) {
 //if status is in_trans, need
 //else if status is not autocommit, need
 //else no need
-func (c *frontConn) needBeginTx() bool {
+func (c *Session) needBeginTx() bool {
 	return c.isInTransaction() || !c.isAutoCommit()
 }

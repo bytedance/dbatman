@@ -76,7 +76,7 @@ func (c *Session) writeFieldList(status uint16, fs []*Field) error {
 	return nil
 }
 
-func (session *Session) handleSelect(stmt parser.IStatement, sqlstmt string) error {
+func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) error {
 
 	if err := session.checkDB(); err != nil {
 		return err
@@ -100,7 +100,7 @@ func (session *Session) handleSelect(stmt parser.IStatement, sqlstmt string) err
 		return fmt.Errorf("no available backend db")
 	}
 
-	var rs *driver.rows
+	var rs *driver.Rows
 	rs, err = db.Query(sqlstmt)
 
 	// TODO here should handler error

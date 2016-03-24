@@ -1,5 +1,6 @@
 package proxy
 
+/*
 import (
 	"fmt"
 	"github.com/bytedance/dbatman/config"
@@ -302,3 +303,4 @@ func (s *Server) parseNode(cfg config.NodeConfig) (*Node, error) {
 
 	return n, nil
 }
+*/

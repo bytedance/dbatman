@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"github.com/bytedance/dbatman/config"
-	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/juju/errors"
 	"github.com/ngaut/log"
 	"net"
@@ -12,9 +11,9 @@ import (
 // Server is the proxy server. It handle the request from frontend, process and dispatch
 // queries, picking right backend conn due to the request context.
 type Server struct {
-	cfg *config.Config
+	cfg *config.Conf
 
-	nodes map[string]*Node
+	// nodes map[string]*Node
 
 	schemas map[string]*Schema
 

@@ -69,7 +69,7 @@ func (session *Session) dispatch(data []byte) error {
 		session.Close()
 		return nil
 	case mysql.COM_QUERY:
-		return session.handleQuery(hack.String(data))
+		return session.comQuery(hack.String(data))
 	case mysql.COM_PING:
 		return session.writeOK(nil)
 	case mysql.COM_INIT_DB:

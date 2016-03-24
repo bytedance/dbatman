@@ -8,7 +8,7 @@ import (
 	"github.com/bytedance/dbatman/parser"
 )
 
-func (c *Session) handleQuery(sqlstmt string) (err error) {
+func (c *Session) comQuery(sqlstmt string) (err error) {
 
 	var stmt sql.IStatement
 	stmt, err = parser.Parse(sqlstmt)
@@ -18,7 +18,7 @@ func (c *Session) handleQuery(sqlstmt string) (err error) {
 
 	switch v := stmt.(type) {
 	case sql.ISelect:
-		return c.handleSelect(v, sqlstmt)
+		return c.handleQuery(v, sqlstmt)
 	case *sql.Insert:
 		return c.handleExec(stmt, sqlstmt, false)
 	case *sql.Update:
