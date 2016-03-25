@@ -59,6 +59,20 @@ func (me *MySQLError) Error() string {
 	return fmt.Sprintf("Error %d: %s", me.Number, me.Message)
 }
 
+//default mysql error, must adapt errname message format
+func NewDefaultError(number uint16, args ...interface{}) *MySQLError {
+	e := new(MySQLError)
+	e.Number = number
+
+	if format, ok := MySQLErrName[number]; ok {
+		e.Message = fmt.Sprintf(format, args...)
+	} else {
+		e.Message = fmt.Sprint(args...)
+	}
+
+	return e
+}
+
 // MySQLWarnings is an error type which represents a group of one or more MySQL
 // warnings
 type MySQLWarnings []MySQLWarning
