@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"github.com/bytedance/dbatman/database/mysql"
+	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 )
@@ -10,7 +10,7 @@ func (c *Session) handleShow(strsql string, stmt parser.IShow) error {
 	var err error
 
 	switch stmt.(type) {
-	case *sql.ShowDatabases:
+	case *parser.ShowDatabases:
 		err = c.handleShowDatabases()
 	default:
 		err = c.handleSelect(stmt, strsql)

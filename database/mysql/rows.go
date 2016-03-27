@@ -29,6 +29,10 @@ type mysqlField struct {
 	defaultValueLength uint64
 }
 
+type Field struct {
+	*mysqlField
+}
+
 func (f *mysqlField) Dump() []byte {
 
 	l := len(f.schema) + len(f.tableName) + len(f.orgTable) + len(f.name) +
