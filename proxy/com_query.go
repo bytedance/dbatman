@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
@@ -144,11 +145,13 @@ func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isrea
 
 	defer db.Close()
 
-	var rs *sql.Result
+	var rs sql.Result
 	rs, err = db.Exec(sqlstmt)
 
 	if err == nil {
-		err = session.fc.WriteOK(rs)
+		if mysql_rs, ok := rs.(*mysql.MySQLResult); ok {
+			err = session.fc.WriteOK(mysql_rs)
+		}
 	}
 
 	return err
