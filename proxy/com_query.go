@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
-	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 )
@@ -157,8 +156,7 @@ func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isrea
 	return err
 }
 
-func (c *Session) mergeSelectResult(rs *driver.Result) error {
-	r := rs.Resultset
-	status := c.status | rs.Status
-	return c.writeResultset(status, r)
+func (c *Session) mergeSelectResult(rs *mysql.MySQLResult) error {
+	status := c.status | rs.Status()
+	return c.writeResultset(status, rs)
 }

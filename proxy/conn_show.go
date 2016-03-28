@@ -33,7 +33,7 @@ func (c *Session) handleShowDatabases() error {
 	}
 }
 
-func (c *Session) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {
+func (c *Session) buildSimpleShowResultset(values []interface{}, name string) (*MySQLResult, error) {
 
 	r := new(Resultset)
 
