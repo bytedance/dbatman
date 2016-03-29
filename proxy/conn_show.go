@@ -53,8 +53,7 @@ func (c *Session) buildSimpleShowResultset(values []interface{}, name string) (*
 		if err != nil {
 			return nil, err
 		}
-		r.RowDatas = append(r.RowDatas,
-			PutLengthEncodedString(row))
+		r.RowDatas = append(r.RowDatas, PutLengthEncodedString(row))
 	}
 
 	return r, nil

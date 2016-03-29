@@ -29,7 +29,7 @@ type Session struct {
 	server    *Server
 	connID    uint32
 	status    uint32
-	collation uint32
+	collation mysql.CollationId
 	charset   uint32
 
 	salt []byte
