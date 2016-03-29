@@ -60,6 +60,10 @@ func main() {
 		SysLog.Notice("Got signal [%d] to exit.", sig)
 		svr.Close()
 	}()
+	
+	go func() {
+		ready := <- cluster.InitCluster(cfg)
+	}
 
-	svr.Run()
+	svr.Run(ready)
 }

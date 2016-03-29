@@ -739,11 +739,11 @@ func (rc *rowsCursor) Columns() []string {
 	return rc.cols
 }
 
-func (rc *rowsCursor) DumpColumns() []driver.RawPacket {
+func (rc *rowsCursor) DumpColumns() []driver.RawPayload {
 	return nil
 }
 
-func (rc *rowsCursor) NextRowPacket() (driver.RawPacket, error) {
+func (rc *rowsCursor) NextRowPayload() (driver.RawPayload, error) {
 	return nil, nil
 }
 
