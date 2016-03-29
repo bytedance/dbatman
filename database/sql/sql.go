@@ -1645,7 +1645,7 @@ func (rs *Rows) Next() bool {
 	return true
 }
 
-func (rs *Rows) NextRowPacket() (driver.RawPayload, error) {
+func (rs *Rows) NextRowPayload() (driver.RawPayload, error) {
 	if rs.closed {
 		return nil, errors.New("sql: Rows are closed")
 	}

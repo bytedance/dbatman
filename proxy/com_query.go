@@ -156,7 +156,7 @@ func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isrea
 	return err
 }
 
-func (c *Session) mergeSelectResult(rs *mysql.MySQLResult) error {
-	status := c.status | rs.Status()
-	return c.writeResultset(status, rs)
+func (session *Session) mergeSelectResult(r *mysql.MySQLResult) error {
+	status := session.status | uint32(r.Status())
+	return session.fc.WriteResult(status, r)
 }

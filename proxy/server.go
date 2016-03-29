@@ -22,7 +22,7 @@ type Server struct {
 	running  bool
 }
 
-func NewServer(cfg *config.Config) (*Server, error) {
+func NewServer(cfg *config.Conf) (*Server, error) {
 	s := new(Server)
 
 	s.cfg = cfg

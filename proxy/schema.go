@@ -39,7 +39,7 @@ func (s *Server) parseSchemas() error {
 	return nil
 }
 
-func (s *Server) getAuths(schema config.SchemaConfig) (map[string]string, error) {
+func (s *Server) getAuths(schema config.UserConfig) (map[string]string, error) {
 	if len(schema.Auths) == 0 {
 		return nil, fmt.Errorf("schema [%s]'s auth is empty.", schema.DB)
 	}

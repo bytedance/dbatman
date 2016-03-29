@@ -26,7 +26,7 @@ var DEFAULT_CAPABILITY uint32 = uint32(mysql.ClientLongPassword | mysql.ClientLo
 var baseConnId uint32 = 10000
 
 type Session struct {
-	s         *Server
+	server    *Server
 	connID    uint32
 	status    uint32
 	collation uint32

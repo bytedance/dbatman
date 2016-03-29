@@ -13,7 +13,7 @@ func (c *Session) handleShow(strsql string, stmt parser.IShow) error {
 	case *parser.ShowDatabases:
 		err = c.handleShowDatabases()
 	default:
-		err = c.handleSelect(stmt, strsql)
+		err = c.handleQuery(stmt, strsql)
 	}
 
 	return err
@@ -29,13 +29,13 @@ func (c *Session) handleShowDatabases() error {
 	if r, err := c.buildSimpleShowResultset(dbs, "Database"); err != nil {
 		return err
 	} else {
-		return c.writeResultset(c.status, r)
+		return c.WriteResult(c.status, r)
 	}
 }
 
 func (c *Session) buildSimpleShowResultset(values []interface{}, name string) (*MySQLResult, error) {
 
-	r := new(Resultset)
+	r := new(Result)
 
 	field := &Field{}
 
