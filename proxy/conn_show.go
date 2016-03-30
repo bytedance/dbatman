@@ -20,16 +20,14 @@ func (c *Session) handleShow(strsql string, stmt parser.IShow) error {
 
 }
 
-func (c *Session) handleShowDatabases() error {
-	dbs := make([]interface{}, 0, len(c.server.schemas))
-	for key := range c.server.schemas {
-		dbs = append(dbs, key)
-	}
+func (session *Session) handleShowDatabases() error {
+	dbs := make([]interface{}, 0, 1)
+	dbs[0] = session.user.DBName
 
-	if r, err := c.buildSimpleShowResultset(dbs, "Database"); err != nil {
+	if r, err := session.buildSimpleShowResultset(dbs, "Database"); err != nil {
 		return err
 	} else {
-		return c.WriteResult(c.status, r)
+		return c.WriteResult(session.status, r)
 	}
 }
 
