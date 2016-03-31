@@ -16,13 +16,12 @@ package proxy
 import (
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
-	"github.com/bytedance/dbatman/database/mysql"
+	. "github.com/bytedance/dbatman/database/mysql"
 	"net"
 )
 
-var DEFAULT_CAPABILITY uint32 = uint32(mysql.ClientLongPassword | mysql.ClientLongFlag |
-	mysql.ClientConnectWithDB | mysql.ClientProtocol41 |
-	mysql.ClientTransactions | mysql.ClientSecureConn)
+var DEFAULT_CAPABILITY uint32 = uint32(ClientLongPassword | ClientLongFlag |
+	ClientConnectWithDB | ClientProtocol41 | ClientTransactions | ClientSecureConn)
 
 var baseConnId uint32 = 10000
 
@@ -33,13 +32,15 @@ type Session struct {
 
 	connID    uint32
 	status    uint32
-	collation mysql.CollationId
-	charset   uint32
+	collation CollationId
+	charset   string
 
 	salt []byte
 
 	cluster *cluster.Cluster
-	fc      *mysql.MySQLServerConn
+	fc      *MySQLServerConn
+
+	closed bool
 }
 
 func (s *Server) newSession(conn net.Conn) *Session {

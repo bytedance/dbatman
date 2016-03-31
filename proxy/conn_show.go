@@ -35,13 +35,10 @@ func (c *Session) buildSimpleShowResultset(values []interface{}, name string) (*
 
 	r := new(Result)
 
-	field := &Field{}
+	field := NewMySQLField(
+		nil, nil, nil, hack.Slice(name), nil, uint16(c.collation), 0, 0, FieldTypeVarString, 0, nil, 0)
 
-	field.Name = hack.Slice(name)
-	field.Charset = 33
-	field.Type = mysql.MYSQL_TYPE_VAR_STRING
-
-	r.Fields = []*Field{field}
+	fields := []*Field{field}
 
 	var row []byte
 	var err error

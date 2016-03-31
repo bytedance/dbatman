@@ -30,11 +30,14 @@ func (c *Session) comQuery(sqlstmt string) (err error) {
 	case *parser.Set:
 		return c.handleSet(v, sqlstmt)
 	case *parser.Begin:
-		return c.handleBegin()
+		// return c.handleBegin()
+		return nil
 	case *parser.Commit:
-		return c.handleCommit()
+		// return c.handleCommit()
+		return nil
 	case *parser.Rollback:
-		return c.handleRollback()
+		// return c.handleRollback()
+		return nil
 	case parser.IShow:
 		return c.handleShow(sqlstmt, v)
 	case parser.IDDLStatement:

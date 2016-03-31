@@ -37,7 +37,7 @@ package proxy
 import (
 	"fmt"
 	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
-	"github.com/bytedance/dbatman/database/mysql"
+	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 )
 
@@ -46,14 +46,17 @@ func (session *Session) Close() error {
 		return nil
 	}
 
-	session.conn.Close()
+	session.fc.Close()
 
-	session.rollback()
-	for _, s := range session.stmts {
-		s.Close()
-	}
+	// TODO transaction
+	//	session.rollback()
 
-	session.stmts = nil
+	// TODO stmts
+	// for _, s := range session.stmts {
+	// 	s.Close()
+	// }
+
+	// session.stmts = nil
 
 	session.closed = true
 
@@ -65,33 +68,43 @@ func (session *Session) dispatch(data []byte) error {
 	data = data[1:]
 
 	switch cmd {
-	case mysql.COM_QUIT:
+	case ComQuit:
 		session.Close()
 		return nil
-	case mysql.COM_QUERY:
+	case ComQuery:
 		return session.comQuery(hack.String(data))
-	case mysql.COM_PING:
-		return session.writeOK(nil)
-	case mysql.COM_INIT_DB:
+	case ComPing:
+		return session.fc.WriteOK(nil)
+	case ComInitDB:
 		if err := session.useDB(hack.String(data)); err != nil {
 			return err
 		} else {
-			return session.writeOK(nil)
+			return session.fc.WriteOK(nil)
 		}
-	case mysql.COM_FIELD_LIST:
+	case ComFieldList:
 		// return session.handleFieldList(data)
 		// TODO
 		return nil
-	case mysql.COM_STMT_PREPARE:
-		return session.handleComStmtPrepare(hack.String(data))
-	case mysql.COM_STMT_EXECUTE:
-		return session.handleComStmtExecute(data)
-	case mysql.COM_STMT_CLOSE:
-		return session.handleComStmtClose(data)
-	case mysql.COM_STMT_SEND_LONG_DATA:
-		return session.handleComStmtSendLongData(data)
-	case mysql.COM_STMT_RESET:
-		return session.handleComStmtReset(data)
+	case ComStmtPrepare:
+		// TODO
+		return nil
+		// return session.handleComStmtPrepare(hack.String(data))
+	case ComStmtExecute:
+		// TODO
+		return nil
+		// return session.handleComStmtExecute(data)
+	case ComStmtClose:
+		// TODO
+		return nil
+		//return session.handleComStmtClose(data)
+	case ComStmtSendLongData:
+		// TODO
+		return nil
+		//return session.handleComStmtSendLongData(data)
+	case ComStmtReset:
+		// TODO
+		return nil
+		// return session.handleComStmtReset(data)
 	default:
 		msg := fmt.Sprintf("command %d not supported now", cmd)
 		log.Warnf(msg)
@@ -111,11 +124,11 @@ func (session *Session) useDB(db string) error {
 	return nil
 }
 
-func (c *Session) IsAutoCommit() bool {
+func (session *Session) IsAutoCommit() bool {
 	return session.status&mysql.SERVER_STATUS_AUTOCOMMIT > 0
 }
 
-func (c *Session) checkDB() error {
+func (session *Session) checkDB() error {
 	if session.schema != nil {
 		return nil
 	}
