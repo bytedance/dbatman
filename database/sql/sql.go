@@ -598,7 +598,9 @@ func (db *DB) SetMaxOpenConns(n int) {
 // DBStats contains database statistics.
 type DBStats struct {
 	// OpenConnections is the number of open connections to the database.
+	// FreeConnections is the number of pool connections to the database
 	OpenConnections int
+	FreeConnections int
 }
 
 // Stats returns database statistics.
@@ -606,6 +608,7 @@ func (db *DB) Stats() DBStats {
 	db.mu.Lock()
 	stats := DBStats{
 		OpenConnections: db.numOpen,
+		FreeConnections: len(db.freeConn),
 	}
 	db.mu.Unlock()
 	return stats

@@ -22,6 +22,7 @@ clusters:
             username: pgc
             password: pgc
             dbname: pgc
+            charset: utf8mb4
             max_connections: 100
             max_connection_pool_size: 10
             connect_timeout: 10
@@ -33,6 +34,7 @@ clusters:
             username: pgc
             password: pgc
             dbname: pgc
+            charset: utf8mb4
             max_connections: 100
             max_connection_pool_size: 10
             connect_timeout: 10
@@ -43,6 +45,7 @@ clusters:
             username: pgc
             password: pgc
             dbname: pgc
+            charset: utf8mb4
             max_connections: 100
             max_connection_pool_size: 10
             connect_timeout: 10
