@@ -108,7 +108,7 @@ func (session *Session) dispatch(data []byte) error {
 	default:
 		msg := fmt.Sprintf("command %d not supported now", cmd)
 		log.Warnf(msg)
-		return mysql.NewError(mysql.ER_UNKNOWN_ERROR, msg)
+		return NewDefaultError(ER_UNKNOWN_ERROR, msg)
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func (session *Session) dispatch(data []byte) error {
 
 func (session *Session) useDB(db string) error {
 	if s := session.server.getSchema(db); s == nil {
-		return mysql.NewDefaultError(mysql.ER_BAD_DB_ERROR, db)
+		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	} else {
 		session.schema = s
 		session.db = db
@@ -125,7 +125,7 @@ func (session *Session) useDB(db string) error {
 }
 
 func (session *Session) IsAutoCommit() bool {
-	return session.status&mysql.SERVER_STATUS_AUTOCOMMIT > 0
+	return session.status&uint32(StatusInAutocommit) > 0
 }
 
 func (session *Session) checkDB() error {
@@ -137,5 +137,5 @@ func (session *Session) checkDB() error {
 		return session.useDB(session.db)
 	}
 
-	return mysql.NewDefaultError(mysql.ER_NO_DB_ERROR)
+	return NewDefaultError(ER_NO_DB_ERROR)
 }
