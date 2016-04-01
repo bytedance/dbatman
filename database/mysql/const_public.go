@@ -34,7 +34,7 @@ const (
 	ClientODBC                       clientFlag = clientODBC
 	ClientLocalFiles                 clientFlag = clientLocalFiles
 	ClientIgnoreSpace                clientFlag = clientIgnoreSpace
-	ClientProtocol                   clientFlag = clientProtocol41
+	ClientProtocol41                 clientFlag = clientProtocol41
 	ClientInteractive                clientFlag = clientInteractive
 	ClientSSL                        clientFlag = clientSSL
 	ClientIgnoreSIGPIPE              clientFlag = clientIgnoreSIGPIPE

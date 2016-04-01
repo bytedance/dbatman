@@ -6,8 +6,8 @@ import (
 )
 
 type Schema struct {
-	db    string
-	node  *Node
+	db string
+	// node  *Node
 	auths map[string]string
 }
 

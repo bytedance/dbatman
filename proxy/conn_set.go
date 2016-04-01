@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func (c *frontConn) handleSet(stmt *parser.Set, sql string) error {
+func (c *Session) handleSet(stmt *parser.Set, sql string) error {
 	if len(stmt.VarList) < 1 {
 		return fmt.Errorf("must set one item at least")
 	}
@@ -26,16 +26,16 @@ func (c *frontConn) handleSet(stmt *parser.Set, sql string) error {
 	return c.handleOtherSet(stmt, sql)
 }
 
-func (c *frontConn) handleSetAutoCommit(val sql.IExpr) error {
+func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 
-	var stmt *sql.Predicate
+	var stmt *parser.Predicate
 	var ok bool
-	if stmt, ok = val.(*sql.Predicate); !ok {
+	if stmt, ok = val.(*parser.Predicate); !ok {
 		return fmt.Errorf("set autocommit is not support for complicate expressions")
 	}
 
 	switch value := stmt.Expr.(type) {
-	case sql.NumVal:
+	case parser.NumVal:
 		if i, err := value.ParseInt(); err != nil {
 			return err
 		} else if i == 1 {
@@ -47,7 +47,7 @@ func (c *frontConn) handleSetAutoCommit(val sql.IExpr) error {
 		} else {
 			return fmt.Errorf("Variable 'autocommit' can't be set to the value of '%s'", i)
 		}
-	case sql.StrVal:
+	case parser.StrVal:
 		if s := value.Trim(); s == "" {
 			return fmt.Errorf("Variable 'autocommit' can't be set to the value of ''")
 		} else if us := strings.ToUpper(s); us == `ON` {
@@ -66,8 +66,8 @@ func (c *frontConn) handleSetAutoCommit(val sql.IExpr) error {
 	return nil
 }
 
-func (c *frontConn) handleSetNames(val sql.IValExpr) error {
-	value, ok := val.(sql.StrVal)
+func (c *Session) handleSetNames(val parser.IValExpr) error {
+	value, ok := val.(parser.StrVal)
 	if !ok {
 		return fmt.Errorf("set names charset error")
 	}
@@ -84,6 +84,6 @@ func (c *frontConn) handleSetNames(val sql.IValExpr) error {
 	return c.writeOK(nil)
 }
 
-func (c *frontConn) handleOtherSet(stmt sql.IStatement, sql string) error {
+func (c *Session) handleOtherSet(stmt parser.IStatement, sql string) error {
 	return c.handleExec(stmt, sql, false)
 }

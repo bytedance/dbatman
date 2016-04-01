@@ -2,52 +2,52 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 )
 
-func (c *Session) handleQuery(sqlstmt string) (err error) {
+func (c *Session) comQuery(sqlstmt string) (err error) {
 
-	var stmt sql.IStatement
+	var stmt parser.IStatement
 	stmt, err = parser.Parse(sqlstmt)
 	if err != nil {
 		return fmt.Errorf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
 	}
 
 	switch v := stmt.(type) {
-	case sql.ISelect:
-		return c.handleSelect(v, sqlstmt)
-	case *sql.Insert:
+	case parser.ISelect:
+		return c.handleQuery(v, sqlstmt)
+	case *parser.Insert:
 		return c.handleExec(stmt, sqlstmt, false)
-	case *sql.Update:
+	case *parser.Update:
 		return c.handleExec(stmt, sqlstmt, false)
-	case *sql.Delete:
+	case *parser.Delete:
 		return c.handleExec(stmt, sqlstmt, false)
-	case *sql.Replace:
+	case *parser.Replace:
 		return c.handleExec(stmt, sqlstmt, false)
-	case *sql.Set:
+	case *parser.Set:
 		return c.handleSet(v, sqlstmt)
-	case *sql.Begin:
+	case *parser.Begin:
 		return c.handleBegin()
-	case *sql.Commit:
+	case *parser.Commit:
 		return c.handleCommit()
-	case *sql.Rollback:
+	case *parser.Rollback:
 		return c.handleRollback()
-	case sql.IShow:
+	case parser.IShow:
 		return c.handleShow(sqlstmt, v)
-	case sql.IDDLStatement:
+	case parser.IDDLStatement:
 		return c.handleExec(stmt, sqlstmt, false)
-	case *sql.Do:
+	case *parser.Do:
 		return c.handleExec(stmt, sqlstmt, false)
-	case *sql.Call:
+	case *parser.Call:
 		return c.handleExec(stmt, sqlstmt, false)
-	case *sql.Use:
-		if err := c.useDB(hack.String(stmt.(*sql.Use).DB)); err != nil {
+	case *parser.Use:
+		if err := c.useDB(hack.String(stmt.(*parser.Use).DB)); err != nil {
 			return err
 		} else {
-			return c.writeOK(nil)
+			return c.fc.WriteOK(nil)
 		}
 
 	default:
@@ -136,26 +136,25 @@ func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isrea
 		return err
 	}
 
-	conn, err := session.getConn(session.schema.node, isread)
+	db, err := session.cluster.DB(isread)
+
 	if err != nil {
 		return err
-	} else if conn == nil {
-		return fmt.Errorf("no available connection")
 	}
 
-	var rs *mysql.Result
-	rs, err = conn.Execute(sqlstmt)
+	defer db.Close()
 
-	c.closeDBConn(conn, err != nil)
+	var rs *sql.Result
+	rs, err = db.Exec(sqlstmt)
 
 	if err == nil {
-		err = c.writeOK(rs)
+		err = session.fc.WriteOK(rs)
 	}
 
 	return err
 }
 
-func (c *Session) mergeSelectResult(rs *driver.ResultSet) error {
+func (c *Session) mergeSelectResult(rs *driver.Result) error {
 	r := rs.Resultset
 	status := c.status | rs.Status
 	return c.writeResultset(status, r)

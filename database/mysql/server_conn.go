@@ -248,8 +248,8 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 
 type MySQLResult struct {
 	*mysqlResult
-	Status   uint16
-	Warnings uint16
+	status   statusFlag
+	warnings uint16
 }
 
 // WriteError write error package to the client
@@ -278,7 +278,7 @@ func (mc *MySQLServerConn) WriteError(e error) error {
 // WriteOk write ok package to the client
 func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 	if r == nil {
-		r = &MySQLResult{Status: mc.ctx.Status()}
+		r = &MySQLResult{status: statusFlag(mc.ctx.Status())}
 	}
 	data := mc.buf.takeSmallBuffer(32)
 
@@ -290,8 +290,8 @@ func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 	data = append(data, PutLengthEncodedInt(uint64(insertId))...)
 
 	if mc.ctx.Cap()&uint32(clientProtocol41) > 0 {
-		data = append(data, byte(r.Status), byte(r.Status>>8))
-		data = append(data, byte(r.Warnings), byte(r.Warnings>>8))
+		data = append(data, byte(r.status), byte(r.status>>8))
+		data = append(data, byte(r.warnings), byte(r.warnings>>8))
 	}
 
 	return mc.writePacket(data)
