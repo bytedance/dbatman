@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"github.com/bytedance/dbatman/config"
 	"github.com/juju/errors"
 	"github.com/ngaut/log"
@@ -33,7 +34,7 @@ func NewServer(cfg *config.ProxyConfig) (*Server, error) {
 		return nil, errors.Trace(err)
 	}
 
-	log.Notice("Dbatman Listen(tcp4) at [%s]", s.addr)
+	log.Infof("Dbatman Listen(tcp4) at [%s]", s.cfg.Global.Port)
 	return s, nil
 }
 
@@ -81,8 +82,6 @@ func (s *Server) onConn(c net.Conn) {
 		log.Warning("handshake error: %s", err.Error())
 		return
 	}
-
-	session.front = mc
 
 	session.Run()
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/bytedance/dbatman/database/cluster"
 	. "github.com/bytedance/dbatman/database/mysql"
 	"net"
+	"sync/atomic"
 )
 
 var DEFAULT_CAPABILITY uint32 = uint32(ClientLongPassword | ClientLongFlag |
@@ -41,6 +42,7 @@ type Session struct {
 	fc      *MySQLServerConn
 
 	closed bool
+	db     string
 }
 
 func (s *Server) newSession(conn net.Conn) *Session {
@@ -50,14 +52,14 @@ func (s *Server) newSession(conn net.Conn) *Session {
 
 	session.connID = atomic.AddUint32(&baseConnId, 1)
 
-	session.status = mysql.SERVER_STATUS_AUTOCOMMIT
+	session.status = uint32(StatusInAutocommit)
 
-	session.salt, _ = mysql.RandomBuf(20)
+	session.salt, _ = RandomBuf(20)
 
-	session.collation = mysql.DEFAULT_COLLATION_ID
-	session.charset = mysql.DEFAULT_CHARSET
+	session.collation = DEFAULT_COLLATION_ID
+	session.charset = DEFAULT_CHARSET
 
-	session.fc = mysql.NewMySQLServerConn(session, conn)
+	session.fc = NewMySQLServerConn(session, conn)
 
 	return session
 }
@@ -84,7 +86,7 @@ func (session *Session) Run() error {
 				return nil
 			}
 
-			log.Warning("con[%d], dispatch error %s", c.connID, err.Error())
+			log.Warnf("con[%d], dispatch error %s", c.connID, err.Error())
 			return err
 		}
 

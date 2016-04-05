@@ -7,7 +7,7 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	conf, err := LoadConfig("./proxy.conf")
+	conf, err := LoadConfig("./proxy.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,6 +33,7 @@ func TestConfig(t *testing.T) {
 		Username:              "pgc",
 		Password:              "pgc",
 		DBName:                "pgc",
+		Charset:               "utf8mb4",
 		MaxConnections:        100,
 		MaxConnectionPoolSize: 10,
 		ConnectTimeout:        10,

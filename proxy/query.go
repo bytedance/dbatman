@@ -37,6 +37,7 @@ package proxy
 import (
 	"fmt"
 	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
+	"github.com/bytedance/dbatman/config"
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 )
@@ -115,10 +116,9 @@ func (session *Session) dispatch(data []byte) error {
 }
 
 func (session *Session) useDB(db string) error {
-	if s := session.server.getSchema(db); s == nil {
+	if s := session.config.GetClusterByDBName(db); s == nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	} else {
-		session.schema = s
 		session.db = db
 	}
 	return nil
@@ -129,9 +129,6 @@ func (session *Session) IsAutoCommit() bool {
 }
 
 func (session *Session) checkDB() error {
-	if session.schema != nil {
-		return nil
-	}
 
 	if session.db != "" {
 		return session.useDB(session.db)
