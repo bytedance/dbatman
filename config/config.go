@@ -50,6 +50,7 @@ type NodeConfig struct {
 	Username              string
 	Password              string
 	DBName                string
+	Charset               string
 	Weight                int
 	MaxConnections        int `yaml:"max_connections"`
 	MaxConnectionPoolSize int `yaml:"max_connection_pool_size"`
@@ -67,6 +68,14 @@ type UserConfig struct {
 	ClusterName    string   `yaml:"cluster_name"`
 	AuthIPs        []string `yaml:"auth_ips"`
 	BlackListIPs   []string `yaml:"black_list_ips"`
+}
+
+func (p *ProxyConfig) GetAllClusters() map[string]*ClusterConfig {
+	if p == nil || p.Clusters == nil {
+		log.Errorf("GetClusterConfig p==nil or p.Clusters==nil")
+		return nil
+	}
+	return p.Clusters
 }
 
 func (p *ProxyConfig) GetMasterNodefromClusterByName(clusterName string) *NodeConfig {
@@ -106,6 +115,24 @@ func (p *ProxyConfig) GetUserByName(username string) *UserConfig {
 		return nil
 	}
 	return user
+}
+
+func (cc *ClusterConfig) GetMasterNode() *NodeConfig {
+	if cc == nil {
+		log.Errorf("GetMasterNode c==nil")
+		return nil
+	}
+
+	return cc.Master
+}
+
+func (cc *ClusterConfig) GetSlaveNodes() []*NodeConfig {
+	if cc == nil {
+		log.Errorf("GetMasterNode c==nil")
+		return nil
+	}
+
+	return cc.Slaves
 }
 
 func (c *Conf) parseConfigFile(proxyConfig *ProxyConfig) error {
