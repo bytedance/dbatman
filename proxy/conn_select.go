@@ -2,7 +2,8 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/database/mysql"
+	. "github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/parser"
 )
@@ -31,7 +32,7 @@ func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) erro
 		return fmt.Errorf("no available backend db")
 	}
 
-	var rs *driver.Rows
+	var rs *sql.Rows
 	rs, err = db.Query(sqlstmt)
 
 	// TODO here should handler error
@@ -41,9 +42,19 @@ func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) erro
 
 	defer rs.Close()
 
-	if err := session.fc.WritePacket(res.DumpColumns()...); err != nil {
+	var cols []driver.RawPayload
+	cols, err = rs.ColumnPackets()
+	if err != nil {
 		return err
 	}
+
+	for _, col := range cols {
+		if err := session.fc.WritePacket(col); err != nil {
+			return err
+		}
+	}
+
+	// TODO Write a ok packet
 
 	var payload driver.RawPayload
 	for {
@@ -60,10 +71,7 @@ func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) erro
 		}
 	}
 
-	return nil
-}
+	// TODO Write a EOF packet
 
-// TODO
-func (c *Session) doQuery(sqlstmt string) error {
 	return nil
 }

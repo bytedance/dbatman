@@ -32,3 +32,5 @@ _testmain.go
 
 *.log
 coverage.txt
+
+git.sh

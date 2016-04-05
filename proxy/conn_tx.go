@@ -1,5 +1,6 @@
 package proxy
 
+/*
 import (
 	"github.com/bytedance/dbatman/database/mysql"
 )
@@ -69,3 +70,4 @@ func (c *Session) rollback() (err error) {
 func (c *Session) needBeginTx() bool {
 	return c.isInTransaction() || !c.isAutoCommit()
 }
+*/

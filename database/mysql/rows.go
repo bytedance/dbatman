@@ -33,6 +33,27 @@ type Field struct {
 	*mysqlField
 }
 
+func NewMySQLField(schema []byte, tableName []byte, orgTable []byte, name []byte,
+	orgName []byte, charset uint16, columnLen uint32, flags uint16, fieldType byte,
+	decimals byte, defaultValue []byte, defaultValueLength uint64) *Field {
+	return &Field{
+		mysqlField: &mysqlField{
+			schema:             schema,
+			tableName:          tableName,
+			orgTable:           orgTable,
+			name:               name,
+			orgName:            orgName,
+			charset:            charset,
+			columnLen:          columnLen,
+			flags:              fieldFlag(flags),
+			fieldType:          fieldType,
+			decimals:           decimals,
+			defaultValue:       defaultValue,
+			defaultValueLength: defaultValueLength,
+		},
+	}
+}
+
 func (f *mysqlField) Dump() []byte {
 
 	l := len(f.schema) + len(f.tableName) + len(f.orgTable) + len(f.name) +

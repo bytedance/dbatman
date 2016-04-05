@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
-	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 )
@@ -30,11 +30,14 @@ func (c *Session) comQuery(sqlstmt string) (err error) {
 	case *parser.Set:
 		return c.handleSet(v, sqlstmt)
 	case *parser.Begin:
-		return c.handleBegin()
+		// return c.handleBegin()
+		return nil
 	case *parser.Commit:
-		return c.handleCommit()
+		// return c.handleCommit()
+		return nil
 	case *parser.Rollback:
-		return c.handleRollback()
+		// return c.handleRollback()
+		return nil
 	case parser.IShow:
 		return c.handleShow(sqlstmt, v)
 	case parser.IDDLStatement:
@@ -144,18 +147,19 @@ func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isrea
 
 	defer db.Close()
 
-	var rs *sql.Result
+	var rs sql.Result
 	rs, err = db.Exec(sqlstmt)
 
 	if err == nil {
-		err = session.fc.WriteOK(rs)
+		if mysql_rs, ok := rs.(*mysql.MySQLResult); ok {
+			err = session.fc.WriteOK(mysql_rs)
+		}
 	}
 
 	return err
 }
 
-func (c *Session) mergeSelectResult(rs *driver.Result) error {
-	r := rs.Resultset
-	status := c.status | rs.Status
-	return c.writeResultset(status, r)
+func (session *Session) mergeSelectResult(r *mysql.MySQLResult) error {
+	status := session.status | uint32(r.Status())
+	return session.fc.WriteResult(status, r)
 }

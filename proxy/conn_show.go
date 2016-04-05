@@ -13,37 +13,32 @@ func (c *Session) handleShow(strsql string, stmt parser.IShow) error {
 	case *parser.ShowDatabases:
 		err = c.handleShowDatabases()
 	default:
-		err = c.handleSelect(stmt, strsql)
+		err = c.handleQuery(stmt, strsql)
 	}
 
 	return err
 
 }
 
-func (c *Session) handleShowDatabases() error {
-	dbs := make([]interface{}, 0, len(c.server.schemas))
-	for key := range c.server.schemas {
-		dbs = append(dbs, key)
-	}
+func (session *Session) handleShowDatabases() error {
+	dbs := make([]interface{}, 0, 1)
+	dbs[0] = session.user.DBName
 
-	if r, err := c.buildSimpleShowResultset(dbs, "Database"); err != nil {
+	if r, err := session.buildSimpleShowResultset(dbs, "Database"); err != nil {
 		return err
 	} else {
-		return c.writeResultset(c.status, r)
+		return c.WriteResult(session.status, r)
 	}
 }
 
-func (c *Session) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {
+func (c *Session) buildSimpleShowResultset(values []interface{}, name string) (*MySQLResult, error) {
 
-	r := new(Resultset)
+	r := new(Result)
 
-	field := &Field{}
+	field := NewMySQLField(
+		nil, nil, nil, hack.Slice(name), nil, uint16(c.collation), 0, 0, FieldTypeVarString, 0, nil, 0)
 
-	field.Name = hack.Slice(name)
-	field.Charset = 33
-	field.Type = mysql.MYSQL_TYPE_VAR_STRING
-
-	r.Fields = []*Field{field}
+	fields := []*Field{field}
 
 	var row []byte
 	var err error
@@ -53,8 +48,7 @@ func (c *Session) buildSimpleShowResultset(values []interface{}, name string) (*
 		if err != nil {
 			return nil, err
 		}
-		r.RowDatas = append(r.RowDatas,
-			PutLengthEncodedString(row))
+		r.RowDatas = append(r.RowDatas, PutLengthEncodedString(row))
 	}
 
 	return r, nil

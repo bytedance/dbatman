@@ -1,9 +1,10 @@
 package proxy
 
+/*
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/bytedance/dbatman/database/mysql"
+	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/parser"
 	"strconv"
 )
@@ -12,7 +13,7 @@ var paramFieldData []byte
 var columnFieldData []byte
 
 func init() {
-	var p = &mysql.Field{Name: []byte("?")}
+	var p = &Field{Name: []byte("?")}
 	var c = &Field{}
 
 	paramFieldData = p.Dump()
@@ -263,3 +264,4 @@ func (c *Session) handleStmtExec(prepared *Stmt, data []byte, resultSet bool) er
 	}
 	return err
 }
+*/

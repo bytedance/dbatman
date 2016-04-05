@@ -2,8 +2,9 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/database/mysql"
+	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/parser"
+	"github.com/ngaut/log"
 	"strings"
 )
 
@@ -15,7 +16,7 @@ func (c *Session) handleSet(stmt *parser.Set, sql string) error {
 	var err error
 	for _, v := range stmt.VarList {
 		if strings.ToUpper(v.Name) == "AUTOCOMMIT" {
-			AppLog.Debug("handle autocommit")
+			log.Debug("handle autocommit")
 			err = c.handleSetAutoCommit(v.Value)
 		}
 	}
@@ -39,11 +40,11 @@ func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 		if i, err := value.ParseInt(); err != nil {
 			return err
 		} else if i == 1 {
-			c.status |= SERVER_STATUS_AUTOCOMMIT
-			AppLog.Debug("autocommit is set")
+			c.status |= uint32(StatusInAutocommit)
+			log.Debug("autocommit is set")
 		} else if i == 0 {
-			c.status &= ^SERVER_STATUS_AUTOCOMMIT
-			AppLog.Debug("auto commit is unset")
+			c.status &= ^uint32(StatusInAutocommit)
+			log.Debug("auto commit is unset")
 		} else {
 			return fmt.Errorf("Variable 'autocommit' can't be set to the value of '%s'", i)
 		}
@@ -51,11 +52,11 @@ func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 		if s := value.Trim(); s == "" {
 			return fmt.Errorf("Variable 'autocommit' can't be set to the value of ''")
 		} else if us := strings.ToUpper(s); us == `ON` {
-			c.status |= SERVER_STATUS_AUTOCOMMIT
-			AppLog.Debug("auto commit is set")
+			c.status |= uint32(StatusInAutocommit)
+			log.Debug("auto commit is set")
 		} else if us == `OFF` {
-			c.status &= ^SERVER_STATUS_AUTOCOMMIT
-			AppLog.Debug("auto commit is unset")
+			c.status &= ^uint32(StatusInAutocommit)
+			log.Debug("auto commit is unset")
 		} else {
 			return fmt.Errorf("Variable 'autocommit' can't be set to the value of '%s'", us)
 		}
@@ -73,7 +74,7 @@ func (c *Session) handleSetNames(val parser.IValExpr) error {
 	}
 
 	charset := strings.ToLower(string(value))
-	cid, ok := mysql.CharsetIds[charset]
+	cid, ok := CharsetIds[charset]
 	if !ok {
 		return fmt.Errorf("invalid charset %s", charset)
 	}
@@ -81,7 +82,7 @@ func (c *Session) handleSetNames(val parser.IValExpr) error {
 	c.charset = charset
 	c.collation = cid
 
-	return c.writeOK(nil)
+	return c.fc.WriteOK(nil)
 }
 
 func (c *Session) handleOtherSet(stmt parser.IStatement, sql string) error {
