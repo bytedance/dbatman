@@ -15,7 +15,7 @@ type Server struct {
 
 	// nodes map[string]*Node
 
-	schemas map[string]*Schema
+	// schemas map[string]*Schema
 
 	// users    *userAuth
 	listener net.Listener
