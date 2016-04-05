@@ -17,8 +17,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/juju/errors"
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/juju/errors"
 	"net"
 )
 
