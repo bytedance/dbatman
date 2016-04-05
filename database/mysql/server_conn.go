@@ -318,6 +318,10 @@ func (mc *MySQLServerConn) WritePacket(payload driver.RawPayload) error {
 	return mc.writePacket(data)
 }
 
+func (mc *MySQLServerConn) ReadPacket() ([]byte, error) {
+	return mc.readPacket()
+}
+
 /******************************************************************************
 *                   Function Wrapper for Export Visiable                      *
 ******************************************************************************/

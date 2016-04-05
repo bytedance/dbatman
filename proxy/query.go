@@ -37,7 +37,6 @@ package proxy
 import (
 	"fmt"
 	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
-	"github.com/bytedance/dbatman/config"
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 )

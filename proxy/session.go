@@ -17,6 +17,8 @@ import (
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
 	. "github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/ngaut/log"
 	"net"
 	"sync/atomic"
 )
@@ -75,27 +77,32 @@ func (session *Session) HandshakeWithFront() error {
 func (session *Session) Run() error {
 
 	for {
-		data, err := session.front.ReadPacket()
+		data, err := session.fc.ReadPacket()
 		if err != nil {
 			return err
 		}
 
 		if err := session.dispatch(data); err != nil {
-			if err != mysql.ErrBadConn {
-				session.writeError(err)
+			if err != driver.ErrBadConn {
+				// TODO handle error
+				// session.writeError(err)
 				return nil
 			}
 
-			log.Warnf("con[%d], dispatch error %s", c.connID, err.Error())
+			log.Warningf("con[%d], dispatch error %s", session.connID, err.Error())
 			return err
 		}
 
 		if session.closed {
-			return
+			return nil
 		}
 
 		session.ResetSequence()
 	}
 
 	return nil
+}
+
+func (session *Session) ResetSequence() {
+	session.connID = 0
 }
