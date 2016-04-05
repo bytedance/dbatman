@@ -22,7 +22,7 @@ func (session *Session) CheckAuth(username string, passwd []byte, db string) err
 		return NewDefaultError(ER_ACCESS_DENIED_ERROR, session.fc.RemoteAddr().String(), session.user, "Yes")
 	}
 
-	if err := session.useDB(db); err != nil {
+	if err := session.useDB(user.DBName); err != nil {
 		return err
 	}
 

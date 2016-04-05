@@ -92,6 +92,10 @@ func (mc *MySQLServerConn) Handshake() error {
 	return nil
 }
 
+func (mc *MySQLServerConn) RemoteAddr() net.Addr {
+	return mc.mysqlConn.netConn.RemoteAddr()
+}
+
 /******************************************************************************
 *                          Server-Side MySQL Error                            *
 ******************************************************************************/
