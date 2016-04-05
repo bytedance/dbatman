@@ -35,7 +35,7 @@ type MySQLServerCtx interface {
 
 	ResetSequence()
 
-	CheckAuth(user string, auth []byte, db string) error
+	CheckAuth(username string, auth []byte, db string) error
 
 	DefaultDB() string
 	ServerName() []byte

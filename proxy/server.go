@@ -11,7 +11,7 @@ import (
 // Server is the proxy server. It handle the request from frontend, process and dispatch
 // queries, picking right backend conn due to the request context.
 type Server struct {
-	cfg *config.Conf
+	cfg *config.ProxyConfig
 
 	// nodes map[string]*Node
 
@@ -22,29 +22,13 @@ type Server struct {
 	running  bool
 }
 
-func NewServer(cfg *config.Conf) (*Server, error) {
+func NewServer(cfg *config.ProxyConfig) (*Server, error) {
 	s := new(Server)
 
 	s.cfg = cfg
 
-	s.addr = cfg.Addr
-	s.user = cfg.User
-	s.password = cfg.Password
-
-	if err := s.parseNodes(); err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	if err := s.parseSchemas(); err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	if err := s.parseUserAuths(); err != nil {
-		return nil, errors.Trace(err)
-	}
-
 	var err error
-	s.listener, err = net.Listen("tcp4", s.addr)
+	s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%s", s.cfg.Global.Port))
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
