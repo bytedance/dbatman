@@ -124,7 +124,7 @@ func (session *Session) useDB(db string) error {
 }
 
 func (session *Session) IsAutoCommit() bool {
-	return session.status&uint32(StatusInAutocommit) > 0
+	return session.status&uint16(StatusInAutocommit) > 0
 }
 
 func (session *Session) checkDB() error {

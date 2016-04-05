@@ -160,6 +160,6 @@ func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isrea
 }
 
 func (session *Session) mergeSelectResult(r *mysql.MySQLResult) error {
-	status := session.status | uint32(r.Status())
-	return session.fc.WriteResult(status, r)
+	status := session.status | uint16(r.Status())
+	return session.WriteResult(status, r)
 }

@@ -27,7 +27,7 @@ import (
 type MySQLServerCtx interface {
 	ConnID() uint32
 	Salt() []byte
-	Collation() uint8
+	Collation() CollationId
 	Status() uint16
 
 	Cap() uint32

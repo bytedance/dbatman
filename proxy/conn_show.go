@@ -27,16 +27,16 @@ func (session *Session) handleShowDatabases() error {
 	if r, err := session.buildSimpleShowResultset(dbs, "Database"); err != nil {
 		return err
 	} else {
-		return c.WriteResult(session.status, r)
+		return session.WriteResult(session.status, r)
 	}
 }
 
-func (c *Session) buildSimpleShowResultset(values []interface{}, name string) (*MySQLResult, error) {
+func (session *Session) buildSimpleShowResultset(values []interface{}, name string) (*MySQLResult, error) {
 
-	r := new(Result)
+	r := new(MySQLResult)
 
 	field := NewMySQLField(
-		nil, nil, nil, hack.Slice(name), nil, uint16(c.collation), 0, 0, FieldTypeVarString, 0, nil, 0)
+		nil, nil, nil, hack.Slice(name), nil, uint16(session.collation), 0, 0, FieldTypeVarString, 0, nil, 0)
 
 	fields := []*Field{field}
 
