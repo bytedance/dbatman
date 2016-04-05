@@ -115,23 +115,19 @@ func (session *Session) dispatch(data []byte) error {
 }
 
 func (session *Session) useDB(db string) error {
-	if s := session.server.getSchema(db); s == nil {
+	if s := session.config.GetClusterByDBName(db); s == nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	} else {
-		session.schema = s
 		session.db = db
 	}
 	return nil
 }
 
 func (session *Session) IsAutoCommit() bool {
-	return session.status&uint32(StatusInAutocommit) > 0
+	return session.status&uint16(StatusInAutocommit) > 0
 }
 
 func (session *Session) checkDB() error {
-	if session.schema != nil {
-		return nil
-	}
 
 	if session.db != "" {
 		return session.useDB(session.db)

@@ -71,11 +71,27 @@ type UserConfig struct {
 }
 
 func (p *ProxyConfig) GetAllClusters() map[string]*ClusterConfig {
-	if p == nil || p.Clusters == nil {
+	if p.Clusters == nil {
 		log.Errorf("GetClusterConfig p==nil or p.Clusters==nil")
 		return nil
 	}
 	return p.Clusters
+}
+
+// GetClusterByDBName return all cluster by given dbname
+func (p *ProxyConfig) GetClusterByDBName(dbName string) *ClusterConfig {
+	if p.Clusters == nil {
+		log.Errorf("GetClusterConfig p==nil or p.Clusters==nil")
+		return nil
+	}
+
+	for _, cluster := range p.Clusters {
+		if cluster.Master.DBName == dbName {
+			return cluster
+		}
+	}
+
+	return nil
 }
 
 func (p *ProxyConfig) GetMasterNodefromClusterByName(clusterName string) *NodeConfig {

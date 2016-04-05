@@ -95,9 +95,9 @@ func New(clusterName string) (*Cluster, error) {
 	}
 }
 
-func (c *Cluster) MasterConn() (*sql.DB, error) {
-	if c == nil || c.masterDB == nil {
-		return nil, fmt.Errorf("MasterConn error c==nil or c.masterDb==nil")
+func (c *Cluster) Master() (*sql.DB, error) {
+	if c.masterDB == nil {
+		return nil, fmt.Errorf("MasterConn error c.masterDb==nil")
 	}
 	db := c.masterDB
 	stats := db.Stats()
@@ -114,9 +114,9 @@ func (c *Cluster) MasterConn() (*sql.DB, error) {
 	return db, nil
 }
 
-func (c *Cluster) SlaveConn() (*sql.DB, error) {
-	if c == nil || c.slavesDB == nil {
-		return nil, fmt.Errorf("SlaveConn error c==nil or c.slavesDB==nil")
+func (c *Cluster) Slave() (*sql.DB, error) {
+	if c.slavesDB == nil {
+		return nil, fmt.Errorf("SlaveConn error c.slavesDB==nil")
 	}
 
 	var (
@@ -145,6 +145,14 @@ func (c *Cluster) SlaveConn() (*sql.DB, error) {
 		}
 	}
 	return db, nil
+}
+
+func (c *Cluster) DB(isread bool) (*sql.DB, error) {
+	if isread {
+		return c.Master()
+	}
+
+	return c.Slave()
 }
 
 func makeConnection(db *sql.DB) error {

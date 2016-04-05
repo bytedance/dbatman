@@ -27,7 +27,7 @@ import (
 type MySQLServerCtx interface {
 	ConnID() uint32
 	Salt() []byte
-	Collation() uint8
+	Collation() CollationId
 	Status() uint16
 
 	Cap() uint32
@@ -35,7 +35,7 @@ type MySQLServerCtx interface {
 
 	ResetSequence()
 
-	CheckAuth(user string, auth []byte, db string) error
+	CheckAuth(username string, auth []byte, db string) error
 
 	DefaultDB() string
 	ServerName() []byte
@@ -90,6 +90,10 @@ func (mc *MySQLServerConn) Handshake() error {
 	mc.ctx.ResetSequence()
 
 	return nil
+}
+
+func (mc *MySQLServerConn) RemoteAddr() net.Addr {
+	return mc.mysqlConn.netConn.RemoteAddr()
 }
 
 /******************************************************************************
@@ -312,6 +316,10 @@ func (mc *MySQLServerConn) WritePacket(payload driver.RawPayload) error {
 	data = append(data[:4], payload...)
 
 	return mc.writePacket(data)
+}
+
+func (mc *MySQLServerConn) ReadPacket() ([]byte, error) {
+	return mc.readPacket()
 }
 
 /******************************************************************************

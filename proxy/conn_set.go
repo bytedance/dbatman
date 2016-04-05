@@ -40,10 +40,10 @@ func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 		if i, err := value.ParseInt(); err != nil {
 			return err
 		} else if i == 1 {
-			c.status |= uint32(StatusInAutocommit)
+			c.status |= uint16(StatusInAutocommit)
 			log.Debug("autocommit is set")
 		} else if i == 0 {
-			c.status &= ^uint32(StatusInAutocommit)
+			c.status &= ^uint16(StatusInAutocommit)
 			log.Debug("auto commit is unset")
 		} else {
 			return fmt.Errorf("Variable 'autocommit' can't be set to the value of '%s'", i)
@@ -52,10 +52,10 @@ func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 		if s := value.Trim(); s == "" {
 			return fmt.Errorf("Variable 'autocommit' can't be set to the value of ''")
 		} else if us := strings.ToUpper(s); us == `ON` {
-			c.status |= uint32(StatusInAutocommit)
+			c.status |= uint16(StatusInAutocommit)
 			log.Debug("auto commit is set")
 		} else if us == `OFF` {
-			c.status &= ^uint32(StatusInAutocommit)
+			c.status &= ^uint16(StatusInAutocommit)
 			log.Debug("auto commit is unset")
 		} else {
 			return fmt.Errorf("Variable 'autocommit' can't be set to the value of '%s'", us)
