@@ -38,6 +38,8 @@ import (
 	"fmt"
 	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
 	. "github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
 )
 
@@ -134,4 +136,39 @@ func (session *Session) checkDB() error {
 	}
 
 	return NewDefaultError(ER_NO_DB_ERROR)
+}
+
+func (session *Session) WriteRows(rs *sql.Rows) error {
+	var cols []driver.RawPayload
+	var err error
+	cols, err = rs.ColumnPackets()
+	if err != nil {
+		return err
+	}
+
+	for _, col := range cols {
+		if err := session.fc.WritePacket(col); err != nil {
+			return err
+		}
+	}
+
+	// TODO Write a ok packet
+
+	for {
+		payload, err := rs.NextRowPayload()
+		if err != nil {
+			if merr, ok := err.(*MySQLError); ok {
+				session.fc.WriteError(merr)
+			}
+			return err
+		}
+
+		if err := session.fc.WritePacket(payload); err != nil {
+			return err
+		}
+	}
+
+	// TODO Write a EOF packet
+
+	return nil
 }

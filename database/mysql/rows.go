@@ -13,116 +13,91 @@ import (
 	"io"
 )
 
-type mysqlField struct {
-	schema    []byte
-	tableName []byte
-	orgTable  []byte
-	name      []byte
-	orgName   []byte
-	charset   uint16
-	columnLen uint32
-	flags     fieldFlag
-	fieldType byte
-	decimals  byte
+type MySQLField struct {
+	Schema    []byte
+	TableName []byte
+	OrgTable  []byte
+	Name      []byte
+	OrgName   []byte
+	Charset   uint16
+	ColumnLen uint32
+	Flags     fieldFlag
+	FieldType byte
+	Decimals  byte
 
-	defaultValue       []byte
-	defaultValueLength uint64
+	DefaultValue       []byte
+	DefaultValueLength uint64
 }
 
-type Field struct {
-	*mysqlField
-}
+func (f *MySQLField) Dump() []byte {
 
-func NewMySQLField(schema []byte, tableName []byte, orgTable []byte, name []byte,
-	orgName []byte, charset uint16, columnLen uint32, flags uint16, fieldType byte,
-	decimals byte, defaultValue []byte, defaultValueLength uint64) *Field {
-	return &Field{
-		mysqlField: &mysqlField{
-			schema:             schema,
-			tableName:          tableName,
-			orgTable:           orgTable,
-			name:               name,
-			orgName:            orgName,
-			charset:            charset,
-			columnLen:          columnLen,
-			flags:              fieldFlag(flags),
-			fieldType:          fieldType,
-			decimals:           decimals,
-			defaultValue:       defaultValue,
-			defaultValueLength: defaultValueLength,
-		},
-	}
-}
-
-func (f *mysqlField) Dump() []byte {
-
-	l := len(f.schema) + len(f.tableName) + len(f.orgTable) + len(f.name) +
-		len(f.orgName) + len(f.defaultValue) + 48
+	l := len(f.Schema) + len(f.TableName) + len(f.OrgTable) + len(f.Name) +
+		len(f.OrgName) + len(f.DefaultValue) + 48
 
 	data := make([]byte, 0, l)
 
 	data = append(data, PutLengthEncodedString([]byte("def"))...)
 
-	data = append(data, PutLengthEncodedString(f.schema)...)
+	data = append(data, PutLengthEncodedString(f.Schema)...)
 
-	data = append(data, PutLengthEncodedString(f.tableName)...)
-	data = append(data, PutLengthEncodedString(f.orgTable)...)
+	data = append(data, PutLengthEncodedString(f.TableName)...)
+	data = append(data, PutLengthEncodedString(f.OrgTable)...)
 
-	data = append(data, PutLengthEncodedString(f.name)...)
-	data = append(data, PutLengthEncodedString(f.orgName)...)
+	data = append(data, PutLengthEncodedString(f.Name)...)
+	data = append(data, PutLengthEncodedString(f.OrgName)...)
 
 	data = append(data, 0x0c)
 
-	data = append(data, Uint16ToBytes(f.charset)...)
-	data = append(data, Uint32ToBytes(f.columnLen)...)
-	data = append(data, Uint16ToBytes(uint16(f.fieldType))...)
-	data = append(data, Uint16ToBytes(uint16(f.flags))...)
-	data = append(data, f.decimals)
+	data = append(data, Uint16ToBytes(f.Charset)...)
+	data = append(data, Uint32ToBytes(f.ColumnLen)...)
+	data = append(data, Uint16ToBytes(uint16(f.FieldType))...)
+	data = append(data, Uint16ToBytes(uint16(f.Flags))...)
+	data = append(data, f.Decimals)
 	data = append(data, 0, 0)
 
-	if f.defaultValue != nil {
-		data = append(data, Uint64ToBytes(f.defaultValueLength)...)
-		data = append(data, f.defaultValue...)
+	if f.DefaultValue != nil {
+		data = append(data, Uint64ToBytes(f.DefaultValueLength)...)
+		data = append(data, f.DefaultValue...)
 	}
 
 	return data
 
 }
 
-type mysqlRows struct {
+type MySQLRows struct {
 	mc      *mysqlConn
-	columns []mysqlField
+	columns []MySQLField
 }
 
-type binaryRows struct {
-	mysqlRows
+type BinaryRows struct {
+	MySQLRows
 }
 
-type textRows struct {
-	mysqlRows
+type TextRows struct {
+	MySQLRows
 }
 
 type emptyRows struct{}
 
-func (rows *mysqlRows) Columns() []string {
+func (rows *MySQLRows) Columns() []string {
 	columns := make([]string, len(rows.columns))
 	if rows.mc != nil && rows.mc.cfg.ColumnsWithAlias {
 		for i := range columns {
-			if tableName := rows.columns[i].tableName; len(tableName) > 0 {
-				columns[i] = string(tableName) + "." + string(rows.columns[i].name)
+			if tableName := rows.columns[i].TableName; len(tableName) > 0 {
+				columns[i] = string(tableName) + "." + string(rows.columns[i].Name)
 			} else {
-				columns[i] = string(rows.columns[i].name)
+				columns[i] = string(rows.columns[i].Name)
 			}
 		}
 	} else {
 		for i := range columns {
-			columns[i] = string(rows.columns[i].name)
+			columns[i] = string(rows.columns[i].Name)
 		}
 	}
 	return columns
 }
 
-func (rows *mysqlRows) DumpColumns() []driver.RawPayload {
+func (rows *MySQLRows) DumpColumns() []driver.RawPayload {
 	pkgs := make([]driver.RawPayload, len(rows.columns))
 
 	for i, column := range rows.columns {
@@ -132,7 +107,7 @@ func (rows *mysqlRows) DumpColumns() []driver.RawPayload {
 	return pkgs
 }
 
-func (rows *mysqlRows) Close() error {
+func (rows *MySQLRows) Close() error {
 	mc := rows.mc
 	if mc == nil {
 		return nil
@@ -153,7 +128,7 @@ func (rows *mysqlRows) Close() error {
 	return err
 }
 
-func (rows *mysqlRows) NextRowPayload() (driver.RawPayload, error) {
+func (rows *MySQLRows) NextRowPayload() (driver.RawPayload, error) {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
 			return nil, ErrInvalidConn
@@ -165,7 +140,7 @@ func (rows *mysqlRows) NextRowPayload() (driver.RawPayload, error) {
 	return nil, io.EOF
 }
 
-func (rows *binaryRows) Next(dest []driver.Value) error {
+func (rows *BinaryRows) Next(dest []driver.Value) error {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
 			return ErrInvalidConn
@@ -177,7 +152,7 @@ func (rows *binaryRows) Next(dest []driver.Value) error {
 	return io.EOF
 }
 
-func (rows *textRows) Next(dest []driver.Value) error {
+func (rows *TextRows) Next(dest []driver.Value) error {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
 			return ErrInvalidConn
