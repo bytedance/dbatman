@@ -8,15 +8,25 @@
 
 package mysql
 
-type mysqlResult struct {
+type MySQLResult struct {
+	status       statusFlag
+	warnings     uint16
 	affectedRows int64
 	insertId     int64
 }
 
-func (res *mysqlResult) LastInsertId() (int64, error) {
+func (r *MySQLResult) Status() uint16 {
+	return uint16(r.status)
+}
+
+func (r *MySQLResult) Warnings() uint16 {
+	return r.warnings
+}
+
+func (res *MySQLResult) LastInsertId() (int64, error) {
 	return res.insertId, nil
 }
 
-func (res *mysqlResult) RowsAffected() (int64, error) {
+func (res *MySQLResult) RowsAffected() (int64, error) {
 	return res.affectedRows, nil
 }

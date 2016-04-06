@@ -250,20 +250,6 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 *                   Function Send Packets to front client                     *
 ******************************************************************************/
 
-type MySQLResult struct {
-	*mysqlResult
-	status   statusFlag
-	warnings uint16
-}
-
-func (r *MySQLResult) Status() uint16 {
-	return uint16(r.status)
-}
-
-func (r *MySQLResult) Warnings() uint16 {
-	return r.warnings
-}
-
 // WriteError write error package to the client
 func (mc *MySQLServerConn) WriteError(e error) error {
 	var m *SqlError

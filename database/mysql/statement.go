@@ -71,18 +71,18 @@ func (stmt *mysqlStmt) Exec(args []driver.Value) (driver.Result, error) {
 			err = mc.readUntilEOF()
 		}
 		if err == nil {
-			return &mysqlResult{
+			return &MySQLResult{
 				affectedRows: int64(mc.affectedRows),
 				insertId:     int64(mc.insertId),
+				status:       mc.status,
+				warnings:     0,
 			}, nil
 		} else if errs, ok := err.(MySQLWarnings); ok {
 			return &MySQLResult{
-				mysqlResult: &mysqlResult{
-					affectedRows: int64(mc.affectedRows),
-					insertId:     int64(mc.insertId),
-				},
-				status:   mc.status,
-				warnings: uint16(len(errs)),
+				affectedRows: int64(mc.affectedRows),
+				insertId:     int64(mc.insertId),
+				status:       mc.status,
+				warnings:     uint16(len(errs)),
 			}, err
 		}
 	}
