@@ -19,7 +19,7 @@ type mysqlStmt struct {
 	mc         *mysqlConn
 	id         uint32
 	paramCount int
-	columns    []mysqlField // cached from the first query
+	columns    []MySQLField // cached from the first query
 }
 
 func (stmt *mysqlStmt) Close() error {
@@ -109,7 +109,7 @@ func (stmt *mysqlStmt) Query(args []driver.Value) (driver.Rows, error) {
 		return nil, err
 	}
 
-	rows := new(binaryRows)
+	rows := new(BinaryRows)
 
 	if resLen > 0 {
 		rows.mc = mc

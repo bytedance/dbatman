@@ -158,8 +158,3 @@ func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isrea
 
 	return err
 }
-
-func (session *Session) mergeSelectResult(r *mysql.MySQLResult) error {
-	status := session.status | uint16(r.Status())
-	return session.WriteResult(status, r)
-}

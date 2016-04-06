@@ -2,9 +2,7 @@ package proxy
 
 import (
 	"fmt"
-	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
-	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/parser"
 )
 
@@ -42,36 +40,5 @@ func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) erro
 
 	defer rs.Close()
 
-	var cols []driver.RawPayload
-	cols, err = rs.ColumnPackets()
-	if err != nil {
-		return err
-	}
-
-	for _, col := range cols {
-		if err := session.fc.WritePacket(col); err != nil {
-			return err
-		}
-	}
-
-	// TODO Write a ok packet
-
-	var payload driver.RawPayload
-	for {
-		payload, err := rs.NextRowPayload()
-		if err != nil {
-			if merr, ok := err.(*MySQLError); ok {
-				session.fc.WriteError(merr)
-			}
-			return err
-		}
-
-		if err := session.fc.WritePacket(payload); err != nil {
-			return err
-		}
-	}
-
-	// TODO Write a EOF packet
-
-	return nil
+	return session.WriteRows(rs)
 }

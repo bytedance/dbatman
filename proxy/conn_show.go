@@ -27,7 +27,7 @@ func (session *Session) handleShowDatabases() error {
 	if r, err := session.buildSimpleShowResultset(dbs, "Database"); err != nil {
 		return err
 	} else {
-		return session.WriteResult(session.status, r)
+		return session.WriteRows(session.status, r)
 	}
 }
 
@@ -35,9 +35,9 @@ func (session *Session) buildSimpleShowResultset(values []interface{}, name stri
 
 	r := new(MySQLResult)
 
-	field := NewMySQLField(
-		nil, nil, nil, hack.Slice(name), nil, uint16(session.collation), 0, 0, FieldTypeVarString, 0, nil, 0)
-
+	field := MySQLField {
+		Name: hack.Slice(name), nil, uint16(session.collation), 0, 0, FieldTypeVarString, 0, nil, 0)
+	}
 	fields := []*Field{field}
 
 	var row []byte
