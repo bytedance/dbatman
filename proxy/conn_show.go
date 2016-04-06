@@ -1,8 +1,8 @@
 package proxy
 
 import (
-	. "github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/hack"
+	//	. "github.com/bytedance/dbatman/database/mysql"
+	//	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 )
 
@@ -11,7 +11,8 @@ func (c *Session) handleShow(strsql string, stmt parser.IShow) error {
 
 	switch stmt.(type) {
 	case *parser.ShowDatabases:
-		err = c.handleShowDatabases()
+		// TODO
+		//		err = c.handleShowDatabases()
 	default:
 		err = c.handleQuery(stmt, strsql)
 	}
@@ -20,6 +21,7 @@ func (c *Session) handleShow(strsql string, stmt parser.IShow) error {
 
 }
 
+/*
 func (session *Session) handleShowDatabases() error {
 	dbs := make([]interface{}, 0, 1)
 	dbs[0] = session.user.DBName
@@ -35,10 +37,12 @@ func (session *Session) buildSimpleShowResultset(values []interface{}, name stri
 
 	r := new(MySQLResult)
 
-	field := MySQLField {
-		Name: hack.Slice(name), nil, uint16(session.collation), 0, 0, FieldTypeVarString, 0, nil, 0)
+	field := &MySQLField{
+		Name:      hack.Slice(name),
+		Charset:   uint16(session.collation),
+		FieldType: FieldTypeVarString,
 	}
-	fields := []*Field{field}
+	fields := []*MySQLField{field}
 
 	var row []byte
 	var err error
@@ -53,3 +57,4 @@ func (session *Session) buildSimpleShowResultset(values []interface{}, name stri
 
 	return r, nil
 }
+*/

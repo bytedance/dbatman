@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/proxy"
+	"github.com/ngaut/log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -19,18 +20,19 @@ var (
 )
 
 func main() {
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	flag.Parse()
 
 	if len(*configFile) == 0 {
-		SysLog.Fatal("must use a config file")
+		log.Fatal("must use a config file")
 		return
 	}
 
-	cfg, err := config.ParseConfigFile(*configFile)
+	cfg, err := config.LoadConfig(*configFile)
 	if err != nil {
-		SysLog.Fatal(err.Error())
+		log.Fatal(err.Error())
 		return
 	}
 
@@ -45,9 +47,9 @@ func main() {
 		syscall.SIGQUIT)
 
 	var svr *proxy.Server
-	svr, err = proxy.NewServer(cfg)
+	svr, err = proxy.NewServer(cfg.GetConfig())
 	if err != nil {
-		SysLog.Fatal(err.Error())
+		log.Fatal(err.Error())
 		return
 	}
 
@@ -57,13 +59,15 @@ func main() {
 
 	go func() {
 		sig := <-sc
-		SysLog.Notice("Got signal [%d] to exit.", sig)
+		log.Infof("Got signal [%d] to exit.", sig)
 		svr.Close()
 	}()
-	
-	go func() {
-		ready := <- cluster.InitCluster(cfg)
-	}
 
-	svr.Run(ready)
+	/*
+		go func() {
+			ready := <-cluster.InitCluster(cfg)
+		}()
+	*/
+
+	svr.Serve()
 }

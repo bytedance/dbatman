@@ -154,7 +154,6 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 
 	// TODO Write a ok packet
 
-	var payload driver.RawPayload
 	for {
 		payload, err := rs.NextRowPayload()
 		if err != nil {
