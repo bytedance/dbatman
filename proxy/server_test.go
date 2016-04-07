@@ -132,7 +132,7 @@ func TestServer(t *testing.T) {
 	newTestServer(t)
 
 	// Open Proxy
-	proxy, err := sql.Open("mysql", fmt.Sprintf("root:@tcp(127.0.0.1:3306)/mysql"))
+	proxy, err := sql.Open("mysql", fmt.Sprintf("proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/mysql"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,4 +140,5 @@ func TestServer(t *testing.T) {
 	if err := proxy.Ping(); err != nil {
 		t.Fatal(err)
 	}
+
 }

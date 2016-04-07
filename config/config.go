@@ -72,7 +72,7 @@ type UserConfig struct {
 
 func (p *ProxyConfig) GetAllClusters() map[string]*ClusterConfig {
 	if p.Clusters == nil {
-		log.Errorf("GetClusterConfig p==nil or p.Clusters==nil")
+		log.Errorf("p.Clusters==nil")
 		return nil
 	}
 	return p.Clusters
@@ -81,7 +81,7 @@ func (p *ProxyConfig) GetAllClusters() map[string]*ClusterConfig {
 // GetClusterByDBName return all cluster by given dbname
 func (p *ProxyConfig) GetClusterByDBName(dbName string) *ClusterConfig {
 	if p.Clusters == nil {
-		log.Errorf("GetClusterConfig p==nil or p.Clusters==nil")
+		log.Errorf("p.Clusters==nil")
 		return nil
 	}
 
@@ -95,8 +95,8 @@ func (p *ProxyConfig) GetClusterByDBName(dbName string) *ClusterConfig {
 }
 
 func (p *ProxyConfig) GetMasterNodefromClusterByName(clusterName string) *NodeConfig {
-	if p == nil || p.Clusters == nil {
-		log.Errorf("GetMasterNodefromClusterByName p==nil or p.Clusters==nil")
+	if p.Clusters == nil {
+		log.Errorf("p.Clusters==nil")
 		return nil
 	}
 	node := p.Clusters[clusterName]
@@ -108,8 +108,8 @@ func (p *ProxyConfig) GetMasterNodefromClusterByName(clusterName string) *NodeCo
 }
 
 func (p *ProxyConfig) GetSlaveNodesfromClusterByName(clusterName string) []*NodeConfig {
-	if p == nil || p.Clusters == nil {
-		log.Errorf("GetSlaveNodesfromCluster p==nil or p.Clusters==nil")
+	if p.Clusters == nil {
+		log.Errorf("GetSlaveNodesfromCluster p.Clusters==nil")
 		return nil
 	}
 	node := p.Clusters[clusterName]
@@ -121,8 +121,8 @@ func (p *ProxyConfig) GetSlaveNodesfromClusterByName(clusterName string) []*Node
 }
 
 func (p *ProxyConfig) GetUserByName(username string) *UserConfig {
-	if p == nil || p.Users == nil {
-		log.Errorf("GetUserByName p==nil or p.Users==nil")
+	if p.Users == nil {
+		log.Errorf("GetUserByName p.Users==nil")
 		return nil
 	}
 	user := p.Users[username]
@@ -134,20 +134,10 @@ func (p *ProxyConfig) GetUserByName(username string) *UserConfig {
 }
 
 func (cc *ClusterConfig) GetMasterNode() *NodeConfig {
-	if cc == nil {
-		log.Errorf("GetMasterNode c==nil")
-		return nil
-	}
-
 	return cc.Master
 }
 
 func (cc *ClusterConfig) GetSlaveNodes() []*NodeConfig {
-	if cc == nil {
-		log.Errorf("GetMasterNode c==nil")
-		return nil
-	}
-
 	return cc.Slaves
 }
 
