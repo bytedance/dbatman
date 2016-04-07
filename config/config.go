@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
-	"github.com/bytedance/dbatman/Godeps/_workspace/src/gopkg.in/yaml.v2"
+	"github.com/ngaut/log"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -36,7 +36,7 @@ type GlobalConfig struct {
 	ServerTimeout     int      `yaml:"server_timeout"`
 	WriteTimeInterval int      `yaml:"write_time_interval"`
 	ConfAutoload      int      `yaml:"conf_autoload"`
-	AuthIPs           []string `yaml:"auth_ips"`
+	AuthIPs           []string `yaml:"auth_ips,omitempty"`
 }
 
 type ClusterConfig struct {

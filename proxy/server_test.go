@@ -17,8 +17,8 @@ var testCluster *cluster.Cluster
 
 var testConfigData = []byte(`
 global:
-  port: 3306
-  manage_port: 3307
+  port: 3307
+  manage_port: 3308
   max_connections: 10
   log_filename: ./log/dbatman.log
   log_level: 1
@@ -29,7 +29,6 @@ global:
   write_time_interval: 10
   conf_autoload: 1
   auth_ips:
-	
 
 clusters:
     mysql_cluster:
