@@ -91,7 +91,7 @@ func New(clusterName string) (*Cluster, error) {
 	if cluster, ok := clusterConns[clusterName]; ok {
 		return cluster, nil
 	} else {
-		return nil, fmt.Errorf("Cluster New error clusterName not exists")
+		return nil, fmt.Errorf("clusterName[%s] not exists", clusterName)
 	}
 }
 
