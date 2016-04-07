@@ -3,25 +3,15 @@ sudo: false
 go:
   - 1.5
   - 1.6
-
-dist: trusty
-sudo: required
-addons:
-  apt:
-    packages:
-      - mysql-server-5.6
-      - mysql-client-core-5.6
-      - mysql-client-5.6
-
-services:
-  - mysql
+  - tip
 
 before_install:
   - go get github.com/onsi/gomega
   - go get github.com/onsi/ginkgo
   - go get golang.org/x/tools/cmd/cover
-  - mysql -e "create database IF NOT EXISTS test;" -uroot
-  - mysql -e "create database IF NOT EXISTS gotest;" -uroot
+
+before_script:
+  - mysql -e 'create database gotest;'
 
 script:
   - ./test.sh 
