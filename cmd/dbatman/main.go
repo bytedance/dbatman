@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/bytedance/dbatman/config"
+	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/proxy"
 	"github.com/ngaut/log"
 	"net/http"
@@ -27,17 +28,19 @@ func main() {
 
 	if len(*configFile) == 0 {
 		log.Fatal("must use a config file")
-		return
+		os.Exit(1)
 	}
 
 	cfg, err := config.LoadConfig(*configFile)
 	if err != nil {
 		log.Fatal(err.Error())
-		return
+		os.Exit(1)
 	}
 
-	//Init(&Config{FilePath: *logFile, LogLevel: *logLevel},
-	//	&Config{FilePath: *logFile, LogLevel: *logLevel})
+	if err = cluster.Init(cfg); err != nil {
+		log.Fatal(err.Error())
+		os.Exit(1)
+	}
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
@@ -50,7 +53,7 @@ func main() {
 	svr, err = proxy.NewServer(cfg.GetConfig())
 	if err != nil {
 		log.Fatal(err.Error())
-		return
+		os.Exit(1)
 	}
 
 	go func() {
@@ -62,12 +65,6 @@ func main() {
 		log.Infof("Got signal [%d] to exit.", sig)
 		svr.Close()
 	}()
-
-	/*
-		go func() {
-			ready := <-cluster.InitCluster(cfg)
-		}()
-	*/
 
 	svr.Serve()
 }

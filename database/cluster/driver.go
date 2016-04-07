@@ -20,7 +20,7 @@ type Cluster struct {
 	slaveNum int
 }
 
-func InitClusters(cfg *config.Conf) error {
+func Init(cfg *config.Conf) error {
 	if cfg == nil {
 		err := fmt.Errorf("config is nil")
 		return err

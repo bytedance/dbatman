@@ -14,7 +14,7 @@
 package proxy
 
 import (
-	. "github.com/bytedance/dbatman/log"
+	"github.com/ngaut/log"
 	"os"
 )
 
@@ -40,13 +40,9 @@ func (s *SignalSet) Handle(sig os.Signal, arg interface{}) error {
 	if handler, exist := s.M[sig]; exist {
 		return handler(sig, arg)
 	} else {
-		SysLog.Warn("no available handler for signal %v, ignore!", sig)
+		log.Warnf("no available handler for signal %v, ignore!", sig)
 		return nil
 	}
-}
-
-func init() {
-
 }
 
 /* vim: set expandtab ts=4 sw=4 */
