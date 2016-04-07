@@ -29,12 +29,12 @@ func NewServer(cfg *config.ProxyConfig) (*Server, error) {
 	s.cfg = cfg
 
 	var err error
-	s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%s", s.cfg.Global.Port))
+	s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%d", s.cfg.Global.Port))
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	log.Infof("Dbatman Listen(tcp4) at [%s]", s.cfg.Global.Port)
+	log.Infof("Dbatman Listen(tcp4) at [%d]", s.cfg.Global.Port)
 	return s, nil
 }
 

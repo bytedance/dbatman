@@ -403,6 +403,7 @@ func (mc *mysqlConn) writeCommandPacketStr(command byte, arg string) error {
 	if data == nil {
 		// can not take the buffer. Something must be wrong with the connection
 		errLog.Print(ErrBusyBuffer)
+		panic(driver.ErrBadConn)
 		return driver.ErrBadConn
 	}
 
@@ -562,7 +563,8 @@ func (mc *mysqlConn) handleOkPacket(data []byte) error {
 
 	pos := 1 + n + m + 2
 	if binary.LittleEndian.Uint16(data[pos:pos+2]) > 0 {
-		return mc.getWarnings()
+		err := mc.getWarnings()
+		return err
 	}
 	return nil
 }
@@ -593,12 +595,11 @@ func (mc *mysqlConn) readColumns(count int) ([]MySQLField, error) {
 		}
 
 		// Database [len coded string]
-		schema, _, n, err := readLengthEncodedString(data[pos:])
+		n, err := skipLengthEncodedString(data[pos:])
 		if err != nil {
 			return nil, err
 		}
 		pos += n
-		columns[i].Schema = schema
 
 		// Table [len coded string]
 		if mc.cfg.ColumnsWithAlias {
@@ -617,13 +618,11 @@ func (mc *mysqlConn) readColumns(count int) ([]MySQLField, error) {
 		}
 
 		// Original table [len coded string]
-		var orgTable []byte
-		orgTable, _, n, err = readLengthEncodedString(data[pos:])
+		n, err = skipLengthEncodedString(data[pos:])
 		if err != nil {
 			return nil, err
 		}
 		pos += n
-		columns[i].OrgTable = orgTable
 
 		// Name [len coded string]
 		name, _, n, err := readLengthEncodedString(data[pos:])
@@ -634,24 +633,17 @@ func (mc *mysqlConn) readColumns(count int) ([]MySQLField, error) {
 		pos += n
 
 		// Original name [len coded string]
-		var orgName []byte
-		orgName, _, n, err = readLengthEncodedString(data[pos:])
+		n, err = skipLengthEncodedString(data[pos:])
 		if err != nil {
 			return nil, err
 		}
-		columns[i].OrgName = orgName
-		pos += n
 
 		// Filler [uint8]
-		pos += 1
 
 		// Charset [charset, collation uint8]
-		columns[i].Charset = binary.LittleEndian.Uint16(data[pos : pos+2])
-		pos += 2
 
 		// Length [uint32]
-		columns[i].ColumnLen = binary.LittleEndian.Uint32(data[pos : pos+4])
-		pos += 4
+		pos += n + 1 + 2 + 4
 
 		// Field type [uint8]
 		columns[i].FieldType = data[pos]
@@ -666,17 +658,9 @@ func (mc *mysqlConn) readColumns(count int) ([]MySQLField, error) {
 		//pos++
 
 		// Default value [len coded binary]
-		if pos < len(data) {
-			columns[i].DefaultValueLength, _, n = readLengthEncodedInteger(data[pos:])
-
-			pos += n
-
-			if pos+int(columns[i].DefaultValueLength) > len(data) {
-				return nil, ErrMalformPkt
-			}
-
-			columns[i].DefaultValue = data[pos:(pos + int(columns[i].DefaultValueLength))]
-		}
+		//if pos < len(data) {
+		//	defaultVal, _, err = bytesToLengthCodedBinary(data[pos:])
+		//}
 	}
 }
 

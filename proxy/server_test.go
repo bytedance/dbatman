@@ -1,9 +1,10 @@
 package proxy
 
-/*
 import (
-	"github.com/bytedance/dbatman/backend"
 	"github.com/bytedance/dbatman/config"
+	"github.com/bytedance/dbatman/database/cluster"
+	"github.com/bytedance/dbatman/database/sql"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -11,76 +12,77 @@ import (
 
 var testServerOnce sync.Once
 var testServer *Server
-var testDBOnce sync.Once
-var testDB *backend.DB
+var testClusterOnce sync.Once
+var testCluster *cluster.Cluster
 
 var testConfigData = []byte(`
-addr : 127.0.0.1:4000
-user : root
-password : root
+global:
+  port: 3307
+  manage_port: 3308
+  max_connections: 10
+  log_filename: ./log/dbatman.log
+  log_level: 1
+  log_maxsize: 1024
+  log_query_min_time: 0
+  client_timeout: 1800
+  server_timeout: 1800
+  write_time_interval: 10
+  conf_autoload: 1
+  auth_ips:
 
-nodes :
--
-    name : node1
-    down_after_noalive : 300
-    idle_conns : 16
-    rw_split: false
-    user: root
-    password:
-    master : 127.0.0.1:4306
-    slave :
--
-    name : node2
-    down_after_noalive : 300
-    idle_conns : 16
-    rw_split: false
-    user: root
-    password:
-    master : 127.0.0.1:4307
+clusters:
+    mysql_cluster:
+        master:
+            host: 127.0.0.1
+            port: 3306
+            username: root
+            password: root
+            dbname: mysql
+            charset: utf8mb4
+            max_connections: 100
+            max_connection_pool_size: 10
+            connect_timeout: 10
+            time_reconnect_interval: 10
+            weight: 1
+        slaves:
 
--
-    name : node3
-    down_after_noalive : 300
-    idle_conns : 16
-    rw_split: false
-    user: root
-    password:
-    master : 127.0.0.1:4308
-
-schemas :
--
-    db : proxy_test
-    nodes: [node1, node2, node3]
-    rules:
-        default: node1
-        shard:
-            -
-                table: proxy_test_shard_hash
-                key: id
-                nodes: [node2, node3]
-                type: hash
-
-            -
-                table: proxy_test_shard_range
-                key: id
-                nodes: [node2, node3]
-                range: -10000-
-                type: range
+users:
+    proxy_mysql_user:
+        username: proxy_mysql_user
+        password: proxy_mysql_passwd
+        max_connections: 1000
+        min_connections: 100
+        dbname: mysql
+        charset: utf8mb4
+        cluster_name: mysql_cluster
+        auth_ips:
+            - 127.0.0.1
+        black_list_ips:
+            - 10.1.1.3
+            - 10.1.1.4
 `)
 
 func newTestServer(t *testing.T) *Server {
 	f := func() {
-		cfg, err := config.ParseConfigData(testConfigData)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
 
-		testServer, err = NewServer(cfg)
+		path, err := tmpFile(testConfigData)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		go testServer.Run()
+		defer os.Remove(path) // clean up tmp file
+
+		cfg, err := config.LoadConfig(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testServer, err = NewServer(cfg.GetConfig())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		go testServer.Serve()
 
 		time.Sleep(1 * time.Second)
 	}
@@ -90,37 +92,34 @@ func newTestServer(t *testing.T) *Server {
 	return testServer
 }
 
-func newTestDB(t *testing.T) *backend.DB {
+func newTestCluster(t *testing.T) *cluster.Cluster {
 	newTestServer(t)
 
 	f := func() {
 		var err error
-		testDB, err = backend.Open("127.0.0.1:4000", "root", "", "go_proxy")
+		testCluster, err = cluster.New("mysql_cluster")
 
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		testDB.SetMaxIdleConnNum(4)
 	}
 
-	testDBOnce.Do(f)
-	return testDB
+	testClusterOnce.Do(f)
+	return testCluster
 }
 
-func newTestDBConn(t *testing.T) *backend.SqlConn {
-	db := newTestDB(t)
+func newTestDB(t *testing.T) *sql.DB {
+	cls := newTestCluster(t)
 
-	c, err := db.GetConn()
+	db, err := cls.Master()
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return c
+	return db
 }
 
 func TestServer(t *testing.T) {
 	newTestServer(t)
 }
-*/
