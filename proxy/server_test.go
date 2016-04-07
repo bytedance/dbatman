@@ -1,8 +1,10 @@
 package proxy
 
 import (
+	"fmt"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
+	_ "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
 	"os"
 	"sync"
@@ -14,6 +16,7 @@ var testServerOnce sync.Once
 var testServer *Server
 var testClusterOnce sync.Once
 var testCluster *cluster.Cluster
+var proxyConfig *config.ProxyConfig
 
 var testConfigData = []byte(`
 global:
@@ -81,7 +84,8 @@ func newTestServer(t *testing.T) *Server {
 			t.Fatal(err)
 		}
 
-		testServer, err = NewServer(cfg.GetConfig())
+		proxyConfig = cfg.GetConfig()
+		testServer, err = NewServer(proxyConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -126,4 +130,14 @@ func newTestDB(t *testing.T) *sql.DB {
 
 func TestServer(t *testing.T) {
 	newTestServer(t)
+
+	// Open Proxy
+	proxy, err := sql.Open("mysql", fmt.Sprintf("root:@tcp(127.0.0.1:3306)/mysql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := proxy.Ping(); err != nil {
+		t.Fatal(err)
+	}
 }
