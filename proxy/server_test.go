@@ -36,7 +36,7 @@ clusters:
             host: 127.0.0.1
             port: 3306
             username: root
-            password: root
+            password: 
             dbname: mysql
             charset: utf8mb4
             max_connections: 100
@@ -77,6 +77,10 @@ func newTestServer(t *testing.T) *Server {
 			t.Fatal(err)
 		}
 
+		if err := cluster.Init(cfg); err != nil {
+			t.Fatal(err)
+		}
+
 		testServer, err = NewServer(cfg.GetConfig())
 		if err != nil {
 			t.Fatal(err)
@@ -92,12 +96,12 @@ func newTestServer(t *testing.T) *Server {
 	return testServer
 }
 
-func newTestCluster(t *testing.T) *cluster.Cluster {
+func newTestCluster(t *testing.T, cluster_name string) *cluster.Cluster {
 	newTestServer(t)
 
 	f := func() {
 		var err error
-		testCluster, err = cluster.New("mysql_cluster")
+		testCluster, err = cluster.New(cluster_name)
 
 		if err != nil {
 			t.Fatal(err)
@@ -109,7 +113,7 @@ func newTestCluster(t *testing.T) *cluster.Cluster {
 }
 
 func newTestDB(t *testing.T) *sql.DB {
-	cls := newTestCluster(t)
+	cls := newTestCluster(t, "mysql_cluster")
 
 	db, err := cls.Master()
 
