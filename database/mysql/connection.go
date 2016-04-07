@@ -274,21 +274,17 @@ func (mc *mysqlConn) Exec(query string, args []driver.Value) (driver.Result, err
 	err := mc.exec(query)
 	if err == nil {
 		return &MySQLResult{
-			mysqlResult: &mysqlResult{
-				affectedRows: int64(mc.affectedRows),
-				insertId:     int64(mc.insertId),
-			},
-			status:   mc.status,
-			warnings: 0,
+			affectedRows: int64(mc.affectedRows),
+			insertId:     int64(mc.insertId),
+			status:       mc.status,
+			warnings:     0,
 		}, nil
 	} else if errs, ok := err.(MySQLWarnings); ok {
 		return &MySQLResult{
-			mysqlResult: &mysqlResult{
-				affectedRows: int64(mc.affectedRows),
-				insertId:     int64(mc.insertId),
-			},
-			status:   mc.status,
-			warnings: uint16(len(errs)),
+			affectedRows: int64(mc.affectedRows),
+			insertId:     int64(mc.insertId),
+			status:       mc.status,
+			warnings:     uint16(len(errs)),
 		}, err
 	}
 
