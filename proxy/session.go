@@ -69,12 +69,17 @@ func (s *Server) newSession(conn net.Conn) *Session {
 	return session
 }
 
-func (session *Session) HandshakeWithFront() error {
+func (session *Session) Handshake() error {
 
-	return session.fc.Handshake()
+	if err := session.fc.Handshake(); err != nil {
+		return err
+	}
 
-	// TODO set cluster with auth info
-	// session.cluster = cluster.New(db)
+	if err := session.useDB(session.user.DBName); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (session *Session) Run() error {

@@ -19,6 +19,7 @@ type Cluster struct {
 	masterDB *sql.DB
 	slavesDB []*sql.DB
 	slaveNum int
+	DBName   string
 }
 
 func Init(cfg *config.Conf) error {
@@ -36,7 +37,8 @@ func Init(cfg *config.Conf) error {
 		master := clusterCfg.GetMasterNode()
 		slaves := clusterCfg.GetSlaveNodes()
 		slaveNum := len(slaves)
-		oneCluster := Cluster{nil, make([]*sql.DB, slaveNum), slaveNum}
+		DBName := clusterCfg.GetMasterNode().DBName
+		oneCluster := Cluster{nil, make([]*sql.DB, slaveNum), slaveNum, DBName}
 
 		db, err := openDBFromNode(master)
 		if err != nil {
