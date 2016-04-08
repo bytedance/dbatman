@@ -280,12 +280,15 @@ func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 	if r == nil {
 		r = &MySQLResult{status: statusFlag(mc.ctx.Status())}
 	}
-	data := mc.buf.takeSmallBuffer(32)
+
+	// Reserve 4 byte for packet header
+	data := make([]byte, 4, 32)
 
 	data = append(data, OK)
 
 	rows, _ := r.RowsAffected()
 	insertId, _ := r.LastInsertId()
+
 	data = append(data, PutLengthEncodedInt(uint64(rows))...)
 	data = append(data, PutLengthEncodedInt(uint64(insertId))...)
 
