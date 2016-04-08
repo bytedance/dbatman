@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-type mysqlConn struct {
+type MySQLConn struct {
 	buf              buffer
 	netConn          net.Conn
 	affectedRows     uint64
@@ -33,7 +33,7 @@ type mysqlConn struct {
 }
 
 // Handles parameters set in DSN after the connection is established
-func (mc *mysqlConn) handleParams() (err error) {
+func (mc *MySQLConn) handleParams() (err error) {
 	for param, val := range mc.cfg.Params {
 		switch param {
 		// Charset
@@ -62,7 +62,7 @@ func (mc *mysqlConn) handleParams() (err error) {
 	return
 }
 
-func (mc *mysqlConn) Begin() (driver.Tx, error) {
+func (mc *MySQLConn) Begin() (driver.Tx, error) {
 	if mc.netConn == nil {
 		errLog.Print(ErrInvalidConn)
 		return nil, driver.ErrBadConn
@@ -75,7 +75,7 @@ func (mc *mysqlConn) Begin() (driver.Tx, error) {
 	return nil, err
 }
 
-func (mc *mysqlConn) Close() (err error) {
+func (mc *MySQLConn) Close() (err error) {
 	// Makes Close idempotent
 	if mc.netConn != nil {
 		err = mc.writeCommandPacket(comQuit)
@@ -90,7 +90,7 @@ func (mc *mysqlConn) Close() (err error) {
 // function after successfully authentication, call Close instead. This function
 // is called before auth or on auth failure because MySQL will have already
 // closed the network connection.
-func (mc *mysqlConn) cleanup() {
+func (mc *MySQLConn) cleanup() {
 	// Makes cleanup idempotent
 	if mc.netConn != nil {
 		if err := mc.netConn.Close(); err != nil {
@@ -102,7 +102,7 @@ func (mc *mysqlConn) cleanup() {
 	mc.buf.nc = nil
 }
 
-func (mc *mysqlConn) Prepare(query string) (driver.Stmt, error) {
+func (mc *MySQLConn) Prepare(query string) (driver.Stmt, error) {
 	if mc.netConn == nil {
 		errLog.Print(ErrInvalidConn)
 		return nil, driver.ErrBadConn
@@ -134,7 +134,7 @@ func (mc *mysqlConn) Prepare(query string) (driver.Stmt, error) {
 	return stmt, err
 }
 
-func (mc *mysqlConn) interpolateParams(query string, args []driver.Value) (string, error) {
+func (mc *MySQLConn) interpolateParams(query string, args []driver.Value) (string, error) {
 	buf := mc.buf.takeCompleteBuffer()
 	if buf == nil {
 		// can not take the buffer. Something must be wrong with the connection
@@ -251,7 +251,7 @@ func (mc *mysqlConn) interpolateParams(query string, args []driver.Value) (strin
 	return string(buf), nil
 }
 
-func (mc *mysqlConn) Exec(query string, args []driver.Value) (driver.Result, error) {
+func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, error) {
 	if mc.netConn == nil {
 		errLog.Print(ErrInvalidConn)
 		return nil, driver.ErrBadConn
@@ -292,7 +292,7 @@ func (mc *mysqlConn) Exec(query string, args []driver.Value) (driver.Result, err
 }
 
 // Internal function to execute commands
-func (mc *mysqlConn) exec(query string) error {
+func (mc *MySQLConn) exec(query string) error {
 	// Send command
 	err := mc.writeCommandPacketStr(comQuery, query)
 	if err != nil {
@@ -312,7 +312,7 @@ func (mc *mysqlConn) exec(query string) error {
 	return err
 }
 
-func (mc *mysqlConn) Query(query string, args []driver.Value) (driver.Rows, error) {
+func (mc *MySQLConn) Query(query string, args []driver.Value) (driver.Rows, error) {
 	if mc.netConn == nil {
 		errLog.Print(ErrInvalidConn)
 		return nil, driver.ErrBadConn
@@ -353,7 +353,7 @@ func (mc *mysqlConn) Query(query string, args []driver.Value) (driver.Rows, erro
 
 // Gets the value of the given MySQL System Variable
 // The returned byte slice is only valid until the next read
-func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
+func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {
 	// Send command
 	if err := mc.writeCommandPacketStr(comQuery, "SELECT @@"+name); err != nil {
 		return nil, err

@@ -92,7 +92,7 @@ func (session *Session) Run() error {
 				return nil
 			}
 
-			log.Warningf("con[%d], dispatch error %s", session.connID, err.Error())
+			log.Warnf("con[%d], dispatch error %s", session.connID, err.Error())
 			return err
 		}
 

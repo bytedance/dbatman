@@ -16,7 +16,7 @@ import (
 )
 
 type mysqlStmt struct {
-	mc         *mysqlConn
+	mc         *MySQLConn
 	id         uint32
 	paramCount int
 	columns    []MySQLField // cached from the first query

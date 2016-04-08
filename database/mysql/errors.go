@@ -101,7 +101,7 @@ type MySQLWarning struct {
 	Message string
 }
 
-func (mc *mysqlConn) getWarnings() (err error) {
+func (mc *MySQLConn) getWarnings() (err error) {
 	rows, err := mc.Query("SHOW WARNINGS", nil)
 	if err != nil {
 		return
