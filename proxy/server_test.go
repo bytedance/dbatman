@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
 	_ "github.com/bytedance/dbatman/database/mysql"
@@ -132,15 +131,4 @@ func newTestDB(t *testing.T) *sql.DB {
 
 func TestServer(t *testing.T) {
 	newTestServer(t)
-
-	// Open Proxy
-	proxy, err := sql.Open("mysql", fmt.Sprintf("proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/mysql"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := proxy.Ping(); err != nil {
-		t.Fatal(err)
-	}
-
 }

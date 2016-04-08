@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	. "github.com/bytedance/dbatman/database/mysql"
-	"github.com/ngaut/log"
 	"io"
 )
 
@@ -62,8 +61,6 @@ func CalcPassword(scramble, password []byte) []byte {
 }
 
 func (session *Session) CheckAuth(username string, passwd []byte, db string) error {
-
-	log.Debugf("user login: name=%s db=%s", username, db)
 
 	var err error
 

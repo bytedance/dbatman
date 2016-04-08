@@ -82,6 +82,7 @@ func (session *Session) Run() error {
 	for {
 		data, err := session.fc.ReadPacket()
 		if err != nil {
+			log.Warn(err)
 			return err
 		}
 
@@ -89,6 +90,7 @@ func (session *Session) Run() error {
 			if err != driver.ErrBadConn {
 				// TODO handle error
 				// session.writeError(err)
+				log.Warn(err)
 				return nil
 			}
 
