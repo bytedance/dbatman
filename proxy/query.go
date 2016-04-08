@@ -74,6 +74,7 @@ func (session *Session) dispatch(data []byte) error {
 		session.Close()
 		return nil
 	case ComQuery:
+		log.Debugf("ComQuery: %s", hack.String(data))
 		return session.comQuery(hack.String(data))
 	case ComPing:
 		return session.fc.WriteOK(nil)

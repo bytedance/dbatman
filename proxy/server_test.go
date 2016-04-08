@@ -1,9 +1,10 @@
 package proxy
 
 import (
+	"fmt"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
-	_ "github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
 	"github.com/ngaut/log"
 	"os"
@@ -85,6 +86,7 @@ func newTestServer(t *testing.T) *Server {
 		}
 
 		log.SetLevel(log.LogLevel(cfg.GetConfig().Global.LogLevel))
+		mysql.SetLogger(log.Logger())
 
 		testServer, err = NewServer(cfg)
 		if err != nil {
@@ -126,9 +128,26 @@ func newTestDB(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 
+	if err := db.Ping(); err != nil {
+		t.Fatal(err)
+	}
 	return db
 }
 
 func TestServer(t *testing.T) {
 	newTestServer(t)
+
+	// Open Proxy
+	_, err := sql.Open("mysql", fmt.Sprintf("proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/mysql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO
+	/*
+		if err := proxy.Ping(); err != nil {
+			t.Fatal(err)
+		}
+	*/
+
 }
