@@ -67,7 +67,7 @@ func (s *Server) onConn(c net.Conn) {
 	session := s.newSession(c)
 
 	defer func() {
-		if err := recover(); err != nil {
+		if err := recover(); err != nil && !debug {
 			const size = 4096
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]

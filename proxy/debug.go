@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 )
 
+var debug bool = true
+
 func tmpFile(content []byte) (string, error) {
 
 	tmpfile, err := ioutil.TempFile("", "tmp")

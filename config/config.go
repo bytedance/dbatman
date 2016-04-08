@@ -66,8 +66,8 @@ type UserConfig struct {
 	MaxConnections int      `yaml:"max_connections"`
 	MinConnections int      `yaml:"min_connections"`
 	ClusterName    string   `yaml:"cluster_name"`
-	AuthIPs        []string `yaml:"auth_ips"`
-	BlackListIPs   []string `yaml:"black_list_ips"`
+	AuthIPs        []string `yaml:"auth_ips,omitempty"`
+	BlackListIPs   []string `yaml:"black_list_ips,omitempty"`
 }
 
 func (p *ProxyConfig) GetAllClusters() (map[string]*ClusterConfig, error) {
