@@ -54,6 +54,7 @@ func (s *Server) newSession(conn net.Conn) *Session {
 	session := new(Session)
 
 	session.server = s
+	session.config = s.cfg.GetConfig()
 
 	session.connID = atomic.AddUint32(&baseConnId, 1)
 	session.status = uint16(StatusInAutocommit)

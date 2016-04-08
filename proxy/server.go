@@ -12,7 +12,7 @@ import (
 // Server is the proxy server. It handle the request from frontend, process and dispatch
 // queries, picking right backend conn due to the request context.
 type Server struct {
-	cfg *config.ProxyConfig
+	cfg *config.Conf
 
 	// nodes map[string]*Node
 
@@ -23,18 +23,20 @@ type Server struct {
 	running  bool
 }
 
-func NewServer(cfg *config.ProxyConfig) (*Server, error) {
+func NewServer(cfg *config.Conf) (*Server, error) {
 	s := new(Server)
 
 	s.cfg = cfg
 
 	var err error
-	s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%d", s.cfg.Global.Port))
+
+	port := s.cfg.GetConfig().Global.Port
+	s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	log.Infof("Dbatman Listen(tcp4) at [%d]", s.cfg.Global.Port)
+	log.Infof("Dbatman Listen(tcp4) at [%d]", port)
 	return s, nil
 }
 
@@ -67,11 +69,13 @@ func (s *Server) onConn(c net.Conn) {
 	session := s.newSession(c)
 
 	defer func() {
-		if err := recover(); err != nil && !debug {
-			const size = 4096
-			buf := make([]byte, size)
-			buf = buf[:runtime.Stack(buf, false)]
-			log.Fatal("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
+		if !debug {
+			if err := recover(); err != nil {
+				const size = 4096
+				buf := make([]byte, size)
+				buf = buf[:runtime.Stack(buf, false)]
+				log.Fatal("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
+			}
 		}
 
 		session.Close()
@@ -79,7 +83,7 @@ func (s *Server) onConn(c net.Conn) {
 
 	// Handshake error, here we do not need to close the conn
 	if err := session.HandshakeWithFront(); err != nil {
-		log.Warning("handshake error: %s", err.Error())
+		log.Warnf("handshake error: %s", err.Error())
 		return
 	}
 

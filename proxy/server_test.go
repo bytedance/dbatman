@@ -6,6 +6,7 @@ import (
 	"github.com/bytedance/dbatman/database/cluster"
 	_ "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
+	"github.com/ngaut/log"
 	"os"
 	"sync"
 	"testing"
@@ -24,7 +25,7 @@ global:
   manage_port: 3308
   max_connections: 10
   log_filename: ./log/dbatman.log
-  log_level: 1
+  log_level: 16
   log_maxsize: 1024
   log_query_min_time: 0
   client_timeout: 1800
@@ -84,8 +85,9 @@ func newTestServer(t *testing.T) *Server {
 			t.Fatal(err)
 		}
 
-		proxyConfig = cfg.GetConfig()
-		testServer, err = NewServer(proxyConfig)
+		log.SetLevel(log.LogLevel(cfg.GetConfig().Global.LogLevel))
+
+		testServer, err = NewServer(cfg)
 		if err != nil {
 			t.Fatal(err)
 		}
