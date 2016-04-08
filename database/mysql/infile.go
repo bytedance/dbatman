@@ -93,7 +93,7 @@ func deferredClose(err *error, closer io.Closer) {
 	}
 }
 
-func (mc *mysqlConn) handleInFileRequest(name string) (err error) {
+func (mc *MySQLConn) handleInFileRequest(name string) (err error) {
 	var rdr io.Reader
 	var data []byte
 	packetSize := 16 * 1024 // 16KB is small enough for disk readahead and large enough for TCP

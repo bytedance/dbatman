@@ -50,7 +50,7 @@ func main() {
 		syscall.SIGQUIT)
 
 	var svr *proxy.Server
-	svr, err = proxy.NewServer(cfg.GetConfig())
+	svr, err = proxy.NewServer(cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 		os.Exit(1)

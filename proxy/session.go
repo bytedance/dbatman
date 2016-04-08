@@ -54,6 +54,7 @@ func (s *Server) newSession(conn net.Conn) *Session {
 	session := new(Session)
 
 	session.server = s
+	session.config = s.cfg.GetConfig()
 
 	session.connID = atomic.AddUint32(&baseConnId, 1)
 	session.status = uint16(StatusInAutocommit)
@@ -79,19 +80,24 @@ func (session *Session) HandshakeWithFront() error {
 func (session *Session) Run() error {
 
 	for {
+
 		data, err := session.fc.ReadPacket()
+		log.Debugf("Read Request Packet: %v", data)
+
 		if err != nil {
+			log.Warn(err)
 			return err
 		}
 
 		if err := session.dispatch(data); err != nil {
+			log.Warnf("con[%d], dispatch error %s", session.connID, err.Error())
+
 			if err != driver.ErrBadConn {
 				// TODO handle error
 				// session.writeError(err)
+				log.Warn(err)
 				return nil
 			}
-
-			log.Warningf("con[%d], dispatch error %s", session.connID, err.Error())
 			return err
 		}
 

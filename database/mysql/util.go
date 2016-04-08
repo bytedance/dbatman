@@ -1,8 +1,6 @@
 package mysql
 
 import (
-	"crypto/rand"
-	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -14,50 +12,6 @@ func Pstack() string {
 	buf := make([]byte, 1024)
 	n := runtime.Stack(buf, false)
 	return string(buf[0:n])
-}
-
-func CalcPassword(scramble, password []byte) []byte {
-	if len(password) == 0 {
-		return nil
-	}
-
-	// stage1Hash = SHA1(password)
-	crypt := sha1.New()
-	crypt.Write(password)
-	stage1 := crypt.Sum(nil)
-
-	// scrambleHash = SHA1(scramble + SHA1(stage1Hash))
-	// inner Hash
-	crypt.Reset()
-	crypt.Write(stage1)
-	hash := crypt.Sum(nil)
-
-	// outer Hash
-	crypt.Reset()
-	crypt.Write(scramble)
-	crypt.Write(hash)
-	scramble = crypt.Sum(nil)
-
-	// token = scrambleHash XOR stage1Hash
-	for i := range scramble {
-		scramble[i] ^= stage1[i]
-	}
-	return scramble
-}
-
-func RandomBuf(size int) ([]byte, error) {
-	buf := make([]byte, size)
-
-	if _, err := io.ReadFull(rand.Reader, buf); err != nil {
-		return nil, err
-	}
-
-	for i, b := range buf {
-		if uint8(b) == 0 {
-			buf[i] = '0'
-		}
-	}
-	return buf, nil
 }
 
 func LengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {

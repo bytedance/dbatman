@@ -65,7 +65,7 @@ func (f *MySQLField) Dump() []byte {
 }
 
 type MySQLRows struct {
-	mc      *mysqlConn
+	mc      *MySQLConn
 	columns []MySQLField
 }
 

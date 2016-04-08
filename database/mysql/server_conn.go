@@ -17,8 +17,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/juju/errors"
 	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/juju/errors"
+	"github.com/ngaut/log"
 	"net"
 )
 
@@ -42,9 +43,9 @@ type MySQLServerCtx interface {
 }
 
 // Connection between mysql client <-> mysql server
-// here we wrap the go-mysql-driver.mysqlConn
+// here we wrap the go-mysql-driver.MySQLConn
 type MySQLServerConn struct {
-	*mysqlConn
+	*MySQLConn
 	ctx MySQLServerCtx
 }
 
@@ -53,7 +54,7 @@ func NewMySQLServerConn(s MySQLServerCtx, conn net.Conn) *MySQLServerConn {
 
 	c.ctx = s
 
-	c.mysqlConn = &mysqlConn{
+	c.MySQLConn = &MySQLConn{
 		maxPacketAllowed: maxPacketSize,
 		maxWriteSize:     maxPacketSize - 1,
 		netConn:          conn,
@@ -93,7 +94,7 @@ func (mc *MySQLServerConn) Handshake() error {
 }
 
 func (mc *MySQLServerConn) RemoteAddr() net.Addr {
-	return mc.mysqlConn.netConn.RemoteAddr()
+	return mc.MySQLConn.netConn.RemoteAddr()
 }
 
 /******************************************************************************
@@ -239,6 +240,7 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 
 		// check with user
 		if err := mc.ctx.CheckAuth(user, auth, db); err != nil {
+			log.Debugf("mysql check auth fail!")
 			return err
 		}
 	}
@@ -278,12 +280,15 @@ func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 	if r == nil {
 		r = &MySQLResult{status: statusFlag(mc.ctx.Status())}
 	}
-	data := mc.buf.takeSmallBuffer(32)
+
+	// Reserve 4 byte for packet header
+	data := make([]byte, 4, 32)
 
 	data = append(data, OK)
 
 	rows, _ := r.RowsAffected()
 	insertId, _ := r.LastInsertId()
+
 	data = append(data, PutLengthEncodedInt(uint64(rows))...)
 	data = append(data, PutLengthEncodedInt(uint64(insertId))...)
 
@@ -312,10 +317,10 @@ func (mc *MySQLServerConn) ReadPacket() ([]byte, error) {
 *                   Function Wrapper for Export Visiable                      *
 ******************************************************************************/
 
-func (mc *mysqlConn) HandleOkPacket(data []byte) error {
+func (mc *MySQLConn) HandleOkPacket(data []byte) error {
 	return mc.handleOkPacket(data)
 }
 
-func (mc *mysqlConn) HandleErrorPacket(data []byte) error {
+func (mc *MySQLConn) HandleErrorPacket(data []byte) error {
 	return mc.handleErrorPacket(data)
 }

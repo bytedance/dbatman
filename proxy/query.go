@@ -74,6 +74,7 @@ func (session *Session) dispatch(data []byte) error {
 		session.Close()
 		return nil
 	case ComQuery:
+		log.Debugf("ComQuery: %s", hack.String(data))
 		return session.comQuery(hack.String(data))
 	case ComPing:
 		return session.fc.WriteOK(nil)
@@ -117,7 +118,7 @@ func (session *Session) dispatch(data []byte) error {
 }
 
 func (session *Session) useDB(db string) error {
-	if s := session.config.GetClusterByDBName(db); s == nil {
+	if _, err := session.config.GetClusterByDBName(db); err != nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	} else {
 		session.db = db
