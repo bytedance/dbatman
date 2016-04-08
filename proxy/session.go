@@ -82,7 +82,7 @@ func (session *Session) Run() error {
 	for {
 
 		data, err := session.fc.ReadPacket()
-		log.Debugf("Read Request Packet: %v", data)
+		log.Debugf("Read Request Packet: %v %v", data, err)
 
 		if err != nil {
 			log.Warn(err)
@@ -105,14 +105,10 @@ func (session *Session) Run() error {
 			return nil
 		}
 
-		session.ResetSequence()
+		session.fc.ResetSequence()
 	}
 
 	return nil
-}
-
-func (session *Session) ResetSequence() {
-	session.connID = 0
 }
 
 func (session *Session) Cap() uint32 {

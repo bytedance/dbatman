@@ -87,5 +87,6 @@ func (s *Server) onConn(c net.Conn) {
 		return
 	}
 
+	log.Debugf("handshake successful!")
 	session.Run()
 }

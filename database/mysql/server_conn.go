@@ -34,8 +34,6 @@ type MySQLServerCtx interface {
 	Cap() uint32
 	SetCap(c uint32)
 
-	ResetSequence()
-
 	CheckAuth(username string, auth []byte, db string) error
 
 	DefaultDB() string
@@ -88,13 +86,16 @@ func (mc *MySQLServerConn) Handshake() error {
 		return errors.Trace(err)
 	}
 
-	mc.ctx.ResetSequence()
-
+	mc.sequence = 0
 	return nil
 }
 
 func (mc *MySQLServerConn) RemoteAddr() net.Addr {
 	return mc.MySQLConn.netConn.RemoteAddr()
+}
+
+func (mc *MySQLServerConn) ResetSequence() {
+	mc.sequence = 0
 }
 
 /******************************************************************************

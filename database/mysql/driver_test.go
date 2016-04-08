@@ -84,7 +84,7 @@ func runTestsWithMultiStatement(t *testing.T, dsn string, tests ...func(dbt *DBT
 	dsn += "&multiStatements=true"
 	var db *sql.DB
 	if _, err := ParseDSN(dsn); err != errInvalidDSNUnsafeCollation {
-		db, err = sql.Open("mysql", dsn)
+		db, err = sql.Open("dbatman", dsn)
 		if err != nil {
 			t.Fatalf("error connecting: %s", err.Error())
 		}
@@ -103,7 +103,7 @@ func runTests(t *testing.T, dsn string, tests ...func(dbt *DBTest)) {
 		t.Skipf("MySQL server not running on %s", netAddr)
 	}
 
-	db, err := sql.Open("mysql", dsn)
+	db, err := sql.Open("dbatman", dsn)
 	if err != nil {
 		t.Fatalf("error connecting: %s", err.Error())
 	}
@@ -114,7 +114,7 @@ func runTests(t *testing.T, dsn string, tests ...func(dbt *DBTest)) {
 	dsn2 := dsn + "&interpolateParams=true"
 	var db2 *sql.DB
 	if _, err := ParseDSN(dsn2); err != errInvalidDSNUnsafeCollation {
-		db2, err = sql.Open("mysql", dsn2)
+		db2, err = sql.Open("dbatman", dsn2)
 		if err != nil {
 			t.Fatalf("error connecting: %s", err.Error())
 		}
@@ -124,7 +124,7 @@ func runTests(t *testing.T, dsn string, tests ...func(dbt *DBTest)) {
 	dsn3 := dsn + "&multiStatements=true"
 	var db3 *sql.DB
 	if _, err := ParseDSN(dsn3); err != errInvalidDSNUnsafeCollation {
-		db3, err = sql.Open("mysql", dsn3)
+		db3, err = sql.Open("dbatman", dsn3)
 		if err != nil {
 			t.Fatalf("error connecting: %s", err.Error())
 		}
@@ -1693,7 +1693,7 @@ func TestCustomDial(t *testing.T) {
 		return net.Dial(prot, addr)
 	})
 
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@mydial(%s)/%s?timeout=30s&strict=true", user, pass, addr, dbname))
+	db, err := sql.Open("dbatman", fmt.Sprintf("%s:%s@mydial(%s)/%s?timeout=30s&strict=true", user, pass, addr, dbname))
 	if err != nil {
 		t.Fatalf("error connecting: %s", err.Error())
 	}
@@ -1791,7 +1791,7 @@ func TestUnixSocketAuthFail(t *testing.T) {
 		}
 		t.Logf("socket: %s", socket)
 		badDSN := fmt.Sprintf("%s:%s@unix(%s)/%s?timeout=30s&strict=true", user, badPass, socket, dbname)
-		db, err := sql.Open("mysql", badDSN)
+		db, err := sql.Open("dbatman", badDSN)
 		if err != nil {
 			t.Fatalf("error connecting: %s", err.Error())
 		}

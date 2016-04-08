@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/ngaut/log"
 	"io"
 	"math"
 	"time"
@@ -49,6 +50,8 @@ func (mc *MySQLConn) readPacket() ([]byte, error) {
 			if data[3] > mc.sequence {
 				return nil, ErrPktSyncMul
 			}
+
+			log.Debugf("expect sequence %v, match %v", mc.sequence, data[3])
 			return nil, ErrPktSync
 		}
 		mc.sequence++

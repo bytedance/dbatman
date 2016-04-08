@@ -9,6 +9,7 @@
 package mysql
 
 import (
+	"github.com/ngaut/log"
 	"io"
 	"net"
 	"time"
@@ -81,6 +82,8 @@ func (b *buffer) fill(need int) error {
 				b.length = n
 				return nil
 			}
+
+			log.Debugf("need: %d, readed: %d", need, n)
 			return io.ErrUnexpectedEOF
 
 		default:

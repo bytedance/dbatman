@@ -68,7 +68,7 @@ func openDBFromNode(node *config.NodeConfig) (*sql.DB, error) {
 	}
 
 	dsn := getDsnFromNode(node)
-	db, err := sql.Open("mysql", dsn)
+	db, err := sql.Open("dbatman", dsn)
 	if err != nil {
 		log.Errorf("openDBFromNod sql.open error dsn:%s msg:%s\n", dsn, err.Error())
 		return nil, err

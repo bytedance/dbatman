@@ -163,5 +163,5 @@ func handleAuthResult(mc *MySQLConn, cipher []byte) error {
 }
 
 func init() {
-	sql.Register("mysql", &MySQLDriver{})
+	sql.Register("dbatman", &MySQLDriver{})
 }
