@@ -70,84 +70,75 @@ type UserConfig struct {
 	BlackListIPs   []string `yaml:"black_list_ips"`
 }
 
-func (p *ProxyConfig) GetAllClusters() map[string]*ClusterConfig {
+func (p *ProxyConfig) GetAllClusters() (map[string]*ClusterConfig, error) {
 	if p.Clusters == nil {
-		log.Errorf("GetClusterConfig p==nil or p.Clusters==nil")
-		return nil
+		err := fmt.Errorf("GetAllClusters p.Clusters==nil")
+		return nil, err
 	}
-	return p.Clusters
+	return p.Clusters, nil
 }
 
 // GetClusterByDBName return all cluster by given dbname
-func (p *ProxyConfig) GetClusterByDBName(dbName string) *ClusterConfig {
+func (p *ProxyConfig) GetClusterByDBName(dbName string) (*ClusterConfig, error) {
 	if p.Clusters == nil {
-		log.Errorf("GetClusterConfig p==nil or p.Clusters==nil")
-		return nil
+		err := fmt.Errorf("GetClusterByDBName p.Clusters==nil")
+		return nil, err
 	}
 
 	for _, cluster := range p.Clusters {
 		if cluster.Master.DBName == dbName {
-			return cluster
+			return cluster, nil
 		}
 	}
 
-	return nil
+	err := fmt.Errorf("GetClusterByDBName DB %s not exists", dbName)
+	return nil, err
 }
 
-func (p *ProxyConfig) GetMasterNodefromClusterByName(clusterName string) *NodeConfig {
-	if p == nil || p.Clusters == nil {
-		log.Errorf("GetMasterNodefromClusterByName p==nil or p.Clusters==nil")
-		return nil
+func (p *ProxyConfig) GetMasterNodefromClusterByName(clusterName string) (*NodeConfig, error) {
+	if p.Clusters == nil {
+		err := fmt.Errorf("GetMasterNodefromClusterByName p.Clusters==nil")
+		return nil, err
 	}
 	node := p.Clusters[clusterName]
 	if node == nil || node.Master == nil {
-		log.Errorf("GetMasterNodefromClusterByName cluster %s do not exist", clusterName)
-		return nil
+		err := fmt.Errorf("GetMasterNodefromClusterByName cluster %s do not exist", clusterName)
+		return nil, err
 	}
-	return node.Master
+	return node.Master, nil
 }
 
-func (p *ProxyConfig) GetSlaveNodesfromClusterByName(clusterName string) []*NodeConfig {
-	if p == nil || p.Clusters == nil {
-		log.Errorf("GetSlaveNodesfromCluster p==nil or p.Clusters==nil")
-		return nil
+func (p *ProxyConfig) GetSlaveNodesfromClusterByName(clusterName string) ([]*NodeConfig, error) {
+	if p.Clusters == nil {
+		err := fmt.Errorf("GetSlaveNodesfromCluster p.Clusters==nil")
+		return nil, err
 	}
 	node := p.Clusters[clusterName]
 	if node == nil {
-		log.Errorf("GetSlaveNodesfromCluster cluster %s do not exist", clusterName)
-		return nil
+		err := fmt.Errorf("GetSlaveNodesfromCluster cluster %s do not exist", clusterName)
+		return nil, err
 	}
-	return node.Slaves
+	return node.Slaves, nil
 }
 
-func (p *ProxyConfig) GetUserByName(username string) *UserConfig {
-	if p == nil || p.Users == nil {
-		log.Errorf("GetUserByName p==nil or p.Users==nil")
-		return nil
+func (p *ProxyConfig) GetUserByName(username string) (*UserConfig, error) {
+	if p.Users == nil {
+		err := fmt.Errorf("p.Users==nil")
+		return nil, err
 	}
 	user := p.Users[username]
 	if user == nil {
-		log.Errorf("GetUserByName user %s do not exist", username)
-		return nil
+		err := fmt.Errorf("GetUserByName user %s do not exist", username)
+		return nil, err
 	}
-	return user
+	return user, nil
 }
 
 func (cc *ClusterConfig) GetMasterNode() *NodeConfig {
-	if cc == nil {
-		log.Errorf("GetMasterNode c==nil")
-		return nil
-	}
-
 	return cc.Master
 }
 
 func (cc *ClusterConfig) GetSlaveNodes() []*NodeConfig {
-	if cc == nil {
-		log.Errorf("GetMasterNode c==nil")
-		return nil
-	}
-
 	return cc.Slaves
 }
 
@@ -246,6 +237,21 @@ func validateConfig(cfg *ProxyConfig) bool {
 		if cluster.Master == nil {
 			log.Errorf("ValidateConfig cluster %s do not have master node", clusterName)
 			return false
+		}
+
+		master := cluster.Master
+		if master.MaxConnections < master.MaxConnectionPoolSize {
+			log.Errorf("ValidateConfig cluster %s master MaxConnectionPoolSize more than MaxConnections", clusterName)
+			return false
+		}
+
+		if cluster.Slaves != nil {
+			for _, slave := range cluster.Slaves {
+				if slave.MaxConnections < slave.MaxConnectionPoolSize {
+					log.Errorf("ValidateConfig cluster %s slave MaxConnectionPoolSize more than MaxConnections", clusterName)
+					return false
+				}
+			}
 		}
 	}
 

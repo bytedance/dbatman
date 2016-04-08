@@ -58,12 +58,14 @@ func TestConfig(t *testing.T) {
 		t.Fatal("global must equal")
 	}
 
-	if !reflect.DeepEqual(cfg.GetMasterNodefromClusterByName("pgc_cluster"), &masterNode) {
+	master, _ := cfg.GetMasterNodefromClusterByName("pgc_cluster")
+	if !reflect.DeepEqual(master, &masterNode) {
 		fmt.Printf("%v\n", masterNode)
 		t.Fatal("master must equal")
 	}
 
-	if !reflect.DeepEqual(cfg.GetUserByName("proxy_pgc_user"), &userNode) {
+	u, _ := cfg.GetUserByName("proxy_pgc_user")
+	if !reflect.DeepEqual(u, &userNode) {
 		fmt.Printf("%v\n", userNode)
 		t.Fatal("user must equal")
 	}

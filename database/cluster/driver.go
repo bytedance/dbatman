@@ -8,6 +8,7 @@ import (
 	"sync"
 )
 
+//TODO: check alive/remove unreachable/ close idle connection when timeout/config update
 var (
 	clustersMu   sync.RWMutex
 	clusterConns = make(map[string]*Cluster)
@@ -28,7 +29,7 @@ func Init(cfg *config.Conf) error {
 
 	cfgHandler = cfg
 	proxyConfig := cfg.GetConfig()
-	allClusterConfigs := proxyConfig.GetAllClusters()
+	allClusterConfigs, _ := proxyConfig.GetAllClusters()
 
 	for clusterName, clusterCfg := range allClusterConfigs {
 
@@ -41,6 +42,8 @@ func Init(cfg *config.Conf) error {
 		if err != nil {
 			return err
 		}
+		db.SetMaxOpenConns(master.MaxConnections)
+		db.SetMaxIdleConns(master.MaxConnectionPoolSize)
 		oneCluster.masterDB = db
 
 		for i, slave := range slaves {
@@ -48,6 +51,8 @@ func Init(cfg *config.Conf) error {
 			if err != nil {
 				return err
 			}
+			db.SetMaxOpenConns(slave.MaxConnections)
+			db.SetMaxIdleConns(slave.MaxConnectionPoolSize)
 			oneCluster.slavesDB[i] = db
 		}
 		clusterConns[clusterName] = &oneCluster
@@ -77,14 +82,14 @@ func getDsnFromNode(node *config.NodeConfig) string {
 		return ""
 	}
 
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8&timeout=%dms",
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&timeout=%dms",
 		node.Username,
 		node.Password,
 		node.Host,
 		node.Port,
 		node.DBName,
+		node.Charset,
 		node.ConnectTimeout)
-	//	Node.Charset)
 }
 
 func New(clusterName string) (*Cluster, error) {
