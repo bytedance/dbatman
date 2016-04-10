@@ -133,19 +133,19 @@ func (mc *MySQLConn) writePacket(data []byte) error {
 
 // Handshake Initialization Packet
 // http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
-func (mc *MySQLConn) readInitPacket() ([]byte, error) {
+func (mc *MySQLConn) readInitPacket() ([]byte, uint32, error) {
 	data, err := mc.readPacket()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	if data[0] == iERR {
-		return nil, mc.handleErrorPacket(data)
+		return nil, 0, mc.handleErrorPacket(data)
 	}
 
 	// protocol version [1 byte]
 	if data[0] < minProtocolVersion {
-		return nil, fmt.Errorf(
+		return nil, 0, fmt.Errorf(
 			"unsupported protocol version %d. Version %d or higher is required",
 			data[0],
 			minProtocolVersion,
@@ -154,7 +154,10 @@ func (mc *MySQLConn) readInitPacket() ([]byte, error) {
 
 	// server version [null terminated string]
 	// connection id [4 bytes]
-	pos := 1 + bytes.IndexByte(data[1:], 0x00) + 1 + 4
+	pos := 1 + bytes.IndexByte(data[1:], 0x00) + 1 //+ 4
+	threadIdByte := data[pos : pos+4]
+	threadId := binary.LittleEndian.Uint32(threadIdByte)
+	pos += 4
 
 	// first part of the password cipher [8 bytes]
 	cipher := data[pos : pos+8]
@@ -165,10 +168,10 @@ func (mc *MySQLConn) readInitPacket() ([]byte, error) {
 	// capability flags (lower 2 bytes) [2 bytes]
 	mc.flags = clientFlag(binary.LittleEndian.Uint16(data[pos : pos+2]))
 	if mc.flags&clientProtocol41 == 0 {
-		return nil, ErrOldProtocol
+		return nil, threadId, ErrOldProtocol
 	}
 	if mc.flags&clientSSL == 0 && mc.cfg.tls != nil {
-		return nil, ErrNoTLS
+		return nil, threadId, ErrNoTLS
 	}
 	pos += 2
 
@@ -206,13 +209,13 @@ func (mc *MySQLConn) readInitPacket() ([]byte, error) {
 		// make a memory safe copy of the cipher slice
 		var b [20]byte
 		copy(b[:], cipher)
-		return b[:], nil
+		return b[:], threadId, nil
 	}
 
 	// make a memory safe copy of the cipher slice
 	var b [8]byte
 	copy(b[:], cipher)
-	return b[:], nil
+	return b[:], threadId, nil
 }
 
 // Client Authentication Packet
