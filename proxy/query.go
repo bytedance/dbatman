@@ -127,10 +127,17 @@ func (session *Session) checkDB() error {
 }
 
 func (session *Session) WriteRows(rs *sql.Rows) error {
-	var cols []driver.RawPayload
+	var cols []driver.RawPacket
 	var err error
 	cols, err = rs.ColumnPackets()
 	if err != nil {
+		return err
+	}
+
+	// Send a packet contains column length
+	data := make([]byte, 4, 32)
+	data = AppendLengthEncodedInteger(data, uint64(len(cols)))
+	if err = session.fc.WritePacket(data); err != nil {
 		return err
 	}
 
@@ -143,7 +150,7 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 	// TODO Write a ok packet
 
 	for {
-		payload, err := rs.NextRowPayload()
+		payload, err := rs.NextRowPacket()
 		if err != nil {
 			if merr, ok := err.(*MySQLError); ok {
 				session.fc.WriteError(merr)

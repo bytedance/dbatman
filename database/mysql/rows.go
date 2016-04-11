@@ -33,9 +33,9 @@ type MySQLField struct {
 func (f *MySQLField) Dump() []byte {
 
 	l := len(f.Database) + len(f.Table) + len(f.OrgTable) + len(f.Name) +
-		len(f.OrgName) + len(f.DefaultValue) + 48
+		len(f.OrgName) + len(f.DefaultValue) + 52
 
-	data := make([]byte, 0, l)
+	data := make([]byte, 4, l)
 
 	data = appendLengthEncodedString(data, f.Catalog)
 	data = appendLengthEncodedString(data, f.Database)
@@ -100,11 +100,11 @@ func (rows *MySQLRows) Columns() []string {
 	return columns
 }
 
-func (rows *MySQLRows) DumpColumns() []driver.RawPayload {
-	pkgs := make([]driver.RawPayload, len(rows.columns))
+func (rows *MySQLRows) DumpColumns() []driver.RawPacket {
+	pkgs := make([]driver.RawPacket, len(rows.columns))
 
 	for i, column := range rows.columns {
-		pkgs[i] = driver.RawPayload(column.Dump())
+		pkgs[i] = driver.RawPacket(column.Dump())
 	}
 
 	return pkgs
@@ -131,14 +131,14 @@ func (rows *MySQLRows) Close() error {
 	return err
 }
 
-func (rows *MySQLRows) NextRowPayload() (driver.RawPayload, error) {
+func (rows *MySQLRows) NextRowPacket() (driver.RawPacket, error) {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
 			return nil, ErrInvalidConn
 		}
 
 		// Fetch next row from stream
-		return rows.readRowPayload()
+		return rows.readRowPacket()
 	}
 	return nil, io.EOF
 }
@@ -179,10 +179,10 @@ func (rows emptyRows) Next(dest []driver.Value) error {
 	return io.EOF
 }
 
-func (rows emptyRows) DumpColumns() []driver.RawPayload {
+func (rows emptyRows) DumpColumns() []driver.RawPacket {
 	return nil
 }
 
-func (rows emptyRows) NextRowPayload() (driver.RawPayload, error) {
+func (rows emptyRows) NextRowPacket() (driver.RawPacket, error) {
 	return nil, nil
 }

@@ -22,7 +22,7 @@ import "errors"
 //   driver.RawPacket (added by wangjing@bytedance.com), used as a raw bytes packet
 type Value interface{}
 
-type RawPayload []byte
+type RawPacket []byte
 
 // Driver is the interface that must be implemented by a database
 // driver.
@@ -170,7 +170,7 @@ type Rows interface {
 	// For proxy and middleware usage, we need expose to function
 	// that will return the hole columns packet and rows packets
 	// the ColumnPacket will return the raw column definetion packet
-	DumpColumns() []RawPayload
+	DumpColumns() []RawPacket
 
 	// Close closes the rows iterator.
 	Close() error
@@ -188,7 +188,7 @@ type Rows interface {
 
 	// NextRowPacket will return a error indicate is there a more row should exist
 	// if there is no more packet, this function should return io.EOF
-	NextRowPayload() (RawPayload, error)
+	NextRowPacket() (RawPacket, error)
 }
 
 // Tx is a transaction.

@@ -1271,7 +1271,7 @@ func (rows *BinaryRows) readRow(dest []driver.Value) error {
 	return nil
 }
 
-func (rows *MySQLRows) readRowPayload() (driver.RawPayload, error) {
+func (rows *MySQLRows) readRowPacket() (driver.RawPacket, error) {
 	data, err := rows.mc.readPacket()
 	if err != nil {
 		return nil, err

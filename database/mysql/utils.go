@@ -635,6 +635,10 @@ func appendLengthEncodedInteger(b []byte, n uint64) []byte {
 		byte(n>>32), byte(n>>40), byte(n>>48), byte(n>>56))
 }
 
+func AppendLengthEncodedInteger(b []byte, n uint64) []byte {
+	return appendLengthEncodedInteger(b, n)
+}
+
 // encodes a string value and appends it to the given bytes slice
 func appendLengthEncodedString(dst []byte, src []byte) []byte {
 	data := make([]byte, 0, len(src)+9)
