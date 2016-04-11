@@ -2,9 +2,9 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/sql"
+	"github.com/ngaut/log"
 	"sync"
 )
 

@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/parser"
+	"github.com/ngaut/log"
 )
 
 func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) error {
 
+	log.Debugf("handle query: %s", sqlstmt)
 	if err := session.checkDB(); err != nil {
+		log.Debugf("check db error: %s", err.Error())
 		return err
 	}
 

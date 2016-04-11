@@ -52,7 +52,6 @@ func (session *Session) dispatch(data []byte) error {
 		session.Close()
 		return nil
 	case ComQuery:
-		log.Debugf("ComQuery: %s", hack.String(data))
 		return session.comQuery(hack.String(data))
 	case ComPing:
 		return session.fc.WriteOK(nil)
@@ -120,11 +119,11 @@ func (session *Session) IsAutoCommit() bool {
 
 func (session *Session) checkDB() error {
 
-	if session.db != "" {
-		return session.useDB(session.db)
+	if session.cluster == nil {
+		return NewDefaultError(ER_NO_DB_ERROR)
 	}
 
-	return NewDefaultError(ER_NO_DB_ERROR)
+	return nil
 }
 
 func (session *Session) WriteRows(rs *sql.Rows) error {
@@ -148,6 +147,7 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 		if err != nil {
 			if merr, ok := err.(*MySQLError); ok {
 				session.fc.WriteError(merr)
+				return nil
 			}
 			return err
 		}

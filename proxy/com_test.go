@@ -19,5 +19,4 @@ func TestDB_Handshake(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	db.Close()
 }

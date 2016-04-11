@@ -97,16 +97,16 @@ func (session *Session) Run() error {
 		if err := session.dispatch(data); err != nil {
 			log.Warnf("con[%d], dispatch error %s", session.connID, err.Error())
 
-			if err != driver.ErrBadConn {
+			if err == driver.ErrBadConn {
 				// TODO handle error
-				// session.writeError(err)
 				log.Warn(err)
-				return nil
 			}
+
 			return err
 		}
 
 		if session.closed {
+			// TODO return MySQL Go Away ?
 			return nil
 		}
 
