@@ -88,11 +88,12 @@ func (d MySQLDriver) Open(dsn string) (driver.Conn, error) {
 	mc.writeTimeout = mc.cfg.WriteTimeout
 
 	// Reading Handshake Initialization Packet
-	cipher, err := mc.readInitPacket()
+	cipher, threadId, err := mc.readInitPacket()
 	if err != nil {
 		mc.cleanup()
 		return nil, err
 	}
+	mc.threadId = threadId
 
 	// Send Client Authentication Packet
 	if err = mc.writeAuthPacket(cipher); err != nil {

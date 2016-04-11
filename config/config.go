@@ -134,6 +134,10 @@ func (p *ProxyConfig) GetUserByName(username string) (*UserConfig, error) {
 	return user, nil
 }
 
+func (p *ProxyConfig) ServerTimeout() int {
+	return p.Global.ServerTimeout
+}
+
 func (cc *ClusterConfig) GetMasterNode() *NodeConfig {
 	return cc.Master
 }
