@@ -9,7 +9,6 @@ import (
 
 func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) error {
 
-	log.Debugf("handle query: %s", sqlstmt)
 	if err := session.checkDB(); err != nil {
 		log.Debugf("check db error: %s", err.Error())
 		return err
@@ -28,8 +27,7 @@ func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) erro
 	if err != nil {
 		return err
 	} else if db == nil {
-		// r := c.newEmptyResultset(stmt)
-		// return c.writeResultset(c.status, r)
+		// TODO error process
 		return fmt.Errorf("no available backend db")
 	}
 

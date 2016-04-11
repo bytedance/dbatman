@@ -505,6 +505,35 @@ func stringToInt(b []byte) int {
 	return val
 }
 
+// use little endian to convert bytes to int
+var endian = binary.LittleEndian
+
+func bytesToInt(src []byte, dest interface{}) error {
+
+	switch inst := dest.(type) {
+	case *int8:
+		*inst = int8(src[0])
+	case *uint8:
+		*inst = uint8(src[0])
+	case *int16:
+		*inst = int16(endian.Uint16(src))
+	case *uint16:
+		*inst = endian.Uint16(src)
+	case *int32:
+		*inst = int32(endian.Uint32(src))
+	case *uint32:
+		*inst = endian.Uint32(src)
+	case *int64:
+		*inst = int64(endian.Uint64(src))
+	case *uint64:
+		*inst = endian.Uint64(src)
+	default:
+		return fmt.Errorf("type: %T is not available type", dest)
+	}
+
+	return nil
+}
+
 // returns the string read as a bytes slice, wheter the value is NULL,
 // the number of bytes read and an error, in case the string is longer than
 // the input slice

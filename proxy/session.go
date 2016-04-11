@@ -87,7 +87,6 @@ func (session *Session) Run() error {
 	for {
 
 		data, err := session.fc.ReadPacket()
-		log.Debugf("Read Request Packet: %v %v", data, err)
 
 		if err != nil {
 			log.Warn(err)

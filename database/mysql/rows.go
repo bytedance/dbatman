@@ -14,13 +14,14 @@ import (
 )
 
 type MySQLField struct {
-	Schema    []byte
-	TableName []byte
+	Catalog   []byte
+	Database  []byte
+	Table     []byte
 	OrgTable  []byte
 	Name      []byte
 	OrgName   []byte
 	Charset   uint16
-	ColumnLen uint32
+	Length    uint32
 	Flags     fieldFlag
 	FieldType byte
 	Decimals  byte
@@ -31,16 +32,16 @@ type MySQLField struct {
 
 func (f *MySQLField) Dump() []byte {
 
-	l := len(f.Schema) + len(f.TableName) + len(f.OrgTable) + len(f.Name) +
+	l := len(f.Database) + len(f.Table) + len(f.OrgTable) + len(f.Name) +
 		len(f.OrgName) + len(f.DefaultValue) + 48
 
 	data := make([]byte, 0, l)
 
 	data = append(data, PutLengthEncodedString([]byte("def"))...)
 
-	data = append(data, PutLengthEncodedString(f.Schema)...)
+	data = append(data, PutLengthEncodedString(f.Database)...)
 
-	data = append(data, PutLengthEncodedString(f.TableName)...)
+	data = append(data, PutLengthEncodedString(f.Table)...)
 	data = append(data, PutLengthEncodedString(f.OrgTable)...)
 
 	data = append(data, PutLengthEncodedString(f.Name)...)
@@ -49,7 +50,7 @@ func (f *MySQLField) Dump() []byte {
 	data = append(data, 0x0c)
 
 	data = append(data, Uint16ToBytes(f.Charset)...)
-	data = append(data, Uint32ToBytes(f.ColumnLen)...)
+	data = append(data, Uint32ToBytes(f.Length)...)
 	data = append(data, Uint16ToBytes(uint16(f.FieldType))...)
 	data = append(data, Uint16ToBytes(uint16(f.Flags))...)
 	data = append(data, f.Decimals)
@@ -83,7 +84,7 @@ func (rows *MySQLRows) Columns() []string {
 	columns := make([]string, len(rows.columns))
 	if rows.mc != nil && rows.mc.cfg.ColumnsWithAlias {
 		for i := range columns {
-			if tableName := rows.columns[i].TableName; len(tableName) > 0 {
+			if tableName := rows.columns[i].Table; len(tableName) > 0 {
 				columns[i] = string(tableName) + "." + string(rows.columns[i].Name)
 			} else {
 				columns[i] = string(rows.columns[i].Name)

@@ -594,14 +594,17 @@ func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 			return nil, fmt.Errorf("column count mismatch n:%d len:%d", count, len(columns))
 		}
 
+		var pos int = 0
+
 		// Catalog
-		pos, err := skipLengthEncodedString(data)
+		columns[i].Catalog, _, pos, err = readLengthEncodedString(data)
 		if err != nil {
 			return nil, err
 		}
 
 		// Database [len coded string]
-		n, err := skipLengthEncodedString(data[pos:])
+		var n int = 0
+		columns[i].Database, _, n, err = readLengthEncodedString(data[pos:])
 		if err != nil {
 			return nil, err
 		}
@@ -614,7 +617,7 @@ func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 				return nil, err
 			}
 			pos += n
-			columns[i].TableName = tableName
+			columns[i].Table = tableName
 		} else {
 			n, err = skipLengthEncodedString(data[pos:])
 			if err != nil {
@@ -624,49 +627,65 @@ func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 		}
 
 		// Original table [len coded string]
-		n, err = skipLengthEncodedString(data[pos:])
+		columns[i].OrgTable, _, n, err = readLengthEncodedString(data[pos:])
 		if err != nil {
 			return nil, err
 		}
 		pos += n
 
 		// Name [len coded string]
-		name, _, n, err := readLengthEncodedString(data[pos:])
+		columns[i].Name, _, n, err = readLengthEncodedString(data[pos:])
 		if err != nil {
 			return nil, err
 		}
-		columns[i].Name = name
 		pos += n
 
 		// Original name [len coded string]
-		n, err = skipLengthEncodedString(data[pos:])
+		columns[i].OrgName, _, n, err = readLengthEncodedString(data[pos:])
 		if err != nil {
 			return nil, err
 		}
 
-		// Filler [uint8]
+		// Filler [uint8] allways be 0x0c
+		pos += n + 1
 
-		// Charset [charset, collation uint8]
+		// Charset [collation definitly uint16]
+		bytesToInt(data[pos:pos+2], &(columns[i].Charset))
+		pos += 2
 
 		// Length [uint32]
-		pos += n + 1 + 2 + 4
+		bytesToInt(data[pos:pos+4], &(columns[i].Length))
+		pos += 4
 
 		// Field type [uint8]
 		columns[i].FieldType = data[pos]
 		pos++
 
 		// Flags [uint16]
-		columns[i].Flags = fieldFlag(binary.LittleEndian.Uint16(data[pos : pos+2]))
+		columns[i].Flags = fieldFlag(endian.Uint16(data[pos : pos+2]))
 		pos += 2
 
 		// Decimals [uint8]
 		columns[i].Decimals = data[pos]
-		//pos++
+		pos++
+
+		// Filler [2 bytes allways 0x00 0x00]
+		pos += 2
 
 		// Default value [len coded binary]
-		//if pos < len(data) {
-		//	defaultVal, _, err = bytesToLengthCodedBinary(data[pos:])
-		//}
+		// if command was COM_FIELD_LIST these fields may appear
+		if pos < len(data) {
+
+			columns[i].DefaultValueLength, _, n = readLengthEncodedInteger(data[pos:])
+			pos += n
+
+			if pos+int(columns[i].DefaultValueLength) > len(data) {
+				return nil, ErrMalformPkt
+			}
+
+			//default value string[$len]
+			columns[i].DefaultValue = data[pos:]
+		}
 	}
 }
 
