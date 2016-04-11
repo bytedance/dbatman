@@ -16,6 +16,7 @@ import (
 )
 
 const defaultBufSize = 4096
+const checkBrokenReadTimeoutStr = "100us"
 
 // A buffer which is used for both reading and writing.
 // This is possible since communication on each connection is synchronous.
@@ -36,6 +37,26 @@ func newBuffer(nc net.Conn) buffer {
 		buf: b[:],
 		nc:  nc,
 	}
+}
+
+// read io.EOF or other exception when connection closed
+func (b *buffer) isBroken() bool {
+	timeout, _ := time.ParseDuration(checkBrokenReadTimeoutStr)
+	if err := b.nc.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		return true
+	}
+	buf := make([]byte, 1)
+	_, err := b.nc.Read(buf)
+
+	//restore read dead line
+	var zeroTime time.Time
+	b.nc.SetReadDeadline(zeroTime)
+
+	//only timeout represents the connection is alive
+	if oe, ok := err.(*net.OpError); ok {
+		return !oe.Timeout()
+	}
+	return true
 }
 
 // fill reads into the buffer until at least _need_ bytes are in it

@@ -30,6 +30,7 @@ type MySQLConn struct {
 	sequence         uint8
 	parseTime        bool
 	strict           bool
+	threadId         uint32
 }
 
 // Handles parameters set in DSN after the connection is established
@@ -379,4 +380,12 @@ func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {
 		}
 	}
 	return nil, err
+}
+
+func (mc *MySQLConn) IsBroken() bool {
+	return mc.buf.isBroken()
+}
+
+func (mc *MySQLConn) ThreadId() uint32 {
+	return mc.threadId
 }
