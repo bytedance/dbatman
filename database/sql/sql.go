@@ -16,11 +16,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/ngaut/log"
 	"io"
 	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 var (
@@ -270,9 +272,27 @@ type driverConn struct {
 	openStmt    map[driver.Stmt]bool
 
 	// guarded by db.mu
-	inUse      bool
-	onPut      []func() // code (with db.mu held) run when conn is next returned
-	dbmuClosed bool     // same as closed, but guarded by db.mu, for removeClosedStmtLocked
+	inUse          bool
+	onPut          []func() // code (with db.mu held) run when conn is next returned
+	dbmuClosed     bool     // same as closed, but guarded by db.mu, for removeClosedStmtLocked
+	lastActiveTime time.Time
+}
+
+// check idle connection is broken or not
+func (dc *driverConn) isIdleConnectionBroken() (bool, error) {
+	dc.Lock()
+	defer dc.Unlock()
+	if dc.inUse {
+		return false, errors.New("driverConn is in use not idle")
+	}
+	return dc.ci.IsBroken(), nil
+}
+
+// check idle connection is timeout or not
+func (dc *driverConn) idleSecond() int64 {
+	now := time.Now()
+	log.Infof("now %s %d, active %s %d", now.String(), now.Unix(), dc.lastActiveTime.String(), dc.lastActiveTime.Unix())
+	return now.Unix() - dc.lastActiveTime.Unix()
 }
 
 func (dc *driverConn) releaseConn(err error) {
@@ -687,14 +707,37 @@ func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) {
 
 	// Prefer a free connection, if possible.
 	numFree := len(db.freeConn)
-	if strategy == cachedOrNewConn && numFree > 0 {
-		conn := db.freeConn[0]
-		copy(db.freeConn, db.freeConn[1:])
-		db.freeConn = db.freeConn[:numFree-1]
-		conn.inUse = true
-		db.mu.Unlock()
-		return conn, nil
+	if strategy == cachedOrNewConn {
+		for numFree > 0 {
+			conn := db.freeConn[0]
+			copy(db.freeConn, db.freeConn[1:])
+			db.freeConn = db.freeConn[:numFree-1]
+
+			if broken, _ := conn.isIdleConnectionBroken(); broken {
+				db.mu.Unlock()
+				conn.Close()
+				db.mu.Lock()
+				log.Warnf("close db(%s) broken conneciton", db.dsn)
+			} else {
+				conn.inUse = true
+				conn.lastActiveTime = time.Now()
+				db.mu.Unlock()
+				return conn, nil
+			}
+			numFree = len(db.freeConn)
+		}
 	}
+	/*
+		numFree := len(db.freeConn)
+		if strategy == cachedOrNewConn && numFree > 0 {
+			conn := db.freeConn[0]
+			copy(db.freeConn, db.freeConn[1:])
+			db.freeConn = db.freeConn[:numFree-1]
+			conn.inUse = true
+			db.mu.Unlock()
+			return conn, nil
+		}
+	*/
 
 	// Out of free connections or we were asked not to use one.  If we're not
 	// allowed to open any more connections, make a request and wait.
@@ -705,6 +748,9 @@ func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) {
 		db.connRequests = append(db.connRequests, req)
 		db.mu.Unlock()
 		ret := <-req
+		if ret.err == nil {
+			ret.conn.lastActiveTime = time.Now()
+		}
 		return ret.conn, ret.err
 	}
 
@@ -724,6 +770,7 @@ func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) {
 	}
 	db.addDepLocked(dc, dc)
 	dc.inUse = true
+	dc.lastActiveTime = time.Now()
 	db.mu.Unlock()
 	return dc, nil
 }
@@ -1066,6 +1113,50 @@ func (db *DB) begin(strategy connReuseStrategy) (tx *Tx, err error) {
 		dc:  dc,
 		txi: txi,
 	}, nil
+}
+
+// Probe and close idle connection when connection is timeout or broken
+func (db *DB) ProbeIdleConnection(idleTimeout int) error {
+	log.Infof("Probe idle connections with db(%s) start", db.dsn)
+	db.mu.Lock()
+	if db.closed {
+		db.mu.Unlock()
+		return errDBClosed
+	}
+	totalProbeNum := len(db.freeConn)
+	numFree := totalProbeNum
+	hasProbeNum := 0
+
+	for numFree > 0 && hasProbeNum < totalProbeNum {
+		conn := db.freeConn[0]
+		copy(db.freeConn, db.freeConn[1:])
+		db.freeConn = db.freeConn[:numFree-1]
+		conn.inUse = true
+		db.mu.Unlock()
+
+		idleSecond := conn.idleSecond()
+
+		//TODO: log with conn addr/thread_id
+		if idleSecond >= int64(idleTimeout) {
+			log.Warnf("Conneciton(#%d) is closed because of connection idle %ds, lastActiveTime %s", conn.ci.ThreadId(), idleSecond, conn.lastActiveTime.String())
+			conn.Close()
+		} else if broken, _ := conn.isIdleConnectionBroken(); broken {
+			log.Warnf("Conneciton(#%d) is closed because of broken", conn.ci.ThreadId())
+			conn.Close()
+		} else {
+			log.Infof("Connection(#%d) is ok, conneciton idle %d", conn.ci.ThreadId(), idleSecond)
+			db.putConn(conn, nil)
+		}
+
+		db.mu.Lock()
+		numFree = len(db.freeConn)
+		hasProbeNum += 1
+	}
+
+	db.mu.Unlock()
+	log.Infof("Probe idle connections with db(%s) finish", db.dsn)
+
+	return nil
 }
 
 // Driver returns the database's underlying driver.

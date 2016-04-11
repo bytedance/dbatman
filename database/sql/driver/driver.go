@@ -99,6 +99,12 @@ type Conn interface {
 
 	// Begin starts and returns a new transaction.
 	Begin() (Tx, error)
+
+	//IsBroken
+	IsBroken() bool
+
+	//TheardId
+	ThreadId() uint32
 }
 
 // Result is the result of a query execution.
