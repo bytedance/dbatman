@@ -69,12 +69,17 @@ func (s *Server) newSession(conn net.Conn) *Session {
 	return session
 }
 
-func (session *Session) HandshakeWithFront() error {
+func (session *Session) Handshake() error {
 
-	return session.fc.Handshake()
+	if err := session.fc.Handshake(); err != nil {
+		return err
+	}
 
-	// TODO set cluster with auth info
-	// session.cluster = cluster.New(db)
+	if err := session.useDB(session.user.DBName); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (session *Session) Run() error {
@@ -82,7 +87,7 @@ func (session *Session) Run() error {
 	for {
 
 		data, err := session.fc.ReadPacket()
-		log.Debugf("Read Request Packet: %v", data)
+		log.Debugf("Read Request Packet: %v %v", data, err)
 
 		if err != nil {
 			log.Warn(err)
@@ -92,27 +97,23 @@ func (session *Session) Run() error {
 		if err := session.dispatch(data); err != nil {
 			log.Warnf("con[%d], dispatch error %s", session.connID, err.Error())
 
-			if err != driver.ErrBadConn {
+			if err == driver.ErrBadConn {
 				// TODO handle error
-				// session.writeError(err)
 				log.Warn(err)
-				return nil
 			}
+
 			return err
 		}
 
 		if session.closed {
+			// TODO return MySQL Go Away ?
 			return nil
 		}
 
-		session.ResetSequence()
+		session.fc.ResetSequence()
 	}
 
 	return nil
-}
-
-func (session *Session) ResetSequence() {
-	session.connID = 0
 }
 
 func (session *Session) Cap() uint32 {

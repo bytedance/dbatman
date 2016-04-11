@@ -7,6 +7,10 @@ import (
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
 	"github.com/ngaut/log"
+
+	gosql "database/sql"
+	_ "github.com/go-sql-driver/mysql"
+
 	"os"
 	"sync"
 	"testing"
@@ -137,17 +141,14 @@ func newTestDB(t *testing.T) *sql.DB {
 func TestServer(t *testing.T) {
 	newTestServer(t)
 
-	// Open Proxy
-	_, err := sql.Open("mysql", fmt.Sprintf("proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/mysql"))
+	// Open Proxy, use golang's database sql package
+	proxy, err := gosql.Open("mysql", fmt.Sprintf("proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/mysql"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// TODO
-	/*
-		if err := proxy.Ping(); err != nil {
-			t.Fatal(err)
-		}
-	*/
+	if err := proxy.Ping(); err != nil {
+		t.Fatal(err)
+	}
 
 }

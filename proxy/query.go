@@ -1,26 +1,3 @@
-// Copyright 2013 The Go-MySQL-Driver Authors. All rights reserved.
-//
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this file,
-// You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// The MIT License (MIT)
-//
-// Copyright (c) 2014 siddontang
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-// the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-
-// Copyright 2016 PinCAP, Insession.
-// Copyright 2016 ByteDance, Insession.
-//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -36,11 +13,12 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/Godeps/_workspace/src/github.com/ngaut/log"
+	"github.com/bytedance/dbatman/database/cluster"
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
+	"github.com/ngaut/log"
 )
 
 func (session *Session) Close() error {
@@ -74,7 +52,6 @@ func (session *Session) dispatch(data []byte) error {
 		session.Close()
 		return nil
 	case ComQuery:
-		log.Debugf("ComQuery: %s", hack.String(data))
 		return session.comQuery(hack.String(data))
 	case ComPing:
 		return session.fc.WriteOK(nil)
@@ -118,11 +95,21 @@ func (session *Session) dispatch(data []byte) error {
 }
 
 func (session *Session) useDB(db string) error {
+
+	if session.cluster != nil {
+		if session.cluster.DBName != db {
+			return NewDefaultError(ER_BAD_DB_ERROR, db)
+		}
+
+		return nil
+	}
+
 	if _, err := session.config.GetClusterByDBName(db); err != nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
-	} else {
-		session.db = db
+	} else if session.cluster, err = cluster.New(session.user.ClusterName); err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -132,11 +119,11 @@ func (session *Session) IsAutoCommit() bool {
 
 func (session *Session) checkDB() error {
 
-	if session.db != "" {
-		return session.useDB(session.db)
+	if session.cluster == nil {
+		return NewDefaultError(ER_NO_DB_ERROR)
 	}
 
-	return NewDefaultError(ER_NO_DB_ERROR)
+	return nil
 }
 
 func (session *Session) WriteRows(rs *sql.Rows) error {
@@ -160,6 +147,7 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 		if err != nil {
 			if merr, ok := err.(*MySQLError); ok {
 				session.fc.WriteError(merr)
+				return nil
 			}
 			return err
 		}

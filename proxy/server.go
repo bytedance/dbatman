@@ -3,6 +3,7 @@ package proxy
 import (
 	"fmt"
 	"github.com/bytedance/dbatman/config"
+	_ "github.com/bytedance/dbatman/database/mysql"
 	"github.com/juju/errors"
 	"github.com/ngaut/log"
 	"net"
@@ -82,10 +83,15 @@ func (s *Server) onConn(c net.Conn) {
 	}()
 
 	// Handshake error, here we do not need to close the conn
-	if err := session.HandshakeWithFront(); err != nil {
+	if err := session.Handshake(); err != nil {
 		log.Warnf("handshake error: %s", err.Error())
 		return
 	}
 
-	session.Run()
+	log.Debugf("handshake successful!")
+
+	if err := session.Run(); err != nil {
+		// TODO
+		// session.WriteError(NewDefaultError(err))
+	}
 }
