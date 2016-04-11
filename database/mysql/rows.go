@@ -37,16 +37,16 @@ func (f *MySQLField) Dump() []byte {
 
 	data := make([]byte, 0, l)
 
-	data = append(data, PutLengthEncodedString([]byte("def"))...)
+	data = appendLengthEncodedString(data, f.Catalog)
+	data = appendLengthEncodedString(data, f.Database)
 
-	data = append(data, PutLengthEncodedString(f.Database)...)
+	data = appendLengthEncodedString(data, f.Table)
+	data = appendLengthEncodedString(data, f.OrgTable)
 
-	data = append(data, PutLengthEncodedString(f.Table)...)
-	data = append(data, PutLengthEncodedString(f.OrgTable)...)
+	data = appendLengthEncodedString(data, f.Name)
+	data = appendLengthEncodedString(data, f.OrgName)
 
-	data = append(data, PutLengthEncodedString(f.Name)...)
-	data = append(data, PutLengthEncodedString(f.OrgName)...)
-
+	// Filler always be 0x0c
 	data = append(data, 0x0c)
 
 	data = append(data, Uint16ToBytes(f.Charset)...)
@@ -54,10 +54,12 @@ func (f *MySQLField) Dump() []byte {
 	data = append(data, Uint16ToBytes(uint16(f.FieldType))...)
 	data = append(data, Uint16ToBytes(uint16(f.Flags))...)
 	data = append(data, f.Decimals)
+
+	// Filler always be 2 bytes 0
 	data = append(data, 0, 0)
 
 	if f.DefaultValue != nil {
-		data = append(data, Uint64ToBytes(f.DefaultValueLength)...)
+		data = append(data, uint64ToBytes(f.DefaultValueLength)...)
 		data = append(data, f.DefaultValue...)
 	}
 

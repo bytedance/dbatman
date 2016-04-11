@@ -290,8 +290,8 @@ func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 	rows, _ := r.RowsAffected()
 	insertId, _ := r.LastInsertId()
 
-	data = append(data, PutLengthEncodedInt(uint64(rows))...)
-	data = append(data, PutLengthEncodedInt(uint64(insertId))...)
+	data = appendLengthEncodedInteger(data, uint64(rows))
+	data = appendLengthEncodedInteger(data, uint64(insertId))
 
 	if mc.ctx.Cap()&uint32(clientProtocol41) > 0 {
 		data = append(data, byte(r.status), byte(r.status>>8))
