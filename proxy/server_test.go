@@ -154,4 +154,5 @@ func TestServer(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	proxy.Close()
 }
