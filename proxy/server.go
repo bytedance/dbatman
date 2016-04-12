@@ -88,8 +88,6 @@ func (s *Server) onConn(c net.Conn) {
 		return
 	}
 
-	log.Debugf("handshake successful!")
-
 	if err := session.Run(); err != nil {
 		// TODO
 		// session.WriteError(NewDefaultError(err))

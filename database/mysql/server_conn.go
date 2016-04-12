@@ -312,11 +312,11 @@ func (mc *MySQLServerConn) WriteEOF() error {
 	return mc.writePacket(data)
 }
 
-func (mc *MySQLServerConn) WritePacket(data []byte) error {
+func (mc *MySQLConn) WritePacket(data []byte) error {
 	return mc.writePacket(data)
 }
 
-func (mc *MySQLServerConn) ReadPacket() ([]byte, error) {
+func (mc *MySQLConn) ReadPacket() ([]byte, error) {
 	return mc.readPacket()
 }
 
