@@ -1,22 +1,19 @@
 package proxy
 
 import (
-	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/mysql"
 	"testing"
 )
 
-func TestDB_Handshake(t *testing.T) {
-	cls := newTestCluster(t, "mysql_cluster")
+func TestProxy_ComPing(t *testing.T) {
+	conn := newTestProxyConn(t)
 
-	var db *sql.DB
-	var err error
-
-	if db, err = cls.Master(); err != nil {
+	if err := conn.WriteCommandPacket(mysql.ComPing); err != nil {
 		t.Fatal(err)
 	}
 
-	if err = db.Ping(); err != nil {
+	_, err := conn.ReadPacket()
+	if err != nil {
 		t.Fatal(err)
 	}
-
 }

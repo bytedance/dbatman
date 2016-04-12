@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
@@ -141,11 +140,29 @@ func newTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
+var testDSN = "proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/mysql"
+
+func newTestProxyConn(t *testing.T) *mysql.MySQLConn {
+	newTestServer(t)
+
+	d := mysql.MySQLDriver{}
+
+	if conn, err := d.Open(testDSN); err != nil {
+		t.Fatal(err)
+	} else if c, ok := conn.(*mysql.MySQLConn); !ok {
+		t.Fatal("connection is not MySQLConn type")
+	} else {
+		return c
+	}
+
+	return nil
+}
+
 func TestServer(t *testing.T) {
 	newTestServer(t)
 
 	// Open Proxy, use golang's database sql package
-	proxy, err := gosql.Open("mysql", fmt.Sprintf("proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/mysql"))
+	proxy, err := gosql.Open("mysql", testDSN)
 	if err != nil {
 		t.Fatal(err)
 	}

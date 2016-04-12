@@ -401,6 +401,10 @@ func (mc *MySQLConn) writeCommandPacket(command byte) error {
 	return mc.writePacket(data)
 }
 
+func (mc *MySQLConn) WriteCommandPacket(command byte) error {
+	return mc.writeCommandPacket(command)
+}
+
 func (mc *MySQLConn) writeCommandPacketStr(command byte, arg string) error {
 	// Reset Packet Sequence
 	mc.sequence = 0

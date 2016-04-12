@@ -156,7 +156,6 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 	if err = session.fc.WriteEOF(); err != nil {
 		return err
 	}
-	log.Debugf("write ok")
 
 	for {
 		packet, err := rs.NextRowPacket()
