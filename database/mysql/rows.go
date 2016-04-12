@@ -10,6 +10,7 @@ package mysql
 
 import (
 	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/bytedance/dbatman/errors"
 	"io"
 )
 
@@ -33,20 +34,20 @@ type MySQLField struct {
 func (f *MySQLField) Dump() []byte {
 
 	l := len(f.Database) + len(f.Table) + len(f.OrgTable) + len(f.Name) +
-		len(f.OrgName) + len(f.DefaultValue) + 48
+		len(f.OrgName) + len(f.DefaultValue) + 52
 
-	data := make([]byte, 0, l)
+	data := make([]byte, 4, l)
 
-	data = append(data, PutLengthEncodedString([]byte("def"))...)
+	data = appendLengthEncodedString(data, f.Catalog)
+	data = appendLengthEncodedString(data, f.Database)
 
-	data = append(data, PutLengthEncodedString(f.Database)...)
+	data = appendLengthEncodedString(data, f.Table)
+	data = appendLengthEncodedString(data, f.OrgTable)
 
-	data = append(data, PutLengthEncodedString(f.Table)...)
-	data = append(data, PutLengthEncodedString(f.OrgTable)...)
+	data = appendLengthEncodedString(data, f.Name)
+	data = appendLengthEncodedString(data, f.OrgName)
 
-	data = append(data, PutLengthEncodedString(f.Name)...)
-	data = append(data, PutLengthEncodedString(f.OrgName)...)
-
+	// Filler always be 0x0c
 	data = append(data, 0x0c)
 
 	data = append(data, Uint16ToBytes(f.Charset)...)
@@ -54,15 +55,16 @@ func (f *MySQLField) Dump() []byte {
 	data = append(data, Uint16ToBytes(uint16(f.FieldType))...)
 	data = append(data, Uint16ToBytes(uint16(f.Flags))...)
 	data = append(data, f.Decimals)
+
+	// Filler always be 2 bytes 0
 	data = append(data, 0, 0)
 
 	if f.DefaultValue != nil {
-		data = append(data, Uint64ToBytes(f.DefaultValueLength)...)
+		data = append(data, uint64ToBytes(f.DefaultValueLength)...)
 		data = append(data, f.DefaultValue...)
 	}
 
 	return data
-
 }
 
 type MySQLRows struct {
@@ -98,11 +100,11 @@ func (rows *MySQLRows) Columns() []string {
 	return columns
 }
 
-func (rows *MySQLRows) DumpColumns() []driver.RawPayload {
-	pkgs := make([]driver.RawPayload, len(rows.columns))
+func (rows *MySQLRows) DumpColumns() []driver.RawPacket {
+	pkgs := make([]driver.RawPacket, len(rows.columns))
 
 	for i, column := range rows.columns {
-		pkgs[i] = driver.RawPayload(column.Dump())
+		pkgs[i] = driver.RawPacket(column.Dump())
 	}
 
 	return pkgs
@@ -129,18 +131,6 @@ func (rows *MySQLRows) Close() error {
 	return err
 }
 
-func (rows *MySQLRows) NextRowPayload() (driver.RawPayload, error) {
-	if mc := rows.mc; mc != nil {
-		if mc.netConn == nil {
-			return nil, ErrInvalidConn
-		}
-
-		// Fetch next row from stream
-		return rows.readRowPayload()
-	}
-	return nil, io.EOF
-}
-
 func (rows *BinaryRows) Next(dest []driver.Value) error {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
@@ -151,6 +141,44 @@ func (rows *BinaryRows) Next(dest []driver.Value) error {
 		return rows.readRow(dest)
 	}
 	return io.EOF
+}
+
+func (rows *BinaryRows) NextRowPacket() (driver.RawPacket, error) {
+	if mc := rows.mc; mc != nil {
+		if mc.netConn == nil {
+			return nil, errors.Trace(ErrInvalidConn)
+		}
+
+		// Fetch next row from stream
+		return rows.readRowPacket()
+	}
+	return nil, errors.Trace(io.EOF)
+}
+
+func (rows *BinaryRows) readRowPacket() (driver.RawPacket, error) {
+	data, err := rows.mc.readPacket()
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	// packet indicator [1 byte]
+	if data[0] != iOK {
+		// EOF Packet
+		if data[0] == iEOF && len(data) == 5 {
+			rows.mc.status = readStatus(data[3:])
+			if err := rows.mc.discardResults(); err != nil {
+				return nil, errors.Trace(err)
+			}
+			rows.mc = nil
+			return nil, errors.Trace(io.EOF)
+		}
+		rows.mc = nil
+
+		// Error otherwise
+		return nil, errors.Trace(rows.mc.handleErrorPacket(data))
+	}
+
+	return data, nil
 }
 
 func (rows *TextRows) Next(dest []driver.Value) error {
@@ -165,6 +193,43 @@ func (rows *TextRows) Next(dest []driver.Value) error {
 	return io.EOF
 }
 
+func (rows *TextRows) NextRowPacket() (driver.RawPacket, error) {
+	if mc := rows.mc; mc != nil {
+		if mc.netConn == nil {
+			return nil, errors.Trace(ErrInvalidConn)
+		}
+
+		// Fetch next row from stream
+		return rows.readRowPacket()
+	}
+	return nil, errors.Trace(io.EOF)
+}
+
+func (rows *TextRows) readRowPacket() (driver.RawPacket, error) {
+	data, err := rows.mc.readPacket()
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	// EOF Packet
+	if data[0] == iEOF && len(data) == 5 {
+		// server_status [2 bytes]
+		rows.mc.status = readStatus(data[3:])
+		if err := rows.mc.discardResults(); err != nil {
+			return nil, errors.Trace(err)
+		}
+		rows.mc = nil
+		return nil, errors.Trace(io.EOF)
+	}
+	if data[0] == iERR {
+		rows.mc = nil
+		return nil, errors.Trace(rows.mc.handleErrorPacket(data))
+	}
+
+	// Preserve packet header for proxy usage
+	return append(make([]byte, PacketHeaderLen, len(data)+PacketHeaderLen), data...), nil
+}
+
 func (rows emptyRows) Columns() []string {
 	return nil
 }
@@ -177,10 +242,10 @@ func (rows emptyRows) Next(dest []driver.Value) error {
 	return io.EOF
 }
 
-func (rows emptyRows) DumpColumns() []driver.RawPayload {
+func (rows emptyRows) DumpColumns() []driver.RawPacket {
 	return nil
 }
 
-func (rows emptyRows) NextRowPayload() (driver.RawPayload, error) {
+func (rows emptyRows) NextRowPacket() (driver.RawPacket, error) {
 	return nil, nil
 }

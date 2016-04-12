@@ -17,8 +17,10 @@ import (
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/ngaut/log"
+	"io"
 )
 
 func (session *Session) Close() error {
@@ -127,37 +129,69 @@ func (session *Session) checkDB() error {
 }
 
 func (session *Session) WriteRows(rs *sql.Rows) error {
-	var cols []driver.RawPayload
+	var cols []driver.RawPacket
 	var err error
 	cols, err = rs.ColumnPackets()
+
 	if err != nil {
-		return err
+		return session.handleError(err)
 	}
 
+	// Send a packet contains column length
+	data := make([]byte, 4, 32)
+	data = AppendLengthEncodedInteger(data, uint64(len(cols)))
+	if err = session.fc.WritePacket(data); err != nil {
+		return errors.Trace(err)
+	}
+
+	// Write Columns Packet
 	for _, col := range cols {
 		if err := session.fc.WritePacket(col); err != nil {
-			return err
+			log.Debugf("write columns packet error %v", err)
+			return errors.Trace(err)
 		}
 	}
 
 	// TODO Write a ok packet
+	if err = session.fc.WriteEOF(); err != nil {
+		return err
+	}
+	log.Debugf("write ok")
 
 	for {
-		payload, err := rs.NextRowPayload()
+		packet, err := rs.NextRowPacket()
+
+		// Handle Error
 		if err != nil {
-			if merr, ok := err.(*MySQLError); ok {
-				session.fc.WriteError(merr)
-				return nil
+			err = errors.Real(err)
+			if err == io.EOF {
+				return session.fc.WriteEOF()
+			} else {
+				return session.handleError(err)
 			}
-			return err
 		}
 
-		if err := session.fc.WritePacket(payload); err != nil {
+		if err := session.fc.WritePacket(packet); err != nil {
 			return err
 		}
 	}
 
-	// TODO Write a EOF packet
-
 	return nil
+}
+
+func (session *Session) handleError(err error) error {
+	switch inst := err.(type) {
+	case *MySQLError:
+		log.Debugf("handle errors %v", inst)
+		session.fc.WriteError(inst)
+		return nil
+	case *MySQLWarnings:
+		// TODO process warnings
+		log.Debugf("handle warnings %v", inst)
+		session.fc.WriteOK(nil)
+		return nil
+	default:
+		log.Errorf("handler default error: %v", err)
+		return err
+	}
 }

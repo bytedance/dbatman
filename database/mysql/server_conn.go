@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/juju/errors"
 	"github.com/ngaut/log"
 	"net"
@@ -290,8 +289,8 @@ func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 	rows, _ := r.RowsAffected()
 	insertId, _ := r.LastInsertId()
 
-	data = append(data, PutLengthEncodedInt(uint64(rows))...)
-	data = append(data, PutLengthEncodedInt(uint64(insertId))...)
+	data = appendLengthEncodedInteger(data, uint64(rows))
+	data = appendLengthEncodedInteger(data, uint64(insertId))
 
 	if mc.ctx.Cap()&uint32(clientProtocol41) > 0 {
 		data = append(data, byte(r.status), byte(r.status>>8))
@@ -301,12 +300,19 @@ func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 	return mc.writePacket(data)
 }
 
-func (mc *MySQLServerConn) WritePacket(payload driver.RawPayload) error {
-	data := mc.buf.takeSmallBuffer(4 + len(payload))
+func (mc *MySQLServerConn) WriteEOF() error {
+	data := make([]byte, 4, 9)
 
-	// reserved for packet header
-	data = append(data[:4], payload...)
+	data = append(data, iEOF)
+	if mc.flags&ClientProtocol41 > 0 {
+		data = append(data, 0, 0)
+		data = append(data, byte(mc.status), byte(mc.status>>8))
+	}
 
+	return mc.writePacket(data)
+}
+
+func (mc *MySQLServerConn) WritePacket(data []byte) error {
 	return mc.writePacket(data)
 }
 
@@ -323,5 +329,5 @@ func (mc *MySQLConn) HandleOkPacket(data []byte) error {
 }
 
 func (mc *MySQLConn) HandleErrorPacket(data []byte) error {
-	return mc.handleErrorPacket(data)
+	return errors.Trace(mc.handleErrorPacket(data))
 }

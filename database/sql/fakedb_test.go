@@ -257,6 +257,14 @@ func (c *fakeConn) isBad() bool {
 	}
 }
 
+func (c *fakeConn) IsBroken() bool {
+	return false
+}
+
+func (c *fakeConn) ThreadId() uint32 {
+	return 0
+}
+
 func (c *fakeConn) Begin() (driver.Tx, error) {
 	if c.isBad() {
 		return nil, driver.ErrBadConn
@@ -739,11 +747,11 @@ func (rc *rowsCursor) Columns() []string {
 	return rc.cols
 }
 
-func (rc *rowsCursor) DumpColumns() []driver.RawPayload {
+func (rc *rowsCursor) DumpColumns() []driver.RawPacket {
 	return nil
 }
 
-func (rc *rowsCursor) NextRowPayload() (driver.RawPayload, error) {
+func (rc *rowsCursor) NextRowPacket() (driver.RawPacket, error) {
 	return nil, nil
 }
 

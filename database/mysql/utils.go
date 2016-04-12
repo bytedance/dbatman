@@ -495,6 +495,22 @@ func uint64ToString(n uint64) []byte {
 	return a[i:]
 }
 
+func Uint16ToBytes(n uint16) []byte {
+	return []byte{
+		byte(n),
+		byte(n >> 8),
+	}
+}
+
+func Uint32ToBytes(n uint32) []byte {
+	return []byte{
+		byte(n),
+		byte(n >> 8),
+		byte(n >> 16),
+		byte(n >> 24),
+	}
+}
+
 // treats string value as unsigned integer representation
 func stringToInt(b []byte) int {
 	val := 0
@@ -617,6 +633,17 @@ func appendLengthEncodedInteger(b []byte, n uint64) []byte {
 	}
 	return append(b, 0xfe, byte(n), byte(n>>8), byte(n>>16), byte(n>>24),
 		byte(n>>32), byte(n>>40), byte(n>>48), byte(n>>56))
+}
+
+func AppendLengthEncodedInteger(b []byte, n uint64) []byte {
+	return appendLengthEncodedInteger(b, n)
+}
+
+// encodes a string value and appends it to the given bytes slice
+func appendLengthEncodedString(dst []byte, src []byte) []byte {
+	dst = appendLengthEncodedInteger(dst, uint64(len(src)))
+	dst = append(dst, src...)
+	return dst
 }
 
 // reserveBuffer checks cap(buf) and expand buffer to len(buf) + appendSize.
