@@ -130,8 +130,9 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 	var cols []driver.RawPacket
 	var err error
 	cols, err = rs.ColumnPackets()
+
 	if err != nil {
-		return err
+		return session.handleError(err)
 	}
 
 	// Send a packet contains column length
@@ -148,6 +149,7 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 	}
 
 	// TODO Write a ok packet
+	session.fc.WriteOK(nil)
 
 	for {
 		payload, err := rs.NextRowPacket()
@@ -165,6 +167,22 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 	}
 
 	// TODO Write a EOF packet
+	session.fc.WriteEOF()
 
 	return nil
+}
+
+func (session *Session) handleError(err error) error {
+	switch inst := err.(type) {
+	case *MySQLError:
+		session.fc.WriteError(inst)
+		return nil
+	case *MySQLWarnings:
+		// TODO process warnings
+		session.fc.WriteOK(nil)
+		return nil
+	default:
+		log.Errorf("handler default error: %v", err)
+		return err
+	}
 }

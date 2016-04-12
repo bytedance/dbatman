@@ -300,6 +300,18 @@ func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 	return mc.writePacket(data)
 }
 
+func (mc *MySQLServerConn) WriteEOF() error {
+	data := make([]byte, 4, 9)
+
+	data = append(data, iEOF)
+	if mc.flags&ClientProtocol41 > 0 {
+		data = append(data, 0, 0)
+		data = append(data, byte(mc.status), byte(mc.status>>8))
+	}
+
+	return mc.writePacket(data)
+}
+
 func (mc *MySQLServerConn) WritePacket(data []byte) error {
 	return mc.writePacket(data)
 }
