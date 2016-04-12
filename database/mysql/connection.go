@@ -10,6 +10,7 @@ package mysql
 
 import (
 	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/juju/errors"
 	"net"
 	"strconv"
 	"strings"
@@ -370,7 +371,7 @@ func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {
 		if resLen > 0 {
 			// Columns
 			if err := mc.readUntilEOF(); err != nil {
-				return nil, err
+				return nil, errors.Trace(err)
 			}
 		}
 
@@ -379,7 +380,7 @@ func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {
 			return dest[0].([]byte), mc.readUntilEOF()
 		}
 	}
-	return nil, err
+	return nil, errors.Trace(err)
 }
 
 func (mc *MySQLConn) IsBroken() bool {

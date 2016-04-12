@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bytedance/dbatman/database/sql/driver"
+	jujuerror "github.com/juju/errors"
 	"github.com/ngaut/log"
 	"io"
 	"math"
@@ -143,7 +144,7 @@ func (mc *MySQLConn) readInitPacket() ([]byte, uint32, error) {
 	}
 
 	if data[0] == iERR {
-		return nil, 0, mc.handleErrorPacket(data)
+		return nil, 0, jujuerror.Trace(mc.handleErrorPacket(data))
 	}
 
 	// protocol version [1 byte]
@@ -495,7 +496,7 @@ func (mc *MySQLConn) readResultSetHeaderPacket() (int, error) {
 			return 0, mc.handleOkPacket(data)
 
 		case iERR:
-			return 0, mc.handleErrorPacket(data)
+			return 0, jujuerror.Trace(mc.handleErrorPacket(data))
 
 		case iLocalInFile:
 			return 0, mc.handleInFileRequest(string(data[1:]))
@@ -507,7 +508,7 @@ func (mc *MySQLConn) readResultSetHeaderPacket() (int, error) {
 			return int(num), nil
 		}
 
-		return 0, ErrMalformPkt
+		return 0, jujuerror.Trace(ErrMalformPkt)
 	}
 	return 0, err
 }
@@ -516,7 +517,7 @@ func (mc *MySQLConn) readResultSetHeaderPacket() (int, error) {
 // http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-ERR_Packet
 func (mc *MySQLConn) handleErrorPacket(data []byte) error {
 	if data[0] != iERR {
-		return ErrMalformPkt
+		return jujuerror.Trace(ErrMalformPkt)
 	}
 
 	// 0xff [1 byte]
@@ -533,10 +534,11 @@ func (mc *MySQLConn) handleErrorPacket(data []byte) error {
 	}
 
 	// Error Message [string]
-	return &MySQLError{
-		Number:  errno,
-		Message: string(data[pos:]),
-	}
+	return jujuerror.Trace(
+		&MySQLError{
+			Number:  errno,
+			Message: string(data[pos:]),
+		})
 }
 
 func readStatus(b []byte) statusFlag {
@@ -680,7 +682,7 @@ func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 			pos += n
 
 			if pos+int(columns[i].DefaultValueLength) > len(data) {
-				return nil, ErrMalformPkt
+				return nil, jujuerror.Trace(ErrMalformPkt)
 			}
 
 			//default value string[$len]
@@ -782,7 +784,7 @@ func (stmt *mysqlStmt) readPrepareResultPacket() (uint16, error) {
 	if err == nil {
 		// packet indicator [1 byte]
 		if data[0] != iOK {
-			return 0, stmt.mc.handleErrorPacket(data)
+			return 0, jujuerror.Trace(stmt.mc.handleErrorPacket(data))
 		}
 
 		// statement id [4 bytes]
@@ -1114,7 +1116,7 @@ func (rows *BinaryRows) readRow(dest []driver.Value) error {
 		rows.mc = nil
 
 		// Error otherwise
-		return rows.mc.handleErrorPacket(data)
+		return jujuerror.Trace(rows.mc.handleErrorPacket(data))
 	}
 
 	// NULL-bitmap,  [(column-count + 7 + 2) / 8 bytes]
@@ -1269,30 +1271,4 @@ func (rows *BinaryRows) readRow(dest []driver.Value) error {
 	}
 
 	return nil
-}
-
-func (rows *MySQLRows) readRowPacket() (driver.RawPacket, error) {
-	data, err := rows.mc.readPacket()
-	if err != nil {
-		return nil, err
-	}
-
-	// packet indicator [1 byte]
-	if data[0] != iOK {
-		// EOF Packet
-		if data[0] == iEOF && len(data) == 5 {
-			rows.mc.status = readStatus(data[3:])
-			if err := rows.mc.discardResults(); err != nil {
-				return nil, err
-			}
-			rows.mc = nil
-			return nil, io.EOF
-		}
-		rows.mc = nil
-
-		// Error otherwise
-		return nil, rows.mc.handleErrorPacket(data)
-	}
-
-	return data, nil
 }

@@ -18,7 +18,9 @@ import (
 	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
+	"github.com/juju/errors"
 	"github.com/ngaut/log"
+	"io"
 )
 
 func (session *Session) Close() error {
@@ -142,32 +144,35 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 		return err
 	}
 
+	// Write Columns Packet
 	for _, col := range cols {
 		if err := session.fc.WritePacket(col); err != nil {
+			log.Debugf("write columns packet error %v", err)
 			return err
 		}
 	}
 
 	// TODO Write a ok packet
-	session.fc.WriteOK(nil)
+	if err = session.fc.WriteOK(nil); err != nil {
+		return err
+	}
+	log.Debugf("write ok")
 
 	for {
-		payload, err := rs.NextRowPacket()
-		if err != nil {
-			if merr, ok := err.(*MySQLError); ok {
-				session.fc.WriteError(merr)
-				return nil
-			}
-			return err
+		packet, err := rs.NextRowPacket()
+		if err != nil && err == io.EOF {
+			return session.fc.WriteEOF()
+		} else {
+			log.Debugf("row error: %s", errors.ErrorStack(err))
+			return session.handleError(err)
 		}
 
-		if err := session.fc.WritePacket(payload); err != nil {
+		log.Debugf("row packet % x", packet)
+
+		if err := session.fc.WritePacket(packet); err != nil {
 			return err
 		}
 	}
-
-	// TODO Write a EOF packet
-	session.fc.WriteEOF()
 
 	return nil
 }
@@ -175,10 +180,12 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 func (session *Session) handleError(err error) error {
 	switch inst := err.(type) {
 	case *MySQLError:
+		log.Debugf("handle errors %v", inst)
 		session.fc.WriteError(inst)
 		return nil
 	case *MySQLWarnings:
 		// TODO process warnings
+		log.Debugf("handle warnings %v", inst)
 		session.fc.WriteOK(nil)
 		return nil
 	default:

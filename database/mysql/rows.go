@@ -10,6 +10,7 @@ package mysql
 
 import (
 	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/juju/errors"
 	"io"
 )
 
@@ -64,7 +65,6 @@ func (f *MySQLField) Dump() []byte {
 	}
 
 	return data
-
 }
 
 type MySQLRows struct {
@@ -131,18 +131,6 @@ func (rows *MySQLRows) Close() error {
 	return err
 }
 
-func (rows *MySQLRows) NextRowPacket() (driver.RawPacket, error) {
-	if mc := rows.mc; mc != nil {
-		if mc.netConn == nil {
-			return nil, ErrInvalidConn
-		}
-
-		// Fetch next row from stream
-		return rows.readRowPacket()
-	}
-	return nil, io.EOF
-}
-
 func (rows *BinaryRows) Next(dest []driver.Value) error {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
@@ -155,6 +143,44 @@ func (rows *BinaryRows) Next(dest []driver.Value) error {
 	return io.EOF
 }
 
+func (rows *BinaryRows) NextRowPacket() (driver.RawPacket, error) {
+	if mc := rows.mc; mc != nil {
+		if mc.netConn == nil {
+			return nil, errors.Trace(ErrInvalidConn)
+		}
+
+		// Fetch next row from stream
+		return rows.readRowPacket()
+	}
+	return nil, errors.Trace(io.EOF)
+}
+
+func (rows *BinaryRows) readRowPacket() (driver.RawPacket, error) {
+	data, err := rows.mc.readPacket()
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	// packet indicator [1 byte]
+	if data[0] != iOK {
+		// EOF Packet
+		if data[0] == iEOF && len(data) == 5 {
+			rows.mc.status = readStatus(data[3:])
+			if err := rows.mc.discardResults(); err != nil {
+				return nil, errors.Trace(err)
+			}
+			rows.mc = nil
+			return nil, errors.Trace(io.EOF)
+		}
+		rows.mc = nil
+
+		// Error otherwise
+		return nil, errors.Trace(rows.mc.handleErrorPacket(data))
+	}
+
+	return data, nil
+}
+
 func (rows *TextRows) Next(dest []driver.Value) error {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
@@ -165,6 +191,42 @@ func (rows *TextRows) Next(dest []driver.Value) error {
 		return rows.readRow(dest)
 	}
 	return io.EOF
+}
+
+func (rows *TextRows) NextRowPacket() (driver.RawPacket, error) {
+	if mc := rows.mc; mc != nil {
+		if mc.netConn == nil {
+			return nil, errors.Trace(ErrInvalidConn)
+		}
+
+		// Fetch next row from stream
+		return rows.readRowPacket()
+	}
+	return nil, errors.Trace(io.EOF)
+}
+
+func (rows *TextRows) readRowPacket() (driver.RawPacket, error) {
+	data, err := rows.mc.readPacket()
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	// EOF Packet
+	if data[0] == iEOF && len(data) == 5 {
+		// server_status [2 bytes]
+		rows.mc.status = readStatus(data[3:])
+		if err := rows.mc.discardResults(); err != nil {
+			return nil, errors.Trace(err)
+		}
+		rows.mc = nil
+		return nil, errors.Trace(io.EOF)
+	}
+	if data[0] == iERR {
+		rows.mc = nil
+		return nil, errors.Trace(rows.mc.handleErrorPacket(data))
+	}
+
+	return data, nil
 }
 
 func (rows emptyRows) Columns() []string {

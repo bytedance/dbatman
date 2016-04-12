@@ -329,5 +329,5 @@ func (mc *MySQLConn) HandleOkPacket(data []byte) error {
 }
 
 func (mc *MySQLConn) HandleErrorPacket(data []byte) error {
-	return mc.handleErrorPacket(data)
+	return errors.Trace(mc.handleErrorPacket(data))
 }

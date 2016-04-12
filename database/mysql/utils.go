@@ -641,10 +641,9 @@ func AppendLengthEncodedInteger(b []byte, n uint64) []byte {
 
 // encodes a string value and appends it to the given bytes slice
 func appendLengthEncodedString(dst []byte, src []byte) []byte {
-	data := make([]byte, 0, len(src)+9)
-	data = appendLengthEncodedInteger(data, uint64(len(src)))
-	data = append(data, src...)
-	return data
+	dst = appendLengthEncodedInteger(dst, uint64(len(src)))
+	dst = append(dst, src...)
+	return dst
 }
 
 // reserveBuffer checks cap(buf) and expand buffer to len(buf) + appendSize.

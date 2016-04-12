@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bytedance/dbatman/database/sql/driver"
+	juju "github.com/juju/errors"
 	"github.com/ngaut/log"
 	"io"
 	"runtime"
@@ -1748,7 +1749,7 @@ func (rs *Rows) NextRowPacket() (driver.RawPacket, error) {
 	row, rs.lasterr = rs.rowsi.NextRowPacket()
 	if rs.lasterr != nil {
 		rs.Close()
-		return row, rs.lasterr
+		return row, juju.Trace(rs.lasterr)
 	}
 
 	return row, nil
