@@ -10,7 +10,7 @@ package mysql
 
 import (
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/juju/errors"
+	"github.com/bytedance/dbatman/errors"
 	"io"
 )
 
@@ -226,7 +226,8 @@ func (rows *TextRows) readRowPacket() (driver.RawPacket, error) {
 		return nil, errors.Trace(rows.mc.handleErrorPacket(data))
 	}
 
-	return data, nil
+	// Preserve packet header for proxy usage
+	return append(make([]byte, PacketHeaderLen, len(data)+PacketHeaderLen), data...), nil
 }
 
 func (rows emptyRows) Columns() []string {

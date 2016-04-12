@@ -17,8 +17,8 @@ import (
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
-	"github.com/juju/errors"
 	"github.com/ngaut/log"
 	"io"
 )
@@ -141,33 +141,35 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 	data := make([]byte, 4, 32)
 	data = AppendLengthEncodedInteger(data, uint64(len(cols)))
 	if err = session.fc.WritePacket(data); err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	// Write Columns Packet
 	for _, col := range cols {
 		if err := session.fc.WritePacket(col); err != nil {
 			log.Debugf("write columns packet error %v", err)
-			return err
+			return errors.Trace(err)
 		}
 	}
 
 	// TODO Write a ok packet
-	if err = session.fc.WriteOK(nil); err != nil {
+	if err = session.fc.WriteEOF(); err != nil {
 		return err
 	}
 	log.Debugf("write ok")
 
 	for {
 		packet, err := rs.NextRowPacket()
-		if err != nil && err == io.EOF {
-			return session.fc.WriteEOF()
-		} else {
-			log.Debugf("row error: %s", errors.ErrorStack(err))
-			return session.handleError(err)
-		}
 
-		log.Debugf("row packet % x", packet)
+		// Handle Error
+		if err != nil {
+			err = errors.Real(err)
+			if err == io.EOF {
+				return session.fc.WriteEOF()
+			} else {
+				return session.handleError(err)
+			}
+		}
 
 		if err := session.fc.WritePacket(packet); err != nil {
 			return err

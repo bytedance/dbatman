@@ -15,7 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bytedance/dbatman/database/sql/driver"
-	jujuerror "github.com/juju/errors"
+	jujuerror "github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 	"io"
 	"math"

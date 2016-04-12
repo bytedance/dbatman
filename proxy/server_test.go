@@ -6,6 +6,7 @@ import (
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 
 	gosql "database/sql"
@@ -72,6 +73,8 @@ users:
 
 func newTestServer(t *testing.T) *Server {
 	f := func() {
+
+		errors.SetTrace(true)
 
 		path, err := tmpFile(testConfigData)
 		if err != nil {
