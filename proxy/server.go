@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/bytedance/dbatman/config"
 	_ "github.com/bytedance/dbatman/database/mysql"
-	"github.com/juju/errors"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 	"net"
 	"runtime"

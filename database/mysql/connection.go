@@ -10,7 +10,7 @@ package mysql
 
 import (
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/juju/errors"
+	"github.com/bytedance/dbatman/errors"
 	"net"
 	"strconv"
 	"strings"
