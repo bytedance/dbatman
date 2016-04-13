@@ -32,7 +32,9 @@ func Trace(err error) error {
 		return nil
 	}
 
-	return juju.Trace(err)
+	e := juju.Trace(err).(*juju.Err)
+	e.SetLocation(1)
+	return e
 }
 
 func Real(err error) error {
