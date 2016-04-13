@@ -59,7 +59,7 @@ func (session *Session) dispatch(data []byte) error {
 		return session.fc.WriteOK(nil)
 	case ComInitDB:
 		if err := session.useDB(hack.String(data)); err != nil {
-			return err
+			return session.handleError(err)
 		} else {
 			return session.fc.WriteOK(nil)
 		}
@@ -178,7 +178,10 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 	return nil
 }
 
-func (session *Session) handleError(err error) error {
+func (session *Session) handleError(e error) error {
+
+	err := errors.Real(e)
+
 	switch inst := err.(type) {
 	case *MySQLError:
 		log.Debugf("handle errors %v", inst)
@@ -190,7 +193,7 @@ func (session *Session) handleError(err error) error {
 		session.fc.WriteOK(nil)
 		return nil
 	default:
-		log.Errorf("handler default error: %v", err)
+		log.Errorf("handler default error: %T %v", err, err)
 		return err
 	}
 }

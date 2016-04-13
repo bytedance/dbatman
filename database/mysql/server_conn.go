@@ -16,8 +16,7 @@ package mysql
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
-	"github.com/juju/errors"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 	"net"
 )
@@ -74,7 +73,11 @@ func (mc *MySQLServerConn) Handshake() error {
 	}
 
 	if err = mc.readHandshakeResponse(); err != nil {
-		mc.WriteError(err)
+		if e, ok := err.(*MySQLError); ok {
+			mc.WriteError(e)
+			err = nil
+		}
+
 		mc.cleanup()
 		return errors.Trace(err)
 	}
@@ -95,40 +98,6 @@ func (mc *MySQLServerConn) RemoteAddr() net.Addr {
 
 func (mc *MySQLServerConn) ResetSequence() {
 	mc.sequence = 0
-}
-
-/******************************************************************************
-*                          Server-Side MySQL Error                            *
-******************************************************************************/
-
-// SqlError is used for server-side, it represent a error during mysql connect or
-// query phase
-type SqlError struct {
-	*MySQLError
-	State string
-}
-
-func NewSqlError(errno uint16, args ...interface{}) *SqlError {
-
-	e := &SqlError{
-		MySQLError: &MySQLError{},
-	}
-	e.Number = errno
-
-	if s, ok := MySQLState[errno]; ok {
-		e.State = s
-	} else {
-		e.State = DEFAULT_MYSQL_STATE
-	}
-
-	if format, ok := MySQLErrName[errno]; ok {
-		e.Message = fmt.Sprintf(format, args...)
-	} else {
-		e.Message = fmt.Sprint(args...)
-	}
-
-	return e
-
 }
 
 /******************************************************************************
@@ -232,7 +201,7 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 	} else {
 		// connect must with db, otherwise it will deny the access
 		if len(data[pos:]) == 0 {
-			return errors.Trace(NewSqlError(ER_ACCESS_DENIED_ERROR, mc.netConn.RemoteAddr().String(), user, "Yes"))
+			return errors.Trace(NewDefaultError(ER_ACCESS_DENIED_ERROR, mc.netConn.RemoteAddr().String(), user, "Yes"))
 		}
 
 		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
@@ -253,24 +222,19 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 ******************************************************************************/
 
 // WriteError write error package to the client
-func (mc *MySQLServerConn) WriteError(e error) error {
-	var m *SqlError
-	var ok bool
-	if m, ok = e.(*SqlError); !ok {
-		m = NewSqlError(ER_UNKNOWN_ERROR, e.Error())
-	}
+func (mc *MySQLServerConn) WriteError(e *MySQLError) error {
 
-	data := mc.buf.takeSmallBuffer(16 + len(m.Message))
+	data := make([]byte, 4, 16+len(e.Message))
 
 	data = append(data, ERR)
-	data = append(data, byte(m.Number), byte(m.Number>>8))
+	data = append(data, byte(e.Number), byte(e.Number>>8))
 
 	if mc.ctx.Cap()&uint32(clientProtocol41) > 0 {
 		data = append(data, '#')
-		data = append(data, m.State...)
+		data = append(data, e.State...)
 	}
 
-	data = append(data, m.Message...)
+	data = append(data, e.Message...)
 
 	return mc.writePacket(data)
 }

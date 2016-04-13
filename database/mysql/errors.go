@@ -53,16 +53,23 @@ func SetLogger(logger Logger) error {
 type MySQLError struct {
 	Number  uint16
 	Message string
+	State   string
 }
 
 func (me *MySQLError) Error() string {
-	return fmt.Sprintf("Error %d: %s", me.Number, me.Message)
+	return fmt.Sprintf("Error %d (%s): %s", me.Number, me.State, me.Message)
 }
 
 //default mysql error, must adapt errname message format
 func NewDefaultError(number uint16, args ...interface{}) *MySQLError {
 	e := new(MySQLError)
 	e.Number = number
+
+	if s, ok := MySQLState[number]; ok {
+		e.State = s
+	} else {
+		e.State = DEFAULT_MYSQL_STATE
+	}
 
 	if format, ok := MySQLErrName[number]; ok {
 		e.Message = fmt.Sprintf(format, args...)

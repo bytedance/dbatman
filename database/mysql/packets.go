@@ -428,6 +428,10 @@ func (mc *MySQLConn) writeCommandPacketStr(command byte, arg string) error {
 	return mc.writePacket(data)
 }
 
+func (mc *MySQLConn) WriteCommandPacketStr(command byte, arg string) error {
+	return mc.writeCommandPacketStr(command, arg)
+}
+
 func (mc *MySQLConn) writeCommandPacketUint32(command byte, arg uint32) error {
 	// Reset Packet Sequence
 	mc.sequence = 0
@@ -483,10 +487,14 @@ func (mc *MySQLConn) readResultOK() error {
 			}
 
 		default: // Error otherwise
-			return mc.handleErrorPacket(data)
+			return jujuerror.Trace(mc.handleErrorPacket(data))
 		}
 	}
 	return err
+}
+
+func (mc *MySQLConn) ReadResultOK() error {
+	return mc.readResultOK()
 }
 
 // Result Set Header Packet
@@ -538,11 +546,7 @@ func (mc *MySQLConn) handleErrorPacket(data []byte) error {
 	}
 
 	// Error Message [string]
-	return jujuerror.Trace(
-		&MySQLError{
-			Number:  errno,
-			Message: string(data[pos:]),
-		})
+	return jujuerror.Trace(NewDefaultError(errno, string(data[pos:])))
 }
 
 func readStatus(b []byte) statusFlag {
