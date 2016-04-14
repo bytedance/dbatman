@@ -53,7 +53,7 @@ func (mc *MySQLConn) readPacket() ([]byte, error) {
 			}
 
 			log.Debugf("expect sequence %v, match %v", mc.sequence, data[3])
-			return nil, ErrPktSync
+			return nil, jujuerror.Trace(ErrPktSync)
 		}
 		mc.sequence++
 
@@ -522,7 +522,7 @@ func (mc *MySQLConn) readResultSetHeaderPacket() (int, error) {
 
 		return 0, jujuerror.Trace(ErrMalformPkt)
 	}
-	return 0, err
+	return 0, jujuerror.Trace(err)
 }
 
 // Error Packet

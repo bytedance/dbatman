@@ -25,7 +25,7 @@ func TestProxy_ComPing(t *testing.T) {
 func TestProxy_ComInitDB(t *testing.T) {
 	conn := newRawProxyConn(t)
 
-	if err := conn.WriteCommandPacketStr(mysql.ComInitDB, "gotest"); err != nil {
+	if err := conn.WriteCommandPacketStr(mysql.ComInitDB, "dbatman_test"); err != nil {
 		t.Fatal(err)
 	}
 

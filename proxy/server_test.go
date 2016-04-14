@@ -6,7 +6,7 @@ import (
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
-	_ "github.com/bytedance/dbatman/errors"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 
 	gosql "database/sql"
@@ -44,13 +44,13 @@ global:
   auth_ips:
 
 clusters:
-    gotest_cluster:
+    dbatman_test_cluster:
         master:
             host: 127.0.0.1
             port: 3306
             username: root
             password: 
-            dbname: gotest
+            dbname: dbatman_test
             charset: utf8mb4
             max_connections: 100
             max_connection_pool_size: 10
@@ -62,7 +62,7 @@ clusters:
             port: 3306
             username: root
             password: 
-            dbname: gotest
+            dbname: dbatman_test
             charset: utf8mb4
             max_connections: 100
             max_connection_pool_size: 10
@@ -76,9 +76,9 @@ users:
         password: proxy_mysql_passwd
         max_connections: 1000
         min_connections: 100
-        dbname: gotest
+        dbname: dbatman_test
         charset: utf8mb4
-        cluster_name: gotest_cluster
+        cluster_name: dbatman_test_cluster
         auth_ips:
             - 127.0.0.1
         black_list_ips:
@@ -87,7 +87,7 @@ users:
 `)
 
 var testDBDSN = "root:@tcp(127.0.0.1:3306)/mysql"
-var testProxyDSN = "proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/gotest"
+var testProxyDSN = "proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/dbatman_test"
 
 func newTestServer() (*Server, error) {
 	f := func() {
@@ -144,7 +144,7 @@ func newTestCluster(cluster_name string) (*cluster.Cluster, error) {
 }
 
 func newTestDB(t *testing.T) *sql.DB {
-	cls, err := newTestCluster("gotest_cluster")
+	cls, err := newTestCluster("dbatman_test_cluster")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,22 +178,33 @@ func newRawProxyConn(t *testing.T) *mysql.MySQLConn {
 	return nil
 }
 
-func TestMain(m *testing.M) {
-	// Init gotest database
-	db, err := gosql.Open("mysql", testDBDSN)
+// return a direct connection to proxy server, this is a
+func newSqlDB(dsn string) *gosql.DB {
+
+	db, err := gosql.Open("mysql", dsn)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s is unavailable", testDBDSN)
+		fmt.Fprintf(os.Stderr, "%s is unavailable", dsn)
 		os.Exit(2)
 	}
 
 	if err := db.Ping(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s is unreacheable", testDBDSN)
+		fmt.Fprintf(os.Stderr, "%s is unreacheable", dsn)
 		os.Exit(2)
 	}
 
-	// Create DataBase gotest
-	if _, err := db.Exec("CREATE DATABASE IF NOT EXISTS `gotest`"); err != nil {
-		fmt.Fprintln(os.Stderr, "create database `gotest` failed: ", err.Error())
+	return db
+}
+
+func TestMain(m *testing.M) {
+	// Init dbatman_test database
+
+	errors.SetTrace(true)
+
+	db := newSqlDB(testDBDSN)
+
+	// Create DataBase dbatman_test
+	if _, err := db.Exec("CREATE DATABASE IF NOT EXISTS `dbatman_test`"); err != nil {
+		fmt.Fprintln(os.Stderr, "create database `dbatman_test` failed: ", err.Error())
 		os.Exit(2)
 	}
 
@@ -202,7 +213,7 @@ func TestMain(m *testing.M) {
 		os.Exit(2)
 	}
 
-	if _, err := newTestCluster("gotest_cluster"); err != nil {
+	if _, err := newTestCluster("dbatman_test_cluster"); err != nil {
 		fmt.Fprintln(os.Stderr, "setup proxy -> cluster failed: ", err.Error())
 		os.Exit(2)
 	}
@@ -211,8 +222,8 @@ func TestMain(m *testing.M) {
 
 	// Clear Up Database
 
-	if _, err := db.Exec("DROP DATABASE IF EXISTS `gotest`"); err != nil {
-		fmt.Fprintln(os.Stderr, "drop database `gotest` failed: ", err.Error())
+	if _, err := db.Exec("DROP DATABASE IF EXISTS `dbatman_test`"); err != nil {
+		fmt.Fprintln(os.Stderr, "drop database `dbatman_test` failed: ", err.Error())
 		os.Exit(2)
 	}
 

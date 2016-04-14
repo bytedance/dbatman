@@ -34,3 +34,5 @@ _testmain.go
 coverage.txt
 
 git.sh
+
+GoDeps/_workspace/src

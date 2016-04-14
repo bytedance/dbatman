@@ -7,7 +7,7 @@ import (
 	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
-	"github.com/ngaut/log"
+	_ "github.com/ngaut/log"
 )
 
 func (c *Session) comQuery(sqlstmt string) (err error) {
@@ -74,51 +74,40 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 
 func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isread bool) error {
 
-	log.Debug("handle exec", sqlstmt)
-
-	if err := session.checkDB(); err != nil {
-		return err
+	if err := session.checkDB(stmt); err != nil {
+		return session.handleMySQLError(err)
 	}
 
-	db, err := session.cluster.DB(isread)
-
-	if err != nil {
-		return err
-	}
-
-	defer db.Close()
-
-	var rs sql.Result
-	rs, err = db.Exec(sqlstmt)
-
-	if err == nil {
-		if mysql_rs, ok := rs.(*MySQLResult); ok {
-			err = session.fc.WriteOK(mysql_rs)
-		}
-	}
-
-	return err
+	return errors.Trace(session.exec(sqlstmt, isread))
 }
 
 // handleDDL process DDL Statements where
 func (session *Session) handleDDL(ddl parser.IDDLStatement, sqlstmt string) error {
-	if hasSchemas, ok := ddl.(parser.IDDLSchemas); ok {
-		// check schemas to ensure a weak secure issue
-		schemas := hasSchemas.GetSchemas()
-		for _, s := range schemas {
-			if len(s) > 0 && s != session.cluster.DBName {
-				return session.handleMySQLError(
-					NewDefaultError(
-						ER_DBACCESS_DENIED_ERROR,
-						session.user.Username,
-						session.fc.RemoteAddr().String(),
-						session.cluster.DBName))
-			}
-		}
+	if err := session.checkDB(ddl); err != nil {
+		return session.handleMySQLError(err)
 	}
 
 	// All DDL statement must use master conn
 	return errors.Trace(session.exec(sqlstmt, false))
+}
+
+// for a weak secure issue, we check the db in statement to protect wrong ops
+func (session *Session) checkDB(stmt parser.IStatement) error {
+	if hasSchemas, ok := stmt.(parser.IDDLSchemas); ok {
+		// check schemas to ensure a weak secure issue
+		schemas := hasSchemas.GetSchemas()
+		for _, s := range schemas {
+			if len(s) > 0 && s != session.cluster.DBName {
+				NewDefaultError(
+					ER_DBACCESS_DENIED_ERROR,
+					session.user.Username,
+					session.fc.RemoteAddr().String(),
+					session.cluster.DBName)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (session *Session) exec(sqlstmt string, isread bool) error {

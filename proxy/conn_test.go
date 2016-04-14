@@ -30,22 +30,6 @@ func TestConn_DeleteTable(t *testing.T) {
 	c.Close()
 }
 
-func TestConn_CreateTable(t *testing.T) {
-	s := ``
-
-	server := newTestServer(t)
-	n := server.nodes["node1"]
-	c, err := n.getMasterConn()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	c.UseDB("go_proxy")
-	defer c.Close()
-	if _, err := c.Execute(s); err != nil {
-		t.Fatal(err)
-	}
-}
 
 func TestConn_Insert(t *testing.T) {
 	s := `insert into go_proxy_test_proxy_conn (id, str, f, e, u, i) values(1, "abc", 3.14, "test1", 255, -127)`

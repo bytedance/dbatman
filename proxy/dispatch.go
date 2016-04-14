@@ -27,6 +27,14 @@ func (session *Session) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
 
+	// https://dev.mysql.com/doc/internals/en/sequence-id.html
+	//defer func() {
+	//	if session.lastcmd != cmd {
+	//		session.lastcmd = cmd
+	//		session.fc.ResetSequence()
+	//	}
+	//}()
+
 	switch cmd {
 	case ComQuit:
 		session.Close()
@@ -95,15 +103,6 @@ func (session *Session) useDB(db string) error {
 
 func (session *Session) IsAutoCommit() bool {
 	return session.fc.Status()&uint16(StatusInAutocommit) > 0
-}
-
-func (session *Session) checkDB() error {
-
-	if session.cluster == nil {
-		return NewDefaultError(ER_NO_DB_ERROR)
-	}
-
-	return nil
 }
 
 func (session *Session) WriteRows(rs *sql.Rows) error {

@@ -290,7 +290,7 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 		}, err
 	}
 
-	return nil, err
+	return nil, errors.Trace(err)
 }
 
 // Internal function to execute commands
@@ -298,20 +298,20 @@ func (mc *MySQLConn) exec(query string) error {
 	// Send command
 	err := mc.writeCommandPacketStr(comQuery, query)
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	// Read Result
 	resLen, err := mc.readResultSetHeaderPacket()
 	if err == nil && resLen > 0 {
 		if err = mc.readUntilEOF(); err != nil {
-			return err
+			return errors.Trace(err)
 		}
 
 		err = mc.readUntilEOF()
 	}
 
-	return err
+	return errors.Trace(err)
 }
 
 func (mc *MySQLConn) Query(query string, args []driver.Value) (driver.Rows, error) {

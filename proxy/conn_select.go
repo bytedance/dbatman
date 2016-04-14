@@ -9,7 +9,7 @@ import (
 
 func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) error {
 
-	if err := session.checkDB(); err != nil {
+	if err := session.checkDB(stmt); err != nil {
 		log.Debugf("check db error: %s", err.Error())
 		return err
 	}

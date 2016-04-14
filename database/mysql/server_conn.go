@@ -15,6 +15,7 @@ package mysql
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
@@ -303,6 +304,7 @@ func (mc *MySQLServerConn) WriteOK(r driver.Result) error {
 		data = append(data, byte(warnings), byte(warnings>>8))
 	}
 
+	fmt.Printf("data: % x\n", data)
 	return mc.writePacket(data)
 }
 

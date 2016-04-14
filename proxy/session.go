@@ -36,6 +36,8 @@ type Session struct {
 
 	closed bool
 	db     string
+
+	// lastcmd uint8
 }
 
 func (s *Server) newSession(conn net.Conn) *Session {
@@ -46,6 +48,7 @@ func (s *Server) newSession(conn net.Conn) *Session {
 	session.salt, _ = RandomBuf(20)
 
 	session.fc = NewMySQLServerConn(session, conn)
+	//session.lastcmd = ComQuit
 
 	return session
 }
@@ -85,12 +88,12 @@ func (session *Session) Run() error {
 			return err
 		}
 
+		session.fc.ResetSequence()
+
 		if session.closed {
 			// TODO return MySQL Go Away ?
 			return nil
 		}
-
-		session.fc.ResetSequence()
 	}
 
 	return nil
