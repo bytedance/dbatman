@@ -15,7 +15,6 @@ package mysql
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
@@ -276,7 +275,7 @@ func (mc *MySQLServerConn) WriteError(e *MySQLError) error {
 
 	data = append(data, e.Message...)
 
-	return mc.writePacket(data)
+	return mc.WritePacket(data)
 }
 
 // WriteOk write ok package to the client
@@ -304,8 +303,7 @@ func (mc *MySQLServerConn) WriteOK(r driver.Result) error {
 		data = append(data, byte(warnings), byte(warnings>>8))
 	}
 
-	fmt.Printf("data: % x\n", data)
-	return mc.writePacket(data)
+	return mc.WritePacket(data)
 }
 
 func (mc *MySQLServerConn) WriteEOF() error {
@@ -317,7 +315,7 @@ func (mc *MySQLServerConn) WriteEOF() error {
 		data = append(data, byte(mc.status), byte(mc.status>>8))
 	}
 
-	return mc.writePacket(data)
+	return mc.WritePacket(data)
 }
 
 func (mc *MySQLConn) WritePacket(data []byte) error {

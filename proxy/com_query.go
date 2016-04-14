@@ -7,10 +7,12 @@ import (
 	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
-	_ "github.com/ngaut/log"
+	"github.com/ngaut/log"
 )
 
 func (c *Session) comQuery(sqlstmt string) (err error) {
+
+	log.Debugf("query: %s", sqlstmt)
 
 	var stmt parser.IStatement
 	stmt, err = parser.Parse(sqlstmt)
@@ -116,8 +118,6 @@ func (session *Session) exec(sqlstmt string, isread bool) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-
-	defer db.Close()
 
 	var rs sql.Result
 	rs, err = db.Exec(sqlstmt)
