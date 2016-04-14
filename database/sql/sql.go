@@ -1908,6 +1908,10 @@ type Result interface {
 	// update, insert, or delete. Not every database or database
 	// driver may support this.
 	RowsAffected() (int64, error)
+
+	Status() (int64, error)
+
+	Warnings() []error
 }
 
 type driverResult struct {
@@ -1925,6 +1929,18 @@ func (dr driverResult) RowsAffected() (int64, error) {
 	dr.Lock()
 	defer dr.Unlock()
 	return dr.resi.RowsAffected()
+}
+
+func (dr driverResult) Status() (int64, error) {
+	dr.Lock()
+	defer dr.Unlock()
+	return dr.resi.Status()
+}
+
+func (dr driverResult) Warnings() []error {
+	dr.Lock()
+	defer dr.Unlock()
+	return dr.resi.Warnings()
 }
 
 func stack() string {

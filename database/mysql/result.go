@@ -10,16 +10,16 @@ package mysql
 
 type MySQLResult struct {
 	status       statusFlag
-	warnings     uint16
+	warnings     []error
 	affectedRows int64
 	insertId     int64
 }
 
-func (r *MySQLResult) Status() uint16 {
-	return uint16(r.status)
+func (r *MySQLResult) Status() (int64, error) {
+	return int64(r.status), nil
 }
 
-func (r *MySQLResult) Warnings() uint16 {
+func (r *MySQLResult) Warnings() []error {
 	return r.warnings
 }
 

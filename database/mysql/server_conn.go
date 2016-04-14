@@ -15,26 +15,19 @@ package mysql
 
 import (
 	"bytes"
-	"encoding/binary"
+	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 	"net"
+	"sync/atomic"
 )
 
 // MySQLServerCtx is a server-side interface of 1-time-connection
 // context
 type MySQLServerCtx interface {
-	ConnID() uint32
 	Salt() []byte
-	Collation() CollationId
-	Status() uint16
-
-	Cap() uint32
-	SetCap(c uint32)
-
 	CheckAuth(username string, auth []byte, db string) error
 
-	DefaultDB() string
 	ServerName() []byte
 }
 
@@ -42,8 +35,12 @@ type MySQLServerCtx interface {
 // here we wrap the go-mysql-driver.MySQLConn
 type MySQLServerConn struct {
 	*MySQLConn
-	ctx MySQLServerCtx
+	ctx       MySQLServerCtx
+	collation CollationId
+	connID    uint32
 }
+
+var baseConnId uint32 = 10000
 
 func NewMySQLServerConn(s MySQLServerCtx, conn net.Conn) *MySQLServerConn {
 	c := new(MySQLServerConn)
@@ -57,6 +54,16 @@ func NewMySQLServerConn(s MySQLServerCtx, conn net.Conn) *MySQLServerConn {
 	}
 
 	c.buf = newBuffer(c.netConn)
+
+	// Default Capacity Flags
+	c.flags = ClientLongPassword | ClientLongFlag |
+		ClientConnectWithDB | ClientProtocol41 | ClientTransactions | ClientSecureConn
+
+	// Set default connection id
+	c.connID = atomic.AddUint32(&baseConnId, 1)
+	c.status = StatusInAutocommit
+
+	c.collation = DEFAULT_COLLATION_ID
 
 	return c
 }
@@ -100,6 +107,38 @@ func (mc *MySQLServerConn) ResetSequence() {
 	mc.sequence = 0
 }
 
+func (mc *MySQLServerConn) XORStatus(status uint16) {
+	mc.status |= statusFlag(status)
+}
+
+func (mc *MySQLServerConn) AndStatus(status uint16) {
+	mc.status &= statusFlag(status)
+}
+
+func (mc *MySQLServerConn) Status() uint16 {
+	return uint16(mc.status)
+}
+
+func (mc *MySQLServerConn) SetFlags(flags uint32) {
+	mc.flags = clientFlag(flags)
+}
+
+func (mc *MySQLServerConn) Flags() uint32 {
+	return mc.Flags()
+}
+
+func (mc *MySQLServerConn) SetConnID(id uint32) {
+	mc.connID = id
+}
+
+func (mc *MySQLServerConn) ConnID() uint32 {
+	return mc.connID
+}
+
+func (mc *MySQLServerConn) SetCollation(id CollationId) {
+	mc.collation = id
+}
+
 /******************************************************************************
 *                   Server-Side Initialisation Process                        *
 ******************************************************************************/
@@ -118,7 +157,7 @@ func (mc *MySQLServerConn) writeInitPacket() error {
 	data = append(data, 0)
 
 	// connection id
-	data = append(data, byte(mc.ctx.ConnID()), byte(mc.ctx.ConnID()>>8), byte(mc.ctx.ConnID()>>16), byte(mc.ctx.ConnID()>>24))
+	data = append(data, byte(mc.connID), byte(mc.connID), byte(mc.connID), byte(mc.connID))
 
 	// auth-plugin-data-part-1
 	data = append(data, mc.ctx.Salt()[0:8]...)
@@ -127,17 +166,17 @@ func (mc *MySQLServerConn) writeInitPacket() error {
 	data = append(data, 0)
 
 	// capability flag lower 2 bytes, using default capability here
-	data = append(data, byte(mc.ctx.Cap()), byte(mc.ctx.Cap()>>8))
+	data = append(data, byte(mc.flags), byte(mc.flags>>8))
 
-	// charset, utf-8 default
-	data = append(data, uint8(mc.ctx.Collation()))
+	// collation, utf-8 default
+	data = append(data, uint8(mc.collation))
 
 	// status
-	data = append(data, byte(mc.ctx.Status()), byte(mc.ctx.Status()>>8))
+	data = append(data, byte(mc.status), byte(mc.status>>8))
 
 	// below 13 byte may not be used
 	// capability flag upper 2 bytes, using default capability here
-	data = append(data, byte(mc.ctx.Cap()>>16), byte(mc.ctx.Cap()>>24))
+	data = append(data, byte(mc.flags>>16), byte(mc.flags>>24))
 
 	// filter [0x15], for wireshark dump, value is 0x15
 	data = append(data, 0x00)
@@ -171,7 +210,7 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 	pos := 0
 
 	//capability
-	mc.ctx.SetCap(binary.LittleEndian.Uint32(data[:4]))
+	mc.flags = clientFlag(endian.Uint32(data[:4]))
 	pos += 4
 
 	//skip max packet size
@@ -194,7 +233,7 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 	auth := data[pos : pos+authLen]
 	pos += authLen
 
-	if mc.ctx.Cap()&uint32(clientConnectWithDB) == 0 {
+	if mc.flags&clientConnectWithDB == 0 {
 		if err := mc.ctx.CheckAuth(user, auth, ""); err != nil {
 			return err
 		}
@@ -229,7 +268,7 @@ func (mc *MySQLServerConn) WriteError(e *MySQLError) error {
 	data = append(data, ERR)
 	data = append(data, byte(e.Number), byte(e.Number>>8))
 
-	if mc.ctx.Cap()&uint32(clientProtocol41) > 0 {
+	if mc.flags&clientProtocol41 > 0 {
 		data = append(data, '#')
 		data = append(data, e.State...)
 	}
@@ -240,15 +279,15 @@ func (mc *MySQLServerConn) WriteError(e *MySQLError) error {
 }
 
 // WriteOk write ok package to the client
-func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
+func (mc *MySQLServerConn) WriteOK(r driver.Result) error {
 	if r == nil {
-		r = &MySQLResult{status: statusFlag(mc.ctx.Status())}
+		r = &MySQLResult{status: mc.status}
 	}
 
 	// Reserve 4 byte for packet header
 	data := make([]byte, 4, 32)
 
-	data = append(data, OK)
+	data = append(data, iOK)
 
 	rows, _ := r.RowsAffected()
 	insertId, _ := r.LastInsertId()
@@ -256,9 +295,12 @@ func (mc *MySQLServerConn) WriteOK(r *MySQLResult) error {
 	data = appendLengthEncodedInteger(data, uint64(rows))
 	data = appendLengthEncodedInteger(data, uint64(insertId))
 
-	if mc.ctx.Cap()&uint32(clientProtocol41) > 0 {
-		data = append(data, byte(r.status), byte(r.status>>8))
-		data = append(data, byte(r.warnings), byte(r.warnings>>8))
+	warnings := len(r.Warnings())
+	status, _ := r.Status()
+
+	if mc.flags&clientProtocol41 > 0 {
+		data = append(data, byte(status), byte(status>>8))
+		data = append(data, byte(warnings), byte(warnings>>8))
 	}
 
 	return mc.writePacket(data)

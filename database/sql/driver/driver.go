@@ -117,6 +117,10 @@ type Result interface {
 	// RowsAffected returns the number of rows affected by the
 	// query.
 	RowsAffected() (int64, error)
+
+	Status() (int64, error)
+
+	Warnings() []error
 }
 
 // Stmt is a prepared statement. It is bound to a Conn and not
@@ -211,6 +215,14 @@ func (v RowsAffected) RowsAffected() (int64, error) {
 	return int64(v), nil
 }
 
+func (RowsAffected) Status() (int64, error) {
+	return 0, nil
+}
+
+func (RowsAffected) Warnings() []error {
+	return nil
+}
+
 // ResultNoRows is a pre-defined Result for drivers to return when a DDL
 // command (such as a CREATE TABLE) succeeds. It returns an error for both
 // LastInsertId and RowsAffected.
@@ -226,4 +238,12 @@ func (noRows) LastInsertId() (int64, error) {
 
 func (noRows) RowsAffected() (int64, error) {
 	return 0, errors.New("no RowsAffected available after DDL statement")
+}
+
+func (noRows) Status() (int64, error) {
+	return 0, nil
+}
+
+func (noRows) Warnings() []error {
+	return nil
 }

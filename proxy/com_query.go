@@ -2,10 +2,12 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/bytedance/dbatman/database/mysql"
+	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
+	"github.com/ngaut/log"
 )
 
 func (c *Session) comQuery(sqlstmt string) (err error) {
@@ -41,7 +43,7 @@ func (c *Session) comQuery(sqlstmt string) (err error) {
 	case parser.IShow:
 		return c.handleShow(sqlstmt, v)
 	case parser.IDDLStatement:
-		return c.handleExec(stmt, sqlstmt, false)
+		return c.handleDDL(v, sqlstmt)
 	case *parser.Do:
 		return c.handleExec(stmt, sqlstmt, false)
 	case *parser.Call:
@@ -60,69 +62,6 @@ func (c *Session) comQuery(sqlstmt string) (err error) {
 	return nil
 }
 
-/*
-func (c *Session) getConn(n *Node, isSelect bool) (co *backend.SqlConn, err error) {
-	if !c.needBeginTx() {
-		if isSelect {
-			co, err = n.getSelectConn()
-		} else {
-			co, err = n.getMasterConn()
-		}
-		if err != nil {
-			return
-		}
-	} else {
-		var ok bool
-		c.Lock()
-		co, ok = c.txConns[n]
-		c.Unlock()
-
-		if !ok {
-			if co, err = n.getMasterConn(); err != nil {
-				return
-			}
-
-			if err = co.SetAutocommit(c.IsAutoCommit()); err != nil {
-				return
-			}
-
-			if err = co.Begin(); err != nil {
-				return
-			}
-
-			c.Lock()
-			c.txConns[n] = co
-			c.Unlock()
-		}
-	}
-
-	//todo, set conn charset, etc...
-	if err = co.UseDB(c.schema.db); err != nil {
-		return
-	}
-
-	if err = co.SetCharset(c.charset); err != nil {
-		return
-	}
-
-	return
-}
-
-func (c *Session) closeDBConn(co *backend.SqlConn, rollback bool) {
-	// since we have DDL, and when server is not in autoCommit,
-	// we do not release the connection and will reuse it later
-	if c.isInTransaction() || !c.isAutoCommit() {
-		return
-	}
-
-	if rollback {
-		co.Rollback()
-	}
-
-	co.Close()
-}
-*/
-
 func makeBindVars(args []interface{}) map[string]interface{} {
 	bindVars := make(map[string]interface{}, len(args))
 
@@ -134,6 +73,8 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 }
 
 func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isread bool) error {
+
+	log.Debug("handle exec", sqlstmt)
 
 	if err := session.checkDB(); err != nil {
 		return err
@@ -151,10 +92,50 @@ func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isrea
 	rs, err = db.Exec(sqlstmt)
 
 	if err == nil {
-		if mysql_rs, ok := rs.(*mysql.MySQLResult); ok {
+		if mysql_rs, ok := rs.(*MySQLResult); ok {
 			err = session.fc.WriteOK(mysql_rs)
 		}
 	}
 
 	return err
+}
+
+// handleDDL process DDL Statements where
+func (session *Session) handleDDL(ddl parser.IDDLStatement, sqlstmt string) error {
+	if hasSchemas, ok := ddl.(parser.IDDLSchemas); ok {
+		// check schemas to ensure a weak secure issue
+		schemas := hasSchemas.GetSchemas()
+		for _, s := range schemas {
+			if len(s) > 0 && s != session.cluster.DBName {
+				return session.handleMySQLError(
+					NewDefaultError(
+						ER_DBACCESS_DENIED_ERROR,
+						session.user.Username,
+						session.fc.RemoteAddr().String(),
+						session.cluster.DBName))
+			}
+		}
+	}
+
+	// All DDL statement must use master conn
+	return errors.Trace(session.exec(sqlstmt, false))
+}
+
+func (session *Session) exec(sqlstmt string, isread bool) error {
+
+	db, err := session.cluster.DB(isread)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	defer db.Close()
+
+	var rs sql.Result
+	rs, err = db.Exec(sqlstmt)
+
+	if err != nil {
+		return errors.Trace(session.handleMySQLError(err))
+	}
+
+	return errors.Trace(session.fc.WriteOK(rs))
 }

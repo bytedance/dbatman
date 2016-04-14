@@ -75,14 +75,14 @@ func (stmt *mysqlStmt) Exec(args []driver.Value) (driver.Result, error) {
 				affectedRows: int64(mc.affectedRows),
 				insertId:     int64(mc.insertId),
 				status:       mc.status,
-				warnings:     0,
+				warnings:     nil,
 			}, nil
 		} else if errs, ok := err.(MySQLWarnings); ok {
 			return &MySQLResult{
 				affectedRows: int64(mc.affectedRows),
 				insertId:     int64(mc.insertId),
 				status:       mc.status,
-				warnings:     uint16(len(errs)),
+				warnings:     errs.Errors(),
 			}, err
 		}
 	}

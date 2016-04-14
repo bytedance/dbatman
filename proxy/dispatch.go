@@ -23,28 +23,6 @@ import (
 	"io"
 )
 
-func (session *Session) Close() error {
-	if session.closed {
-		return nil
-	}
-
-	session.fc.Close()
-
-	// TODO transaction
-	//	session.rollback()
-
-	// TODO stmts
-	// for _, s := range session.stmts {
-	// 	s.Close()
-	// }
-
-	// session.stmts = nil
-
-	session.closed = true
-
-	return nil
-}
-
 func (session *Session) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
@@ -59,7 +37,7 @@ func (session *Session) dispatch(data []byte) error {
 		return session.fc.WriteOK(nil)
 	case ComInitDB:
 		if err := session.useDB(hack.String(data)); err != nil {
-			return session.handleError(err)
+			return session.handleMySQLError(err)
 		} else {
 			return session.fc.WriteOK(nil)
 		}
@@ -116,7 +94,7 @@ func (session *Session) useDB(db string) error {
 }
 
 func (session *Session) IsAutoCommit() bool {
-	return session.status&uint16(StatusInAutocommit) > 0
+	return session.fc.Status()&uint16(StatusInAutocommit) > 0
 }
 
 func (session *Session) checkDB() error {
@@ -134,7 +112,7 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 	cols, err = rs.ColumnPackets()
 
 	if err != nil {
-		return session.handleError(err)
+		return session.handleMySQLError(err)
 	}
 
 	// Send a packet contains column length
@@ -166,7 +144,7 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 			if err == io.EOF {
 				return session.fc.WriteEOF()
 			} else {
-				return session.handleError(err)
+				return session.handleMySQLError(err)
 			}
 		}
 
@@ -178,13 +156,12 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 	return nil
 }
 
-func (session *Session) handleError(e error) error {
+func (session *Session) handleMySQLError(e error) error {
 
 	err := errors.Real(e)
 
 	switch inst := err.(type) {
 	case *MySQLError:
-		log.Debugf("handle errors %v", inst)
 		session.fc.WriteError(inst)
 		return nil
 	case *MySQLWarnings:

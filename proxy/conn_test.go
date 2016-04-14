@@ -31,16 +31,7 @@ func TestConn_DeleteTable(t *testing.T) {
 }
 
 func TestConn_CreateTable(t *testing.T) {
-	s := `CREATE TABLE IF NOT EXISTS go_proxy_test_proxy_conn (
-          id BIGINT(64) UNSIGNED  NOT NULL,
-          str VARCHAR(256),
-          f DOUBLE,
-          e enum("test1", "test2"),
-          u tinyint unsigned,
-          i tinyint,
-          ni tinyint,
-          PRIMARY KEY (id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8`
+	s := ``
 
 	server := newTestServer(t)
 	n := server.nodes["node1"]

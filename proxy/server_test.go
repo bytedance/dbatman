@@ -161,7 +161,8 @@ func newTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
-func newTestProxyConn(t *testing.T) *mysql.MySQLConn {
+// return a direct connection to proxy server, this is a
+func newRawProxyConn(t *testing.T) *mysql.MySQLConn {
 	newTestServer()
 
 	d := mysql.MySQLDriver{}

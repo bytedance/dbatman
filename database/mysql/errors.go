@@ -82,7 +82,7 @@ func NewDefaultError(number uint16, args ...interface{}) *MySQLError {
 
 // MySQLWarnings is an error type which represents a group of one or more MySQL
 // warnings
-type MySQLWarnings []MySQLWarning
+type MySQLWarnings []*MySQLWarning
 
 func (mws MySQLWarnings) Error() string {
 	var msg string
@@ -100,12 +100,31 @@ func (mws MySQLWarnings) Error() string {
 	return msg
 }
 
+func (mws MySQLWarnings) Errors() []error {
+	errs := make([]error, 0, len(mws))
+
+	for _, warning := range mws {
+		errs = append(errs, warning)
+	}
+
+	return errs
+}
+
 // MySQLWarning is an error type which represents a single MySQL warning.
 // Warnings are returned in groups only. See MySQLWarnings
 type MySQLWarning struct {
 	Level   string
 	Code    string
 	Message string
+}
+
+func (warning *MySQLWarning) Error() string {
+	return fmt.Sprintf(
+		"%s %s: %s",
+		warning.Level,
+		warning.Code,
+		warning.Message,
+	)
 }
 
 func (mc *MySQLConn) getWarnings() (err error) {
@@ -121,7 +140,7 @@ func (mc *MySQLConn) getWarnings() (err error) {
 		err = rows.Next(values)
 		switch err {
 		case nil:
-			warning := MySQLWarning{}
+			warning := &MySQLWarning{}
 
 			if raw, ok := values[0].([]byte); ok {
 				warning.Level = string(raw)

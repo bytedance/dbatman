@@ -22,24 +22,12 @@ import (
 	"github.com/bytedance/dbatman/hack"
 	"github.com/ngaut/log"
 	"net"
-	"sync/atomic"
 )
-
-var DEFAULT_CAPABILITY uint32 = uint32(ClientLongPassword | ClientLongFlag |
-	ClientConnectWithDB | ClientProtocol41 | ClientTransactions | ClientSecureConn)
-
-var baseConnId uint32 = 10000
 
 type Session struct {
 	server *Server
 	config *config.ProxyConfig
 	user   *config.UserConfig
-
-	connID     uint32
-	status     uint16
-	collation  CollationId
-	charset    string
-	capability uint32
 
 	salt []byte
 
@@ -55,14 +43,7 @@ func (s *Server) newSession(conn net.Conn) *Session {
 
 	session.server = s
 	session.config = s.cfg.GetConfig()
-
-	session.connID = atomic.AddUint32(&baseConnId, 1)
-	session.status = uint16(StatusInAutocommit)
-	session.capability = DEFAULT_CAPABILITY
 	session.salt, _ = RandomBuf(20)
-
-	session.collation = DEFAULT_COLLATION_ID
-	session.charset = DEFAULT_CHARSET
 
 	session.fc = NewMySQLServerConn(session, conn)
 
@@ -94,7 +75,7 @@ func (session *Session) Run() error {
 		}
 
 		if err := session.dispatch(data); err != nil {
-			log.Warnf("con[%d], dispatch error %s", session.connID, err.Error())
+			log.Warnf("con[%d], dispatch error %s", session.fc.ConnID(), err.Error())
 
 			if err == driver.ErrBadConn {
 				// TODO handle error
@@ -115,34 +96,32 @@ func (session *Session) Run() error {
 	return nil
 }
 
-func (session *Session) Cap() uint32 {
-	return session.capability
-}
+func (session *Session) Close() error {
+	if session.closed {
+		return nil
+	}
 
-func (session *Session) SetCap(c uint32) {
-	session.capability = c
-}
+	session.fc.Close()
 
-func (session *Session) Status() uint16 {
-	return session.status
-}
+	// TODO transaction
+	//	session.rollback()
 
-func (session *Session) Collation() CollationId {
-	return session.collation
-}
+	// TODO stmts
+	// for _, s := range session.stmts {
+	// 	s.Close()
+	// }
 
-func (session *Session) ConnID() uint32 {
-	return session.connID
-}
+	// session.stmts = nil
 
-func (session *Session) DefaultDB() string {
-	return session.db
-}
+	session.closed = true
 
-func (session *Session) Salt() []byte {
-	return session.salt
+	return nil
 }
 
 func (session *Session) ServerName() []byte {
 	return hack.Slice(version.Version)
+}
+
+func (session *Session) Salt() []byte {
+	return session.salt
 }

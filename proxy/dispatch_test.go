@@ -7,7 +7,7 @@ import (
 )
 
 func TestProxy_ComPing(t *testing.T) {
-	conn := newTestProxyConn(t)
+	conn := newRawProxyConn(t)
 
 	if err := conn.WriteCommandPacket(mysql.ComPing); err != nil {
 		t.Fatal(err)
@@ -23,7 +23,7 @@ func TestProxy_ComPing(t *testing.T) {
 }
 
 func TestProxy_ComInitDB(t *testing.T) {
-	conn := newTestProxyConn(t)
+	conn := newRawProxyConn(t)
 
 	if err := conn.WriteCommandPacketStr(mysql.ComInitDB, "gotest"); err != nil {
 		t.Fatal(err)
