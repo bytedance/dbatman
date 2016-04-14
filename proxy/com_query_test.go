@@ -19,7 +19,7 @@ func TestProxy_Query(t *testing.T) {
           	i tinyint,
           	ni tinyint,
           	PRIMARY KEY (id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8`, nil); err != nil {
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8`); err != nil {
 		t.Fatal("create table failed: ", err)
 	}
 
@@ -30,8 +30,7 @@ func TestProxy_Query(t *testing.T) {
 			3.14, 
 			"test1", 
 			255, 
-			-127
-		)`, nil); err != nil {
+			-127)`); err != nil {
 		t.Fatal("insert failed: ", err)
 	} else if id, err := rs.LastInsertId(); err != nil {
 		t.Fatal("insert failed: ", err)
