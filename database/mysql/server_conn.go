@@ -141,9 +141,8 @@ func (mc *MySQLServerConn) SetCollation(id CollationId) {
 
 // Server Side close, we do not need to send any reply
 func (mc *MySQLServerConn) Close() error {
-
 	mc.cleanup()
-	return
+	return nil
 }
 
 /******************************************************************************
