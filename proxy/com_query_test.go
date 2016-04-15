@@ -90,3 +90,17 @@ func TestProxy_QueryFailed(t *testing.T) {
 		t.Fatal("syntax error sql expect error, but go ok")
 	}
 }
+
+func TestProxy_Use(t *testing.T) {
+
+	db := newSqlDB(testProxyDSN)
+	defer db.Close()
+
+	if _, err := db.Exec("use dbatman_test"); err != nil {
+		t.Fatalf("use dbatman_test failed: %s", err.Error())
+	}
+
+	if _, err := db.Exec("use mysql"); err == nil {
+		t.Fatalf("use mysql for this user expect deny, got pass")
+	}
+}

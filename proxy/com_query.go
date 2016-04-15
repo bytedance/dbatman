@@ -45,7 +45,7 @@ func (c *Session) comQuery(sqlstmt string) error {
 		return c.handleExec(stmt, sqlstmt, false)
 	case *parser.Use:
 		if err := c.useDB(hack.String(stmt.(*parser.Use).DB)); err != nil {
-			return err
+			return c.handleMySQLError(err)
 		} else {
 			return c.fc.WriteOK(nil)
 		}
