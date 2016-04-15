@@ -139,6 +139,13 @@ func (mc *MySQLServerConn) SetCollation(id CollationId) {
 	mc.collation = id
 }
 
+// Server Side close, we do not need to send any reply
+func (mc *MySQLServerConn) Close() error {
+
+	mc.cleanup()
+	return
+}
+
 /******************************************************************************
 *                   Server-Side Initialisation Process                        *
 ******************************************************************************/
