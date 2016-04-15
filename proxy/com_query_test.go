@@ -42,4 +42,28 @@ func TestProxy_Query(t *testing.T) {
 	} else if rows != 1 {
 		t.Fatalf("expect insert 1 rows, got %d", rows)
 	}
+
+	if rs, err := db.Exec(`
+		update go_proxy_test_proxy_conn 
+			set str="abcde", f=3.1415926, e="test2", u=128, i=126
+			where id=1`); err != nil {
+		t.Fatal("update failed: ", errors.ErrorStack(err))
+	} else if rows, err := rs.RowsAffected(); err != nil {
+		t.Fatal("update failed: ", errors.ErrorStack(err))
+	} else if rows != 1 {
+		t.Fatalf("expect update 1 rows, got %d", rows)
+	}
+}
+
+func TestProxy_QueryFailed(t *testing.T) {
+
+	db := newSqlDB(testProxyDSN)
+	defer db.Close()
+
+	if _, err := db.Exec(`
+		update go_proxy_test_proxy_conn 
+			set str="abcde", f=3.1415926, e="test2", u=128, i=255
+			when id=1`); err == nil {
+		t.Fatal("syntax error sql expect error, but go ok")
+	}
 }

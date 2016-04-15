@@ -150,7 +150,7 @@ var MySQLErrName = map[uint16]string{
 	ER_NO_SUCH_TABLE:                                 "Table '%-.192s.%-.192s' doesn't exist",
 	ER_NONEXISTING_TABLE_GRANT:                       "There is no such grant defined for user '%-.48s' on host '%-.64s' on table '%-.192s'",
 	ER_NOT_ALLOWED_COMMAND:                           "The used command is not allowed with this MySQL version",
-	ER_SYNTAX_ERROR:                                  "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use",
+	ER_SYNTAX_ERROR:                                  "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use %s",
 	ER_DELAYED_CANT_CHANGE_LOCK:                      "Delayed insert thread couldn't get requested lock for table %-.192s",
 	ER_TOO_MANY_DELAYED_THREADS:                      "Too many delayed threads in use",
 	ER_ABORTING_CONNECTION:                           "Aborted connection %ld to db: '%-.192s' user: '%-.48s' (%-.64s)",
