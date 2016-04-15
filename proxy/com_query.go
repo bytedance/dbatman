@@ -10,26 +10,19 @@ import (
 	"github.com/ngaut/log"
 )
 
-func (c *Session) comQuery(sqlstmt string) (err error) {
+func (c *Session) comQuery(sqlstmt string) error {
 
-	log.Debugf("query: %s", sqlstmt)
-
-	var stmt parser.IStatement
-	stmt, err = parser.Parse(sqlstmt)
+	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
-		return fmt.Errorf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
+		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
+		return c.handleMySQLError(
+			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
 	}
 
 	switch v := stmt.(type) {
 	case parser.ISelect:
 		return c.handleQuery(v, sqlstmt)
-	case *parser.Insert:
-		return c.handleExec(stmt, sqlstmt, false)
-	case *parser.Update:
-		return c.handleExec(stmt, sqlstmt, false)
-	case *parser.Delete:
-		return c.handleExec(stmt, sqlstmt, false)
-	case *parser.Replace:
+	case *parser.Insert, *parser.Update, *parser.Delete, *parser.Replace:
 		return c.handleExec(stmt, sqlstmt, false)
 	case *parser.Set:
 		return c.handleSet(v, sqlstmt)
@@ -58,7 +51,8 @@ func (c *Session) comQuery(sqlstmt string) (err error) {
 		}
 
 	default:
-		return fmt.Errorf("statement %T[%s] not support now", stmt, sqlstmt)
+		log.Warnf("statement %T[%s] not support now", stmt, sqlstmt)
+		return nil
 	}
 
 	return nil

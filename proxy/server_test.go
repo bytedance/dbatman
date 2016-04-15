@@ -34,7 +34,7 @@ global:
   manage_port: 3308
   max_connections: 10
   log_filename: ./log/dbatman.log
-  log_level: 16
+  log_level: 31
   log_maxsize: 1024
   log_query_min_time: 0
   client_timeout: 1800

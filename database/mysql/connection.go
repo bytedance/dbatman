@@ -11,7 +11,6 @@ package mysql
 import (
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/errors"
-	"github.com/ngaut/log"
 	"net"
 	"strconv"
 	"strings"
@@ -255,7 +254,6 @@ func (mc *MySQLConn) interpolateParams(query string, args []driver.Value) (strin
 }
 
 func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, error) {
-	log.Debugf("Exec Query: %s", query)
 	if mc.netConn == nil {
 		errLog.Print(ErrInvalidConn)
 		return nil, driver.ErrBadConn
