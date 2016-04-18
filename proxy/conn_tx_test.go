@@ -30,6 +30,19 @@ func TestProxy_Tx(t *testing.T) {
 		t.Fatalf("expect 1 rows, got %d", rn)
 	}
 
+	if rs, err := tx.Query("select * from dbatman_test_tx"); err != nil {
+		t.Fatalf("select in trans failed: %s", err)
+	} else {
+		var row int
+		for rs.Next() {
+			row += 1
+		}
+
+		if row != 1 {
+			t.Fatalf("expect 1 rows after transaction, got %d", row)
+		}
+	}
+
 	if err := tx.Rollback(); err != nil {
 		t.Fatalf("rollback in trans failed: %s", err)
 	}
