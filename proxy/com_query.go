@@ -3,7 +3,6 @@ package proxy
 import (
 	"fmt"
 	. "github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
@@ -29,11 +28,9 @@ func (c *Session) comQuery(sqlstmt string) error {
 	case *parser.Begin, *parser.StartTrans:
 		return c.handleBegin()
 	case *parser.Commit:
-		// return c.handleCommit()
-		return nil
+		return c.handleCommit()
 	case *parser.Rollback:
-		// return c.handleRollback()
-		return nil
+		return c.handleRollback()
 	case parser.IShow:
 		return c.handleShow(sqlstmt, v)
 	case parser.IDDLStatement:
@@ -106,14 +103,7 @@ func (session *Session) checkDB(stmt parser.IStatement) error {
 
 func (session *Session) exec(sqlstmt string, isread bool) error {
 
-	db, err := session.cluster.DB(isread)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	var rs sql.Result
-	rs, err = db.Exec(sqlstmt)
-
+	rs, err := session.Executor(isread).Exec(sqlstmt)
 	if err != nil {
 		return errors.Trace(session.handleMySQLError(err))
 	}

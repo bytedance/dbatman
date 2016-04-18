@@ -1347,9 +1347,14 @@ func TestRowsImplicitClose(t *testing.T) {
 	db := newTestDB(t, "people")
 	defer closeDB(t, db)
 
-	rows, err := db.Query("SELECT|people|age,name|")
+	dbrows, err := db.Query("SELECT|people|age,name|")
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	rows, ok := dbrows.(*sqlrows)
+	if !ok {
+		t.Fatalf("rows type is not sqlrows")
 	}
 
 	want, fail := 2, errors.New("fail")
@@ -1983,7 +1988,7 @@ func TestConnectionLeak(t *testing.T) {
 		if err := r.Err(); err != nil {
 			t.Fatal(err)
 		}
-		rows[ii] = r
+		rows[ii] = r.(*sqlrows)
 	}
 	// Now we have defaultMaxIdleConns busy connections. Open
 	// a new one, but wait until the busy connections are released

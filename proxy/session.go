@@ -19,6 +19,7 @@ import (
 	"github.com/bytedance/dbatman/database/cluster"
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/ngaut/log"
 	"net"
@@ -74,7 +75,7 @@ func (session *Session) Run() error {
 		}
 
 		if err := session.dispatch(data); err != nil {
-			log.Warnf("con[%d], dispatch error %s", session.fc.ConnID(), err.Error())
+			log.Warnf("con[%d], dispatch error %s", session.fc.ConnID(), errors.ErrorStack(err))
 
 			if err == driver.ErrBadConn {
 				// TODO handle error
