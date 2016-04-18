@@ -39,7 +39,7 @@ func (session *Session) buildSimpleShowResultset(values []interface{}, name stri
 
 	r := new(SimpleRows)
 
-	r.Columns = []*MySQLField{
+	r.Cols = []*MySQLField{
 		&MySQLField{
 			Name:      hack.Slice(name),
 			Charset:   uint16(session.fc.Collation()),

@@ -1714,6 +1714,7 @@ type Rows interface {
 	Scan(dest ...interface{}) error
 	Close() error
 	Err() error
+	Columns() ([]string, error)
 }
 
 type sqlrows struct {

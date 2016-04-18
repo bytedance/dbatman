@@ -9,9 +9,9 @@ import (
 
 // SimpleRows implements sql.Row
 type SimpleRows struct {
-	Columns []*MySQLField
-	Rows    []driver.RawPacket
-	rowsi   int
+	Cols  []*MySQLField
+	Rows  []driver.RawPacket
+	rowsi int
 }
 
 //	Next() bool
@@ -37,17 +37,21 @@ func (rs *SimpleRows) NextRowPacket() (driver.RawPacket, error) {
 }
 
 func (rs *SimpleRows) ColumnPackets() ([]driver.RawPacket, error) {
-	pkgs := make([]driver.RawPacket, len(rs.Columns))
+	pkgs := make([]driver.RawPacket, len(rs.Cols))
 
-	for i, column := range rs.Columns {
+	for i, column := range rs.Cols {
 		pkgs[i] = driver.RawPacket(column.Dump())
 	}
 
 	return pkgs, nil
 }
 
+func (rs *SimpleRows) Columns() ([]string, error) {
+	return nil, errors.New("SimpleRows does not support Columns operations")
+}
+
 func (rs *SimpleRows) Scan(dest ...interface{}) error {
-	return errors.New("SimpleRows does not support scan operations")
+	return errors.New("SimpleRows does not support Scan operations")
 }
 
 func (rs *SimpleRows) Close() error {
