@@ -715,7 +715,7 @@ func TestIssue6651(t *testing.T) {
 	rowsCursorNextHook = nil
 
 	want = "error in rows.Close"
-	rowsCloseHook = func(rows *Rows, err *error) {
+	rowsCloseHook = func(rows *sqlrows, err *error) {
 		*err = fmt.Errorf(want)
 	}
 	defer func() { rowsCloseHook = nil }()
@@ -1922,7 +1922,7 @@ func TestIssue6081(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rowsCloseHook = func(rows *Rows, err *error) {
+	rowsCloseHook = func(rows *sqlrows, err *error) {
 		*err = driver.ErrBadConn
 	}
 	defer func() { rowsCloseHook = nil }()
@@ -1969,7 +1969,7 @@ func TestConnectionLeak(t *testing.T) {
 	db := newTestDB(t, "people")
 	defer closeDB(t, db)
 	// Start by opening defaultMaxIdleConns
-	rows := make([]*Rows, defaultMaxIdleConns)
+	rows := make([]*sqlrows, defaultMaxIdleConns)
 	// We need to SetMaxOpenConns > MaxIdleConns, so the DB can open
 	// a new connection and we can fill the idle queue with the released
 	// connections.

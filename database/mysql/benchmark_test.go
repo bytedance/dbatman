@@ -33,7 +33,7 @@ func (tb *TB) checkDB(db *sql.DB, err error) *sql.DB {
 	return db
 }
 
-func (tb *TB) checkRows(rows *sql.Rows, err error) *sql.Rows {
+func (tb *TB) checkRows(rows sql.Rows, err error) sql.Rows {
 	tb.check(err)
 	return rows
 }

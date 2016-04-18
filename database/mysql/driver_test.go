@@ -163,7 +163,7 @@ func (dbt *DBTest) mustExec(query string, args ...interface{}) (res sql.Result) 
 	return res
 }
 
-func (dbt *DBTest) mustQuery(query string, args ...interface{}) (rows *sql.Rows) {
+func (dbt *DBTest) mustQuery(query string, args ...interface{}) (rows sql.Rows) {
 	rows, err := dbt.db.Query(query, args...)
 	if err != nil {
 		dbt.fail("query", query, err)
@@ -323,7 +323,7 @@ func TestInt(t *testing.T) {
 		types := [5]string{"TINYINT", "SMALLINT", "MEDIUMINT", "INT", "BIGINT"}
 		in := int64(42)
 		var out int64
-		var rows *sql.Rows
+		var rows sql.Rows
 
 		// SIGNED
 		for _, v := range types {
@@ -370,7 +370,7 @@ func TestFloat(t *testing.T) {
 		types := [2]string{"FLOAT", "DOUBLE"}
 		in := float32(42.23)
 		var out float32
-		var rows *sql.Rows
+		var rows sql.Rows
 		for _, v := range types {
 			dbt.mustExec("CREATE TABLE test (value " + v + ")")
 			dbt.mustExec("INSERT INTO test VALUES (?)", in)
@@ -393,7 +393,7 @@ func TestString(t *testing.T) {
 		types := [6]string{"CHAR(255)", "VARCHAR(255)", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT"}
 		in := "κόσμε üöäßñóùéàâÿœ'îë Árvíztűrő いろはにほへとちりぬるを イロハニホヘト דג סקרן чащах  น่าฟังเอย"
 		var out string
-		var rows *sql.Rows
+		var rows sql.Rows
 
 		for _, v := range types {
 			dbt.mustExec("CREATE TABLE test (value " + v + ") CHARACTER SET utf8")
@@ -486,7 +486,7 @@ func (t timeTest) genQuery(dbtype string, mode timeMode) string {
 }
 
 func (t timeTest) run(dbt *DBTest, dbtype, tlayout string, mode timeMode) {
-	var rows *sql.Rows
+	var rows sql.Rows
 	query := t.genQuery(dbtype, mode)
 	switch mode {
 	case binaryString:
@@ -618,7 +618,7 @@ func TestDateTime(t *testing.T) {
 		runTests(t, testdsn, func(dbt *DBTest) {
 			microsecsSupported := false
 			zeroDateSupported := false
-			var rows *sql.Rows
+			var rows sql.Rows
 			var err error
 			rows, err = dbt.db.Query(`SELECT cast("00:00:00.1" as TIME(1)) = "00:00:00.1"`)
 			if err == nil {
@@ -924,7 +924,7 @@ func TestLongData(t *testing.T) {
 
 		in := strings.Repeat(`a`, maxAllowedPacketSize+1)
 		var out string
-		var rows *sql.Rows
+		var rows sql.Rows
 
 		// Long text data
 		const nonDataQueryLen = 28 // length query w/o value

@@ -105,7 +105,7 @@ func (session *Session) IsAutoCommit() bool {
 	return session.fc.Status()&uint16(StatusInAutocommit) > 0
 }
 
-func (session *Session) WriteRows(rs *sql.Rows) error {
+func (session *Session) WriteRows(rs sql.Rows) error {
 	var cols []driver.RawPacket
 	var err error
 	cols, err = rs.ColumnPackets()
@@ -131,24 +131,25 @@ func (session *Session) WriteRows(rs *sql.Rows) error {
 
 	// TODO Write a ok packet
 	if err = session.fc.WriteEOF(); err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	for {
 		packet, err := rs.NextRowPacket()
 
 		// Handle Error
-		if err != nil {
-			err = errors.Real(err)
-			if err == io.EOF {
+		rerr := errors.Real(err)
+
+		if rerr != nil {
+			if rerr == io.EOF {
 				return session.fc.WriteEOF()
 			} else {
-				return session.handleMySQLError(err)
+				return session.handleMySQLError(rerr)
 			}
 		}
 
 		if err := session.fc.WritePacket(packet); err != nil {
-			return err
+			return errors.Trace(err)
 		}
 	}
 

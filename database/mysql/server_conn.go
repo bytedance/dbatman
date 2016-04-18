@@ -135,6 +135,10 @@ func (mc *MySQLServerConn) ConnID() uint32 {
 	return mc.connID
 }
 
+func (mc *MySQLServerConn) Collation() CollationId {
+	return mc.collation
+}
+
 func (mc *MySQLServerConn) SetCollation(id CollationId) {
 	mc.collation = id
 }

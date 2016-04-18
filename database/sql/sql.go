@@ -991,8 +991,8 @@ func (db *DB) exec(query string, args []interface{}, strategy connReuseStrategy)
 
 // Query executes a query that returns rows, typically a SELECT.
 // The args are for any placeholder parameters in the query.
-func (db *DB) Query(query string, args ...interface{}) (*Rows, error) {
-	var rows *Rows
+func (db *DB) Query(query string, args ...interface{}) (*sqlrows, error) {
+	var rows *sqlrows
 	var err error
 	for i := 0; i < maxBadConnRetries; i++ {
 		rows, err = db.query(query, args, cachedOrNewConn)
@@ -1006,7 +1006,7 @@ func (db *DB) Query(query string, args ...interface{}) (*Rows, error) {
 	return rows, err
 }
 
-func (db *DB) query(query string, args []interface{}, strategy connReuseStrategy) (*Rows, error) {
+func (db *DB) query(query string, args []interface{}, strategy connReuseStrategy) (*sqlrows, error) {
 	ci, err := db.conn(strategy)
 	if err != nil {
 		return nil, err
@@ -1017,7 +1017,7 @@ func (db *DB) query(query string, args []interface{}, strategy connReuseStrategy
 
 // queryConn executes a query on the given connection.
 // The connection gets released by the releaseConn function.
-func (db *DB) queryConn(dc *driverConn, releaseConn func(error), query string, args []interface{}) (*Rows, error) {
+func (db *DB) queryConn(dc *driverConn, releaseConn func(error), query string, args []interface{}) (*sqlrows, error) {
 	if queryer, ok := dc.ci.(driver.Queryer); ok {
 		dargs, err := driverArgs(nil, args)
 		if err != nil {
@@ -1034,7 +1034,7 @@ func (db *DB) queryConn(dc *driverConn, releaseConn func(error), query string, a
 			}
 			// Note: ownership of dc passes to the *Rows, to be freed
 			// with releaseConn.
-			rows := &Rows{
+			rows := &sqlrows{
 				dc:          dc,
 				releaseConn: releaseConn,
 				rowsi:       rowsi,
@@ -1063,7 +1063,7 @@ func (db *DB) queryConn(dc *driverConn, releaseConn func(error), query string, a
 
 	// Note: ownership of ci passes to the *Rows, to be freed
 	// with releaseConn.
-	rows := &Rows{
+	rows := &sqlrows{
 		dc:          dc,
 		releaseConn: releaseConn,
 		rowsi:       rowsi,
@@ -1076,8 +1076,8 @@ func (db *DB) queryConn(dc *driverConn, releaseConn func(error), query string, a
 // QueryRow always return a non-nil value. Errors are deferred until
 // Row's Scan method is called.
 func (db *DB) QueryRow(query string, args ...interface{}) *Row {
-	rows, err := db.Query(query, args...)
-	return &Row{rows: rows, err: err}
+	srows, err := db.Query(query, args...)
+	return &Row{rows: srows, err: err}
 }
 
 // Begin starts a transaction. The isolation level is dependent on
@@ -1381,7 +1381,7 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 }
 
 // Query executes a query that returns rows, typically a SELECT.
-func (tx *Tx) Query(query string, args ...interface{}) (*Rows, error) {
+func (tx *Tx) Query(query string, args ...interface{}) (*sqlrows, error) {
 	dc, err := tx.grabConn()
 	if err != nil {
 		return nil, err
@@ -1571,7 +1571,7 @@ func (s *Stmt) connStmt() (ci *driverConn, releaseConn func(error), si driver.St
 
 // Query executes a prepared query statement with the given arguments
 // and returns the query results as a *Rows.
-func (s *Stmt) Query(args ...interface{}) (*Rows, error) {
+func (s *Stmt) Query(args ...interface{}) (*sqlrows, error) {
 	s.closemu.RLock()
 	defer s.closemu.RUnlock()
 
@@ -1589,7 +1589,7 @@ func (s *Stmt) Query(args ...interface{}) (*Rows, error) {
 		if err == nil {
 			// Note: ownership of ci passes to the *Rows, to be freed
 			// with releaseConn.
-			rows := &Rows{
+			rows := &sqlrows{
 				dc:    dc,
 				rowsi: rowsi,
 				// releaseConn set below
@@ -1707,7 +1707,17 @@ func (s *Stmt) finalClose() error {
 //     }
 //     err = rows.Err() // get any error encountered during iteration
 //     ...
-type Rows struct {
+type Rows interface {
+	Next() bool
+	NextRowPacket() (driver.RawPacket, error)
+	ColumnPackets() ([]driver.RawPacket, error)
+	Scan(dest ...interface{}) error
+	Close() error
+	Err() error
+	Columns() ([]string, error)
+}
+
+type sqlrows struct {
 	dc          *driverConn // owned; must call releaseConn when closed to release
 	releaseConn func(error)
 	rowsi       driver.Rows
@@ -1725,7 +1735,7 @@ type Rows struct {
 // the two cases.
 //
 // Every call to Scan, even the first one, must be preceded by a call to Next.
-func (rs *Rows) Next() bool {
+func (rs *sqlrows) Next() bool {
 	if rs.closed {
 		return false
 	}
@@ -1740,7 +1750,7 @@ func (rs *Rows) Next() bool {
 	return true
 }
 
-func (rs *Rows) NextRowPacket() (driver.RawPacket, error) {
+func (rs *sqlrows) NextRowPacket() (driver.RawPacket, error) {
 	if rs.closed {
 		return nil, errors.New("sql: Rows are closed")
 	}
@@ -1757,7 +1767,7 @@ func (rs *Rows) NextRowPacket() (driver.RawPacket, error) {
 
 // Err returns the error, if any, that was encountered during iteration.
 // Err may be called after an explicit or implicit Close.
-func (rs *Rows) Err() error {
+func (rs *sqlrows) Err() error {
 	if rs.lasterr == io.EOF {
 		return nil
 	}
@@ -1767,7 +1777,7 @@ func (rs *Rows) Err() error {
 // Columns returns the column names.
 // Columns returns an error if the rows are closed, or if the rows
 // are from QueryRow and there was a deferred error.
-func (rs *Rows) Columns() ([]string, error) {
+func (rs *sqlrows) Columns() ([]string, error) {
 	if rs.closed {
 		return nil, errors.New("sql: Rows are closed")
 	}
@@ -1777,7 +1787,7 @@ func (rs *Rows) Columns() ([]string, error) {
 	return rs.rowsi.Columns(), nil
 }
 
-func (rs *Rows) ColumnPackets() ([]driver.RawPacket, error) {
+func (rs *sqlrows) ColumnPackets() ([]driver.RawPacket, error) {
 	if rs.closed {
 		return nil, errors.New("sql: Rows are closed")
 	}
@@ -1801,7 +1811,7 @@ func (rs *Rows) ColumnPackets() ([]driver.RawPacket, error) {
 // If an argument has type *interface{}, Scan copies the value
 // provided by the underlying driver without conversion. If the value
 // is of type []byte, a copy is made and the caller owns the result.
-func (rs *Rows) Scan(dest ...interface{}) error {
+func (rs *sqlrows) Scan(dest ...interface{}) error {
 	if rs.closed {
 		return errors.New("sql: Rows are closed")
 	}
@@ -1820,12 +1830,12 @@ func (rs *Rows) Scan(dest ...interface{}) error {
 	return nil
 }
 
-var rowsCloseHook func(*Rows, *error)
+var rowsCloseHook func(*sqlrows, *error)
 
 // Close closes the Rows, preventing further enumeration. If Next returns
 // false, the Rows are closed automatically and it will suffice to check the
 // result of Err. Close is idempotent and does not affect the result of Err.
-func (rs *Rows) Close() error {
+func (rs *sqlrows) Close() error {
 	if rs.closed {
 		return nil
 	}
@@ -1845,7 +1855,7 @@ func (rs *Rows) Close() error {
 type Row struct {
 	// One of these two will be non-nil:
 	err  error // deferred error for easy chaining
-	rows *Rows
+	rows *sqlrows
 }
 
 // Scan copies the columns from the matched row into the values
