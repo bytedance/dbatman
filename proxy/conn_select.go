@@ -31,7 +31,7 @@ func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) erro
 		return fmt.Errorf("no available backend db")
 	}
 
-	var rs *sql.Rows
+	var rs sql.Rows
 	rs, err = db.Query(sqlstmt)
 
 	// TODO here should handler error
