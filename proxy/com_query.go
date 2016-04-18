@@ -26,9 +26,8 @@ func (c *Session) comQuery(sqlstmt string) error {
 		return c.handleExec(stmt, sqlstmt, false)
 	case *parser.Set:
 		return c.handleSet(v, sqlstmt)
-	case *parser.Begin:
-		// return c.handleBegin()
-		return nil
+	case *parser.Begin, *parser.StartTrans:
+		return c.handleBegin()
 	case *parser.Commit:
 		// return c.handleCommit()
 		return nil
@@ -49,7 +48,6 @@ func (c *Session) comQuery(sqlstmt string) error {
 		} else {
 			return c.fc.WriteOK(nil)
 		}
-
 	default:
 		log.Warnf("statement %T[%s] not support now", stmt, sqlstmt)
 		return nil

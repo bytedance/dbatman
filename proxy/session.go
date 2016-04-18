@@ -32,10 +32,10 @@ type Session struct {
 	salt []byte
 
 	cluster *cluster.Cluster
+	bc      *SqlConn
 	fc      *MySQLServerConn
 
 	closed bool
-	db     string
 
 	// lastcmd uint8
 }
@@ -56,10 +56,6 @@ func (s *Server) newSession(conn net.Conn) *Session {
 func (session *Session) Handshake() error {
 
 	if err := session.fc.Handshake(); err != nil {
-		return err
-	}
-
-	if err := session.useDB(session.user.DBName); err != nil {
 		return err
 	}
 

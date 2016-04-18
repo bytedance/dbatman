@@ -1,23 +1,33 @@
 package proxy
 
-/*
 import (
-	"github.com/bytedance/dbatman/database/mysql"
+	. "github.com/bytedance/dbatman/database/mysql"
 )
 
 func (c *Session) isInTransaction() bool {
-	return c.status&mysql.SERVER_STATUS_IN_TRANS > 0
+	return c.fc.Status()&uint16(StatusInTrans) > 0
 }
 
 func (c *Session) isAutoCommit() bool {
-	return c.status&SERVER_STATUS_AUTOCOMMIT > 0
+	return c.fc.Status()&uint16(StatusInAutocommit) > 0
 }
 
 func (c *Session) handleBegin() error {
-	c.status |= SERVER_STATUS_IN_TRANS
-	return c.writeOK(nil)
+
+	// We already in transaction
+	if c.isInTransaction() {
+		return c.fc.WriteOK(nil)
+	}
+
+	c.fc.XORStatus(uint16(StatusInTrans))
+	if err := c.bc.begin(); err != nil {
+		return err
+	}
+
+	return c.fc.WriteOK(nil)
 }
 
+/*
 func (c *Session) handleCommit() (err error) {
 	if err := c.commit(); err != nil {
 		return err
