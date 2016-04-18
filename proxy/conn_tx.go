@@ -1,73 +1,65 @@
 package proxy
 
-/*
 import (
-	"github.com/bytedance/dbatman/database/mysql"
+	. "github.com/bytedance/dbatman/database/mysql"
 )
 
 func (c *Session) isInTransaction() bool {
-	return c.status&mysql.SERVER_STATUS_IN_TRANS > 0
+	return c.fc.Status()&uint16(StatusInTrans) > 0
 }
 
 func (c *Session) isAutoCommit() bool {
-	return c.status&SERVER_STATUS_AUTOCOMMIT > 0
+	return c.fc.Status()&uint16(StatusInAutocommit) > 0
 }
 
 func (c *Session) handleBegin() error {
-	c.status |= SERVER_STATUS_IN_TRANS
-	return c.writeOK(nil)
+
+	// We already in transaction
+	if c.isInTransaction() {
+		return c.fc.WriteOK(nil)
+	}
+
+	c.fc.XORStatus(uint16(StatusInTrans))
+	if err := c.bc.begin(); err != nil {
+		return c.handleMySQLError(err)
+	}
+
+	return c.fc.WriteOK(nil)
 }
 
 func (c *Session) handleCommit() (err error) {
-	if err := c.commit(); err != nil {
-		return err
+
+	if !c.isInTransaction() {
+		return c.fc.WriteOK(nil)
+	}
+
+	defer func() {
+		if c.isInTransaction() {
+			c.fc.AndStatus(uint16(^StatusInTrans))
+		}
+	}()
+
+	if err := c.bc.commit(); err != nil {
+		return c.handleMySQLError(err)
 	} else {
-		return c.writeOK(nil)
+		return c.fc.WriteOK(nil)
 	}
 }
 
 func (c *Session) handleRollback() (err error) {
-	if err := c.rollback(); err != nil {
-		return err
+	if !c.isInTransaction() {
+		return c.fc.WriteOK(nil)
 	}
 
-	return c.writeOK(nil)
-}
-
-func (c *Session) commit() (err error) {
-	c.status &= ^SERVER_STATUS_IN_TRANS
-
-	for _, co := range c.txConns {
-		if e := co.Commit(); e != nil {
-			err = e
+	defer func() {
+		if c.isInTransaction() {
+			c.fc.AndStatus(uint16(^StatusInTrans))
 		}
-		co.Close()
+	}()
+
+	if err := c.bc.rollback(); err != nil {
+		return c.handleMySQLError(err)
 	}
 
-	c.txConns = map[*Node]*backend.SqlConn{}
-
-	return
+	return c.fc.WriteOK(nil)
 }
-
-func (c *Session) rollback() (err error) {
-	c.status &= ^SERVER_STATUS_IN_TRANS
-
-	for _, co := range c.txConns {
-		if e := co.Rollback(); e != nil {
-			err = e
-		}
-		co.Close()
-	}
-
-	c.txConns = map[*Node]*backend.SqlConn{}
-
-	return
-}
-
-//if status is in_trans, need
-//else if status is not autocommit, need
-//else no need
-func (c *Session) needBeginTx() bool {
-	return c.isInTransaction() || !c.isAutoCommit()
-}
-*/

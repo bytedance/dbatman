@@ -98,6 +98,24 @@ func (session *Session) useDB(db string) error {
 		return err
 	}
 
+	if session.bc == nil {
+		master, err := session.cluster.Master()
+		if err != nil {
+			return NewDefaultError(ER_BAD_DB_ERROR, db)
+		}
+		slave, err := session.cluster.Slave()
+		if err != nil {
+			slave = master
+		}
+		session.bc = &SqlConn{
+			master:  master,
+			slave:   slave,
+			stmt:    nil,
+			tx:      nil,
+			session: session,
+		}
+	}
+
 	return nil
 }
 

@@ -991,7 +991,7 @@ func (db *DB) exec(query string, args []interface{}, strategy connReuseStrategy)
 
 // Query executes a query that returns rows, typically a SELECT.
 // The args are for any placeholder parameters in the query.
-func (db *DB) Query(query string, args ...interface{}) (*sqlrows, error) {
+func (db *DB) Query(query string, args ...interface{}) (Rows, error) {
 	var rows *sqlrows
 	var err error
 	for i := 0; i < maxBadConnRetries; i++ {
@@ -1076,8 +1076,8 @@ func (db *DB) queryConn(dc *driverConn, releaseConn func(error), query string, a
 // QueryRow always return a non-nil value. Errors are deferred until
 // Row's Scan method is called.
 func (db *DB) QueryRow(query string, args ...interface{}) *Row {
-	srows, err := db.Query(query, args...)
-	return &Row{rows: srows, err: err}
+	rows, err := db.Query(query, args...)
+	return &Row{rows: rows, err: err}
 }
 
 // Begin starts a transaction. The isolation level is dependent on
@@ -1381,7 +1381,7 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 }
 
 // Query executes a query that returns rows, typically a SELECT.
-func (tx *Tx) Query(query string, args ...interface{}) (*sqlrows, error) {
+func (tx *Tx) Query(query string, args ...interface{}) (Rows, error) {
 	dc, err := tx.grabConn()
 	if err != nil {
 		return nil, err
@@ -1855,7 +1855,7 @@ func (rs *sqlrows) Close() error {
 type Row struct {
 	// One of these two will be non-nil:
 	err  error // deferred error for easy chaining
-	rows *sqlrows
+	rows Rows
 }
 
 // Scan copies the columns from the matched row into the values
