@@ -33,6 +33,12 @@ func (c *Session) handleCommit() (err error) {
 		return c.fc.WriteOK(nil)
 	}
 
+	defer func() {
+		if c.isInTransaction() {
+			c.fc.AndStatus(uint16(^StatusInTrans))
+		}
+	}()
+
 	if err := c.bc.commit(); err != nil {
 		return c.handleMySQLError(err)
 	} else {
@@ -44,6 +50,12 @@ func (c *Session) handleRollback() (err error) {
 	if !c.isInTransaction() {
 		return c.fc.WriteOK(nil)
 	}
+
+	defer func() {
+		if c.isInTransaction() {
+			c.fc.AndStatus(uint16(^StatusInTrans))
+		}
+	}()
 
 	if err := c.bc.rollback(); err != nil {
 		return c.handleMySQLError(err)

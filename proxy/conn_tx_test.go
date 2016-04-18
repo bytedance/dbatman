@@ -47,11 +47,6 @@ func TestProxy_Tx(t *testing.T) {
 		t.Fatalf("rollback in trans failed: %s", err)
 	}
 
-	db.Close()
-
-	db = newSqlDB(testProxyDSN)
-	defer db.Close()
-
 	if rs, err := db.Query("select * from dbatman_test_tx"); err != nil {
 		t.Fatalf("select after trans failed: %s", err)
 	} else {
