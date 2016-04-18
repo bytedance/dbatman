@@ -20,6 +20,7 @@ func (session *Session) handleShow(sqlstmt string, stmt parser.IShow) error {
 	if err != nil {
 		return session.handleMySQLError(err)
 	}
+
 	return nil
 }
 

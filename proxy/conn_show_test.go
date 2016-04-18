@@ -21,4 +21,7 @@ func TestProxy_Show(t *testing.T) {
 		}
 	}
 
+	if _, err := db.Query("show tables"); err != nil {
+		t.Fatalf("show tables failed: %s", err.Error())
+	}
 }
