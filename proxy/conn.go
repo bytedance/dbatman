@@ -6,9 +6,6 @@ import (
 	juju "github.com/bytedance/dbatman/errors"
 )
 
-type SqlQueryer interface {
-}
-
 // Wrap the connection
 type SqlConn struct {
 	master *sql.DB
@@ -38,6 +35,10 @@ func (bc *SqlConn) commit() error {
 		return juju.Trace(errors.New("unexpect commit"))
 	}
 
+	defer func() {
+		bc.tx = nil
+	}()
+
 	if err := bc.tx.Commit(); err != nil {
 		return juju.Trace(err)
 	}
@@ -49,6 +50,10 @@ func (bc *SqlConn) rollback() error {
 	if bc.tx == nil {
 		return juju.Trace(errors.New("unexpect rollback"))
 	}
+
+	defer func() {
+		bc.tx = nil
+	}()
 
 	if err := bc.tx.Rollback(); err != nil {
 		return juju.Trace(err)
