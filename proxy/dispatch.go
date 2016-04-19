@@ -54,24 +54,18 @@ func (session *Session) dispatch(data []byte) error {
 		// TODO
 		return nil
 	case ComStmtPrepare:
-		// TODO
-		return nil
-		// return session.handleComStmtPrepare(hack.String(data))
+		return session.handleComStmtPrepare(hack.String(data))
 	case ComStmtExecute:
 		// TODO
-		return nil
 		// return session.handleComStmtExecute(data)
 	case ComStmtClose:
 		// TODO
-		return nil
 		//return session.handleComStmtClose(data)
 	case ComStmtSendLongData:
 		// TODO
-		return nil
 		//return session.handleComStmtSendLongData(data)
 	case ComStmtReset:
 		// TODO
-		return nil
 		// return session.handleComStmtReset(data)
 	default:
 		msg := fmt.Sprintf("command %d not supported now", cmd)

@@ -799,23 +799,23 @@ func (stmt *mysqlStmt) readPrepareResultPacket() (uint16, error) {
 		stmt.id = binary.LittleEndian.Uint32(data[1:5])
 
 		// Column count [16 bit uint]
-		columnCount := binary.LittleEndian.Uint16(data[5:7])
+		stmt.columnCount = binary.LittleEndian.Uint16(data[5:7])
 
 		// Param count [16 bit uint]
-		stmt.paramCount = int(binary.LittleEndian.Uint16(data[7:9]))
+		stmt.paramCount = binary.LittleEndian.Uint16(data[7:9])
 
 		// Reserved [8 bit]
 
 		// Warning count [16 bit uint]
 		if !stmt.mc.strict {
-			return columnCount, nil
+			return stmt.columnCount, nil
 		}
 
 		// Check for warnings count > 0, only available in MySQL > 4.1
 		if len(data) >= 12 && binary.LittleEndian.Uint16(data[10:12]) > 0 {
-			return columnCount, stmt.mc.getWarnings()
+			return stmt.columnCount, stmt.mc.getWarnings()
 		}
-		return columnCount, nil
+		return stmt.columnCount, nil
 	}
 	return 0, err
 }
@@ -875,7 +875,7 @@ func (stmt *mysqlStmt) writeCommandLongData(paramID int, arg []byte) error {
 // Execute Prepared Statement
 // http://dev.mysql.com/doc/internals/en/com-stmt-execute.html
 func (stmt *mysqlStmt) writeExecutePacket(args []driver.Value) error {
-	if len(args) != stmt.paramCount {
+	if len(args) != int(stmt.paramCount) {
 		return fmt.Errorf(
 			"argument count mismatch (got: %d; has: %d)",
 			len(args),
