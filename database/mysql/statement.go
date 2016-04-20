@@ -130,6 +130,28 @@ func (stmt *mysqlStmt) Query(args []driver.Value) (driver.Rows, error) {
 	return rows, err
 }
 
+func (s *mysqlStmt) Columns() []driver.RawPacket {
+	var ret []driver.RawPacket
+	for _, col := range s.prepareColumns {
+		ret = append(ret, col.Dump())
+	}
+
+	return ret
+}
+
+func (s *mysqlStmt) Params() []driver.RawPacket {
+	var ret []driver.RawPacket
+	for _, col := range s.params {
+		ret = append(ret, col.Dump())
+	}
+
+	return ret
+}
+
+func (s *mysqlStmt) StatementID() uint32 {
+	return s.id
+}
+
 type converter struct{}
 
 func (c converter) ConvertValue(v interface{}) (driver.Value, error) {

@@ -2,6 +2,7 @@ package proxy
 
 import (
 	. "github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
 )
@@ -54,11 +55,8 @@ func (c *Session) handleComStmtPrepare(sqlstmt string) error {
 	// Only a few statements supported by prepare statements
 	// http://dev.mysql.com/worklog/task/?id=2871
 	switch v := stmt.(type) {
-	case parser.ISelect:
-		return c.prepareQuery(v, sqlstmt)
-	case *parser.Insert, *parser.Update, *parser.Delete, *parser.Replace:
-		// return c.prepareExec(stmt, sqlstmt, false)
-		return nil
+	case parser.ISelect, *parser.Insert, *parser.Update, *parser.Delete, *parser.Replace:
+		return c.prepare(v, sqlstmt)
 	case parser.IDDLStatement:
 		// return c.prepareDDL(v, sqlstmt)
 		return nil
@@ -69,8 +67,8 @@ func (c *Session) handleComStmtPrepare(sqlstmt string) error {
 	}
 }
 
-func (session *Session) prepareQuery(istmt parser.IStatement, sqlstmt string) error {
-	if err := session.checkDB(stmt); err != nil {
+func (session *Session) prepare(istmt parser.IStatement, sqlstmt string) error {
+	if err := session.checkDB(istmt); err != nil {
 		log.Debugf("check db error: %s", err.Error())
 		return err
 	}
@@ -91,9 +89,61 @@ func (session *Session) prepareQuery(istmt parser.IStatement, sqlstmt string) er
 		return session.handleMySQLError(err)
 	}
 
-	defer rs.Close()
+	return session.writePrepareResult(stmt)
+}
 
-	return session.WriteRows(rs)
+func (session *Session) writePrepareResult(stmt *sql.Stmt) error {
+
+	colen := len(stmt.Columns)
+	paramlen := len(stmt.Params)
+
+	// Prepare Header
+	header := make([]byte, PacketHeaderLen, 12+PacketHeaderLen)
+
+	// OK Status
+	header = append(header, 0)
+	header = append(header, byte(stmt.ID), byte(stmt.ID>>8), byte(stmt.ID>>16), byte(stmt.ID>>24))
+
+	header = append(header, byte(colen), byte(colen>>8))
+	header = append(header, byte(paramlen), byte(paramlen>>8))
+
+	// reserved 00
+	header = append(header, 0)
+
+	// warning count 00
+	// TODO
+	header = append(header, 0, 0)
+
+	if err := session.fc.WritePacket(header); err != nil {
+		return session.handleMySQLError(err)
+	}
+
+	if paramlen > 0 {
+		for _, p := range stmt.Params {
+			if err := session.fc.WritePacket(p); err != nil {
+				return session.handleMySQLError(err)
+			}
+		}
+
+		if err := session.fc.WriteEOF(); err != nil {
+			return session.handleMySQLError(err)
+		}
+
+	}
+
+	if colen > 0 {
+		for _, c := range stmt.Columns {
+			if err := session.fc.WritePacket(c); err != nil {
+				return session.handleMySQLError(err)
+			}
+		}
+
+		if err := session.fc.WriteEOF(); err != nil {
+			return session.handleMySQLError(err)
+		}
+	}
+
+	return nil
 }
 
 /*

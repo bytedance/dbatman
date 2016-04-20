@@ -931,6 +931,9 @@ func (db *DB) prepare(query string, strategy connReuseStrategy) (*Stmt, error) {
 		query:         query,
 		css:           []connStmt{{dc, si}},
 		lastNumClosed: atomic.LoadUint64(&db.numClosed),
+		Columns:       si.Columns(),
+		Params:        si.Params(),
+		ID:            si.StatementID(),
 	}
 	db.addDep(stmt, stmt)
 	db.putConn(dc, nil)
@@ -1293,7 +1296,10 @@ func (tx *Tx) Prepare(query string) (*Stmt, error) {
 			Locker: dc,
 			si:     si,
 		},
-		query: query,
+		query:   query,
+		Columns: si.Columns(),
+		Params:  si.Params(),
+		ID:      si.StatementID(),
 	}
 	tx.stmts.Lock()
 	tx.stmts.v = append(tx.stmts.v, stmt)
@@ -1430,6 +1436,10 @@ type Stmt struct {
 	// lastNumClosed is copied from db.numClosed when Stmt is created
 	// without tx and closed connections in css are removed.
 	lastNumClosed uint64
+
+	Params  []driver.RawPacket
+	Columns []driver.RawPacket
+	ID      uint32
 }
 
 // Exec executes a prepared statement with the given arguments and

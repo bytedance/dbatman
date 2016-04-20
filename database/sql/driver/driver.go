@@ -143,6 +143,11 @@ type Stmt interface {
 	// will not sanity check Exec or Query argument counts.
 	NumInput() int
 
+	Columns() []RawPacket
+	Params() []RawPacket
+
+	StatementID() uint32
+
 	// Exec executes a query that doesn't return rows, such
 	// as an INSERT or UPDATE.
 	Exec(args []Value) (Result, error)
