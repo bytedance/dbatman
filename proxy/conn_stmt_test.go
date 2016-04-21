@@ -19,9 +19,13 @@ func TestProxy_Stmt(t *testing.T) {
 		t.Fatal("create tx table failed: ", err)
 	}
 
-	_, err := db.Prepare(`insert into dbatman_test_proxy_stmt (id, str, f, e, u, i) values (?, ?, ?, ?, ?, ?)`)
+	stmt, err := db.Prepare(`insert into dbatman_test_proxy_stmt (id, str, f, e, u, i) values (?, ?, ?, ?, ?, ?)`)
 
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := stmt.Exec(1, "a", 3.14, "test1", 255, -127); err != nil {
 		t.Fatal(err)
 	}
 }

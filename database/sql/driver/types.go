@@ -180,6 +180,10 @@ func IsValue(v interface{}) bool {
 	if _, ok := v.(string); ok {
 		return true
 	}
+
+	if _, ok := v.(RawStmtParams); ok {
+		return true
+	}
 	return false
 }
 

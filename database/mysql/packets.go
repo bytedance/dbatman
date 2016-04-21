@@ -875,12 +875,21 @@ func (stmt *mysqlStmt) writeCommandLongData(paramID int, arg []byte) error {
 // Execute Prepared Statement
 // http://dev.mysql.com/doc/internals/en/com-stmt-execute.html
 func (stmt *mysqlStmt) writeExecutePacket(args []driver.Value) error {
-	if len(args) != int(stmt.paramCount) {
-		return fmt.Errorf(
+	raw := false
+	var rawParams []byte
+	if len(args) == 1 {
+		if p, ok := args[0].(driver.RawStmtParams); ok {
+			raw = true
+			rawParams = []byte(p)
+		}
+	}
+
+	if !raw && len(args) != int(stmt.paramCount) {
+		return jujuerror.Trace(fmt.Errorf(
 			"argument count mismatch (got: %d; has: %d)",
 			len(args),
 			stmt.paramCount,
-		)
+		))
 	}
 
 	const minPktLen = 4 + 1 + 4 + 1 + 4
@@ -893,6 +902,8 @@ func (stmt *mysqlStmt) writeExecutePacket(args []driver.Value) error {
 
 	if len(args) == 0 {
 		data = mc.buf.takeBuffer(minPktLen)
+	} else if raw {
+		data = mc.buf.takeBuffer(minPktLen + len(rawParams))
 	} else {
 		data = mc.buf.takeCompleteBuffer()
 	}
@@ -920,7 +931,9 @@ func (stmt *mysqlStmt) writeExecutePacket(args []driver.Value) error {
 	data[12] = 0x00
 	data[13] = 0x00
 
-	if len(args) > 0 {
+	if raw {
+		_ = append(data[:minPktLen], rawParams...)
+	} else if !raw && len(args) > 0 {
 		pos := minPktLen
 
 		var nullMask []byte

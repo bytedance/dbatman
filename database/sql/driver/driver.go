@@ -23,6 +23,7 @@ import "errors"
 type Value interface{}
 
 type RawPacket []byte
+type RawStmtParams []byte
 
 // Driver is the interface that must be implemented by a database
 // driver.

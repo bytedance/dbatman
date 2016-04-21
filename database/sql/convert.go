@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bytedance/dbatman/database/sql/driver"
+	juju "github.com/bytedance/dbatman/errors"
 	"reflect"
 	"strconv"
 )
@@ -27,14 +28,13 @@ func driverArgs(ds *driverStmt, args []interface{}) ([]driver.Value, error) {
 		si = ds.si
 	}
 	cc, ok := si.(driver.ColumnConverter)
-
 	// Normal path, for a driver.Stmt that is not a ColumnConverter.
 	if !ok {
 		for n, arg := range args {
 			var err error
 			dargs[n], err = driver.DefaultParameterConverter.ConvertValue(arg)
 			if err != nil {
-				return nil, fmt.Errorf("sql: converting Exec argument #%d's type: %v", n, err)
+				return nil, juju.Trace(fmt.Errorf("sql: converting Exec argument #%d's type: %v", n, err))
 			}
 		}
 		return dargs, nil
@@ -68,11 +68,11 @@ func driverArgs(ds *driverStmt, args []interface{}) ([]driver.Value, error) {
 		dargs[n], err = cc.ColumnConverter(n).ConvertValue(arg)
 		ds.Unlock()
 		if err != nil {
-			return nil, fmt.Errorf("sql: converting argument #%d's type: %v", n, err)
+			return nil, juju.Trace(fmt.Errorf("sql: converting argument #%d's type: %v", n, err))
 		}
 		if !driver.IsValue(dargs[n]) {
-			return nil, fmt.Errorf("sql: driver ColumnConverter error converted %T to unsupported type %T",
-				arg, dargs[n])
+			return nil, juju.Trace(fmt.Errorf("sql: driver ColumnConverter error converted %T to unsupported type %T",
+				arg, dargs[n]))
 		}
 	}
 

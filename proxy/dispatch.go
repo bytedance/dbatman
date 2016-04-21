@@ -56,8 +56,7 @@ func (session *Session) dispatch(data []byte) error {
 	case ComStmtPrepare:
 		return session.handleComStmtPrepare(hack.String(data))
 	case ComStmtExecute:
-		// TODO
-		// return session.handleComStmtExecute(data)
+		return session.handleComStmtExecute(data)
 	case ComStmtClose:
 		// TODO
 		//return session.handleComStmtClose(data)
@@ -104,7 +103,7 @@ func (session *Session) useDB(db string) error {
 		session.bc = &SqlConn{
 			master:  master,
 			slave:   slave,
-			stmt:    nil,
+			stmts:   make(map[uint32]*sql.Stmt),
 			tx:      nil,
 			session: session,
 		}
@@ -178,11 +177,11 @@ func (session *Session) handleMySQLError(e error) error {
 		return nil
 	case *MySQLWarnings:
 		// TODO process warnings
-		log.Debugf("handle warnings %v", inst)
+		log.Debugf("warnings %v", inst)
 		session.fc.WriteOK(nil)
 		return nil
 	default:
-		log.Errorf("handler default error: %T %v", err, err)
+		log.Warnf("default error: %T %s", err, errors.ErrorStack(e))
 		return err
 	}
 }
