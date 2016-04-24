@@ -1,10 +1,32 @@
 package proxy
 
-/*
 import (
 	"testing"
 )
 
+func TestProxy_Stmt(t *testing.T) {
+	db := newSqlDB(testProxyDSN)
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS dbatman_test_proxy_stmt (
+          id BIGINT(64) UNSIGNED  NOT NULL,
+          str VARCHAR(256),
+          f DOUBLE,
+          e enum("test1", "test2"),
+          u tinyint unsigned,
+          i tinyint,
+          PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8`); err != nil {
+		t.Fatal("create tx table failed: ", err)
+	}
+
+	_, err := db.Prepare(`insert into dbatman_test_proxy_stmt (id, str, f, e, u, i) values (?, ?, ?, ?, ?, ?)`)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+/*
 func TestStmt_DropTable(t *testing.T) {
 	server := newTestServer(t)
 	n := server.nodes["node1"]
@@ -13,14 +35,14 @@ func TestStmt_DropTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	c.UseDB("go_proxy")
-	if _, err := c.Execute(`drop table if exists go_proxy_test_proxy_stmt`); err != nil {
+	if _, err := c.Execute(`drop table if exists dbatman_test_proxy_stmt`); err != nil {
 		t.Fatal(err)
 	}
 	c.Close()
 }
 
 func TestStmt_CreateTable(t *testing.T) {
-	str := `CREATE TABLE IF NOT EXISTS go_proxy_test_proxy_stmt (
+	str := `CREATE TABLE IF NOT EXISTS dbatman_test_proxy_stmt (
           id BIGINT(64) UNSIGNED  NOT NULL,
           str VARCHAR(256),
           f DOUBLE,
@@ -45,7 +67,7 @@ func TestStmt_CreateTable(t *testing.T) {
 }
 
 func TestStmt_Insert(t *testing.T) {
-	str := `insert into go_proxy_test_proxy_stmt (id, str, f, e, u, i) values (?, ?, ?, ?, ?, ?)`
+	str := `insert into dbatman_test_proxy_stmt (id, str, f, e, u, i) values (?, ?, ?, ?, ?, ?)`
 
 	c := newTestDBConn(t)
 	defer c.Close()
@@ -68,7 +90,7 @@ func TestStmt_Insert(t *testing.T) {
 }
 
 func TestStmt_Select(t *testing.T) {
-	str := `select str, f, e from go_proxy_test_proxy_stmt where id = ?`
+	str := `select str, f, e from dbatman_test_proxy_stmt where id = ?`
 
 	c := newTestDBConn(t)
 	defer c.Close()
@@ -120,7 +142,7 @@ func TestStmt_Select(t *testing.T) {
 }
 
 func TestStmt_NULL(t *testing.T) {
-	str := `insert into go_proxy_test_proxy_stmt (id, str, f, e) values (?, ?, ?, ?)`
+	str := `insert into dbatman_test_proxy_stmt (id, str, f, e) values (?, ?, ?, ?)`
 
 	c := newTestDBConn(t)
 	defer c.Close()
@@ -141,7 +163,7 @@ func TestStmt_NULL(t *testing.T) {
 
 	s.Close()
 
-	str = `select * from go_proxy_test_proxy_stmt where id = ?`
+	str = `select * from dbatman_test_proxy_stmt where id = ?`
 	s, err = c.Prepare(str)
 
 	if err != nil {
@@ -180,7 +202,7 @@ func TestStmt_NULL(t *testing.T) {
 }
 
 func TestStmt_Unsigned(t *testing.T) {
-	str := `insert into go_proxy_test_proxy_stmt (id, u) values (?, ?)`
+	str := `insert into dbatman_test_proxy_stmt (id, u) values (?, ?)`
 
 	c := newTestDBConn(t)
 	defer c.Close()
@@ -201,7 +223,7 @@ func TestStmt_Unsigned(t *testing.T) {
 
 	s.Close()
 
-	str = `select u from go_proxy_test_proxy_stmt where id = ?`
+	str = `select u from dbatman_test_proxy_stmt where id = ?`
 
 	s, err = c.Prepare(str)
 	if err != nil {
@@ -222,7 +244,7 @@ func TestStmt_Unsigned(t *testing.T) {
 }
 
 func TestStmt_Signed(t *testing.T) {
-	str := `insert into go_proxy_test_proxy_stmt (id, i) values (?, ?)`
+	str := `insert into dbatman_test_proxy_stmt (id, i) values (?, ?)`
 
 	c := newTestDBConn(t)
 	defer c.Close()
@@ -249,7 +271,7 @@ func TestStmt_Trans(t *testing.T) {
 	c1 := newTestDBConn(t)
 	defer c1.Close()
 
-	if _, err := c1.Execute(`insert into go_proxy_test_proxy_stmt (id, str) values (1002, "abc")`); err != nil {
+	if _, err := c1.Execute(`insert into dbatman_test_proxy_stmt (id, str) values (1002, "abc")`); err != nil {
 		t.Fatal(err)
 	}
 
@@ -258,7 +280,7 @@ func TestStmt_Trans(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	str := `select str from go_proxy_test_proxy_stmt where id = ?`
+	str := `select str from dbatman_test_proxy_stmt where id = ?`
 
 	s, err := c1.Prepare(str)
 	if err != nil {

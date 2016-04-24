@@ -63,6 +63,7 @@ func (bc *SqlConn) rollback() error {
 }
 
 func (session *Session) Executor(isread bool) sql.Executor {
+	// TODO set autocommit
 	if session.isInTransaction() {
 		return session.bc.tx
 	}

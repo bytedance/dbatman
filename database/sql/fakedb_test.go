@@ -124,6 +124,18 @@ type fakeStmt struct {
 	placeholderConverter []driver.ValueConverter // used by INSERT
 }
 
+func (*fakeStmt) Columns() []driver.RawPacket {
+	return nil
+}
+
+func (*fakeStmt) Params() []driver.RawPacket {
+	return nil
+}
+
+func (*fakeStmt) StatementID() uint32 {
+	return 0
+}
+
 var fdriver driver.Driver = &fakeDriver{}
 
 func init() {

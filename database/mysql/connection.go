@@ -120,16 +120,18 @@ func (mc *MySQLConn) Prepare(query string) (driver.Stmt, error) {
 	}
 
 	// Read Result
-	columnCount, err := stmt.readPrepareResultPacket()
+	_, err = stmt.readPrepareResultPacket()
 	if err == nil {
 		if stmt.paramCount > 0 {
-			if err = mc.readUntilEOF(); err != nil {
+			if stmt.params, err = mc.readColumns(int(stmt.paramCount)); err != nil {
 				return nil, err
 			}
 		}
 
-		if columnCount > 0 {
-			err = mc.readUntilEOF()
+		if stmt.columnCount > 0 {
+			if stmt.prepareColumns, err = mc.readColumns(int(stmt.columnCount)); err != nil {
+				return nil, err
+			}
 		}
 	}
 

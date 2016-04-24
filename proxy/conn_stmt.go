@@ -1,13 +1,13 @@
 package proxy
 
-/*
 import (
-	"encoding/binary"
-	"fmt"
 	. "github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/parser"
-	"strconv"
+	"github.com/ngaut/log"
 )
+
+/*
 
 var paramFieldData []byte
 var columnFieldData []byte
@@ -42,59 +42,111 @@ func (s *Stmt) ClearParams() {
 func (s *Stmt) Close() {
 	s.cstmt.Close(true)
 }
+*/
 
 func (c *Session) handleComStmtPrepare(sqlstmt string) error {
-	if c.schema == nil {
-		return NewDefaultError(ER_NO_DB_ERROR)
-	}
-
-	s := new(Stmt)
-
-	var err error
-	s.s, err = parser.Parse(sqlstmt)
+	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
-		return fmt.Errorf(`prepare parse sql "%s" error`, sqlstmt)
+		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
+		return c.handleMySQLError(
+			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
 	}
 
-	s.sqlstmt = sqlstmt
-
-	var co *backend.SqlConn
-	co, err = c.schema.node.getMasterConn()
-	// TODO tablename for select
-	if err != nil {
-		return fmt.Errorf("prepare error %s", err)
+	// Only a few statements supported by prepare statements
+	// http://dev.mysql.com/worklog/task/?id=2871
+	switch v := stmt.(type) {
+	case parser.ISelect, *parser.Insert, *parser.Update, *parser.Delete, *parser.Replace:
+		return c.prepare(v, sqlstmt)
+	case parser.IDDLStatement:
+		// return c.prepareDDL(v, sqlstmt)
+		return nil
+	default:
+		log.Warnf("statement %T[%s] not support prepare ops", stmt, sqlstmt)
+		return c.handleMySQLError(
+			NewDefaultError(ER_UNSUPPORTED_PS))
 	}
+}
 
-	if err = co.UseDB(c.schema.db); err != nil {
-		co.Close()
-		return fmt.Errorf("parepre error %s", err)
-	}
-
-	if t, err := co.Prepare(sqlstmt); err != nil {
-		co.Close()
-		return fmt.Errorf("parepre error %s", err)
-	} else {
-		s.params = t.ParamNum()
-		s.types = make([]byte, 0, s.params*2)
-		s.columns = t.ColumnNum()
-		s.bid = t.ID()
-		s.cstmt = t
-	}
-
-	s.id = c.stmtId
-	c.stmtId++
-
-	if err = c.writePrepare(s); err != nil {
+func (session *Session) prepare(istmt parser.IStatement, sqlstmt string) error {
+	if err := session.checkDB(istmt); err != nil {
+		log.Debugf("check db error: %s", err.Error())
 		return err
 	}
 
-	s.ClearParams()
+	isread := false
 
-	c.stmts[s.id] = s
+	if s, ok := istmt.(parser.ISelect); ok {
+		isread = !s.IsLocked()
+	}
+
+	if session.isInTransaction() || !session.isAutoCommit() {
+		isread = false
+	}
+
+	stmt, err := session.Executor(isread).Prepare(sqlstmt)
+	// TODO here should handler error
+	if err != nil {
+		return session.handleMySQLError(err)
+	}
+
+	return session.writePrepareResult(stmt)
+}
+
+func (session *Session) writePrepareResult(stmt *sql.Stmt) error {
+
+	colen := len(stmt.Columns)
+	paramlen := len(stmt.Params)
+
+	// Prepare Header
+	header := make([]byte, PacketHeaderLen, 12+PacketHeaderLen)
+
+	// OK Status
+	header = append(header, 0)
+	header = append(header, byte(stmt.ID), byte(stmt.ID>>8), byte(stmt.ID>>16), byte(stmt.ID>>24))
+
+	header = append(header, byte(colen), byte(colen>>8))
+	header = append(header, byte(paramlen), byte(paramlen>>8))
+
+	// reserved 00
+	header = append(header, 0)
+
+	// warning count 00
+	// TODO
+	header = append(header, 0, 0)
+
+	if err := session.fc.WritePacket(header); err != nil {
+		return session.handleMySQLError(err)
+	}
+
+	if paramlen > 0 {
+		for _, p := range stmt.Params {
+			if err := session.fc.WritePacket(p); err != nil {
+				return session.handleMySQLError(err)
+			}
+		}
+
+		if err := session.fc.WriteEOF(); err != nil {
+			return session.handleMySQLError(err)
+		}
+
+	}
+
+	if colen > 0 {
+		for _, c := range stmt.Columns {
+			if err := session.fc.WritePacket(c); err != nil {
+				return session.handleMySQLError(err)
+			}
+		}
+
+		if err := session.fc.WriteEOF(); err != nil {
+			return session.handleMySQLError(err)
+		}
+	}
 
 	return nil
 }
 
+/*
 func (c *Session) writePrepare(s *Stmt) error {
 	data := make([]byte, 4, 128)
 

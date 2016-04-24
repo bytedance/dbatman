@@ -16,10 +16,13 @@ import (
 )
 
 type mysqlStmt struct {
-	mc         *MySQLConn
-	id         uint32
-	paramCount int
-	columns    []MySQLField // cached from the first query
+	mc             *MySQLConn
+	id             uint32
+	paramCount     uint16
+	columnCount    uint16
+	params         []MySQLField // cached from the prepare
+	prepareColumns []MySQLField // cached from the prepare
+	columns        []MySQLField // cached from the first query
 }
 
 func (stmt *mysqlStmt) Close() error {
@@ -34,7 +37,7 @@ func (stmt *mysqlStmt) Close() error {
 }
 
 func (stmt *mysqlStmt) NumInput() int {
-	return stmt.paramCount
+	return int(stmt.paramCount)
 }
 
 func (stmt *mysqlStmt) ColumnConverter(idx int) driver.ValueConverter {
@@ -125,6 +128,28 @@ func (stmt *mysqlStmt) Query(args []driver.Value) (driver.Rows, error) {
 	}
 
 	return rows, err
+}
+
+func (s *mysqlStmt) Columns() []driver.RawPacket {
+	var ret []driver.RawPacket
+	for _, col := range s.prepareColumns {
+		ret = append(ret, col.Dump())
+	}
+
+	return ret
+}
+
+func (s *mysqlStmt) Params() []driver.RawPacket {
+	var ret []driver.RawPacket
+	for _, col := range s.params {
+		ret = append(ret, col.Dump())
+	}
+
+	return ret
+}
+
+func (s *mysqlStmt) StatementID() uint32 {
+	return s.id
 }
 
 type converter struct{}
