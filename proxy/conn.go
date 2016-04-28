@@ -10,7 +10,7 @@ import (
 type SqlConn struct {
 	master *sql.DB
 	slave  *sql.DB
-	stmt   *sql.Stmt
+	stmts  map[uint32]*sql.Stmt
 	tx     *sql.Tx
 
 	session *Session
@@ -63,6 +63,7 @@ func (bc *SqlConn) rollback() error {
 }
 
 func (session *Session) Executor(isread bool) sql.Executor {
+
 	// TODO set autocommit
 	if session.isInTransaction() {
 		return session.bc.tx

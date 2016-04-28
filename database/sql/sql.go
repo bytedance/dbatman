@@ -886,7 +886,7 @@ func (db *DB) putConnDBLocked(dc *driverConn, err error) bool {
 // maxBadConnRetries is the number of maximum retries if the driver returns
 // driver.ErrBadConn to signal a broken connection before forcing a new
 // connection to be opened.
-const maxBadConnRetries = 2
+const maxBadConnRetries = 1
 
 // Prepare creates a prepared statement for later queries or executions.
 // Multiple queries or executions may be run concurrently from the
@@ -1440,6 +1440,8 @@ type Stmt struct {
 	Params  []driver.RawPacket
 	Columns []driver.RawPacket
 	ID      uint32
+
+	SQL interface{}
 }
 
 // Exec executes a prepared statement with the given arguments and
@@ -1455,13 +1457,13 @@ func (s *Stmt) Exec(args ...interface{}) (Result, error) {
 			if err == driver.ErrBadConn {
 				continue
 			}
-			return nil, err
+			return nil, juju.Trace(err)
 		}
 
 		res, err = resultFromStatement(driverStmt{dc, si}, args...)
 		releaseConn(err)
 		if err != driver.ErrBadConn {
-			return res, err
+			return res, juju.Trace(err)
 		}
 	}
 	return nil, driver.ErrBadConn
@@ -1476,19 +1478,25 @@ func resultFromStatement(ds driverStmt, args ...interface{}) (Result, error) {
 	// placeholders, so we won't sanity check input here and instead let the
 	// driver deal with errors.
 	if want != -1 && len(args) != want {
-		return nil, fmt.Errorf("sql: expected %d arguments, got %d", want, len(args))
+		if len(args) == 1 {
+			if _, ok := args[0].(driver.RawStmtParams); !ok {
+				return nil, fmt.Errorf("sql: expected %d arguments, got %d", want, len(args))
+			}
+		} else {
+			return nil, fmt.Errorf("sql: expected %d arguments, got %d", want, len(args))
+		}
 	}
 
 	dargs, err := driverArgs(&ds, args)
 	if err != nil {
-		return nil, err
+		return nil, juju.Trace(err)
 	}
 
 	ds.Lock()
 	resi, err := ds.si.Exec(dargs)
 	ds.Unlock()
 	if err != nil {
-		return nil, err
+		return nil, juju.Trace(err)
 	}
 	return driverResult{ds.Locker, resi}, nil
 }

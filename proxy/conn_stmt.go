@@ -1,48 +1,16 @@
 package proxy
 
 import (
+	"encoding/binary"
+	"fmt"
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
+	"strconv"
 )
-
-/*
-
-var paramFieldData []byte
-var columnFieldData []byte
-
-func init() {
-	var p = &Field{Name: []byte("?")}
-	var c = &Field{}
-
-	paramFieldData = p.Dump()
-	columnFieldData = c.Dump()
-}
-
-type Stmt struct {
-	id  uint32
-	bid uint32
-
-	params  int
-	types   []byte
-	columns int
-
-	args []interface{}
-
-	s parser.IStatement
-
-	sqlstmt string
-}
-
-func (s *Stmt) ClearParams() {
-	s.args = make([]interface{}, s.params)
-}
-
-func (s *Stmt) Close() {
-	s.cstmt.Close(true)
-}
-*/
 
 func (c *Session) handleComStmtPrepare(sqlstmt string) error {
 	stmt, err := parser.Parse(sqlstmt)
@@ -88,6 +56,12 @@ func (session *Session) prepare(istmt parser.IStatement, sqlstmt string) error {
 	if err != nil {
 		return session.handleMySQLError(err)
 	}
+
+	//	record the sql
+	stmt.SQL = istmt
+
+	// TODO duplicate
+	session.bc.stmts[stmt.ID] = stmt
 
 	return session.writePrepareResult(stmt)
 }
@@ -146,71 +120,17 @@ func (session *Session) writePrepareResult(stmt *sql.Stmt) error {
 	return nil
 }
 
-/*
-func (c *Session) writePrepare(s *Stmt) error {
-	data := make([]byte, 4, 128)
+func (session *Session) handleComStmtExecute(data []byte) error {
 
-	//status ok
-	data = append(data, 0)
-	//stmt id
-	data = append(data, Uint32ToBytes(s.id)...)
-	//number columns
-	data = append(data, Uint16ToBytes(uint16(s.columns))...)
-	//number params
-	data = append(data, Uint16ToBytes(uint16(s.params))...)
-	//filter [00]
-	data = append(data, 0)
-	//warning count
-	data = append(data, 0, 0)
-
-	if err := c.writePacket(data); err != nil {
-		return err
-	}
-
-	if s.params > 0 {
-		for i := 0; i < s.params; i++ {
-			data = data[0:4]
-			data = append(data, []byte(s.cstmt.ParamDefs[i])...)
-
-			if err := c.writePacket(data); err != nil {
-				return err
-			}
-		}
-
-		if err := c.writeEOF(c.status); err != nil {
-			return err
-		}
-	}
-
-	if s.columns > 0 {
-		for i := 0; i < s.columns; i++ {
-			data = data[0:4]
-			data = append(data, []byte(s.cstmt.ColDefs[i])...)
-
-			if err := c.writePacket(data); err != nil {
-				return err
-			}
-		}
-
-		if err := c.writeEOF(c.status); err != nil {
-			return err
-		}
-
-	}
-	return nil
-}
-
-func (c *Session) handleComStmtExecute(data []byte) error {
 	if len(data) < 9 {
-		AppLog.Warn("ErrMalFormPacket: length %d", len(data))
-		return ErrMalformPacket
+		return session.handleMySQLError(ErrMalformPkt)
 	}
 
 	pos := 0
 	id := binary.LittleEndian.Uint32(data[0:4])
 	pos += 4
 
-	s, ok := c.stmts[id]
+	stmt, ok := session.bc.stmts[id]
 	if !ok {
 		return NewDefaultError(ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_execute")
@@ -221,25 +141,46 @@ func (c *Session) handleComStmtExecute(data []byte) error {
 
 	//now we only support CURSOR_TYPE_NO_CURSOR flag
 	if flag != 0 {
-		return NewError(ER_UNKNOWN_ERROR, fmt.Sprintf("unsupported flag %d", flag))
+		return NewDefaultError(ER_UNKNOWN_ERROR, fmt.Sprintf("unsupported flag %d", flag))
 	}
-
-	s.cstmt.SetAttr(flag)
 
 	//skip iteration-count, always 1
 	pos += 4
 
-	st, isread := s.s.(sql.ISelect)
-	if isread {
-		isread = (!st.IsLocked())
+	var err error
+	if _, ok := stmt.SQL.(parser.ISelect); ok {
+		err = session.handleStmtQuery(stmt, data[pos:])
+	} else {
+		err = session.handleStmtExec(stmt, data[pos:])
 	}
-	err := c.handleStmtExec(s, data[pos:], isread)
 
-	s.ClearParams()
+	return errors.Trace(err)
 
-	return err
 }
 
+func (session *Session) handleStmtExec(stmt *sql.Stmt, data []byte) error {
+
+	var rs sql.Result
+	var err error
+
+	if len(data) > 0 {
+		rs, err = stmt.Exec(driver.RawStmtParams(data))
+	} else {
+		rs, err = stmt.Exec()
+	}
+
+	if err != nil {
+		return session.handleMySQLError(err)
+	}
+
+	return session.fc.WriteOK(rs)
+}
+
+func (session *Session) handleStmtQuery(stmt *sql.Stmt, data []byte) error {
+	return nil
+}
+
+/*
 func (c *Session) handleComStmtSendLongData(data []byte) error {
 	if len(data) < 6 {
 		AppLog.Warn("ErrMalFormPacket")
@@ -299,21 +240,5 @@ func (c *Session) handleComStmtClose(data []byte) error {
 	delete(c.stmts, id)
 
 	return nil
-}
-
-//
-func (c *Session) handleStmtExec(prepared *Stmt, data []byte, resultSet bool) error {
-
-	res, err := prepared.cstmt.Execute(data)
-	if err != nil {
-		return err
-	}
-
-	if resultSet {
-		err = c.mergeSelectResult(res)
-	} else {
-		err = c.writeOK(res)
-	}
-	return err
 }
 */
