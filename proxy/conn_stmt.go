@@ -177,7 +177,20 @@ func (session *Session) handleStmtExec(stmt *sql.Stmt, data []byte) error {
 }
 
 func (session *Session) handleStmtQuery(stmt *sql.Stmt, data []byte) error {
-	return nil
+	var rows sql.Rows
+	var err error
+
+	if len(data) > 0 {
+		rows, err = stmt.Query(driver.RawStmtParams(data))
+	} else {
+		rows, err = stmt.Query()
+	}
+
+	if err != nil {
+		return session.handleMySQLError(err)
+	}
+
+	return session.WriteRows(rows)
 }
 
 /*
@@ -226,6 +239,8 @@ func (c *Session) handleComStmtReset(data []byte) error {
 	}
 }
 
+*/
+
 func (c *Session) handleComStmtClose(data []byte) error {
 	if len(data) < 4 {
 		return nil
@@ -233,12 +248,11 @@ func (c *Session) handleComStmtClose(data []byte) error {
 
 	id := binary.LittleEndian.Uint32(data[0:4])
 
-	if cstmt, ok := c.stmts[id]; ok {
+	if cstmt, ok := c.bc.stmts[id]; ok {
 		cstmt.Close()
 	}
 
-	delete(c.stmts, id)
+	delete(c.bc.stmts, id)
 
 	return nil
 }
-*/

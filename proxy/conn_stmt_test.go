@@ -28,6 +28,20 @@ func TestProxy_Stmt(t *testing.T) {
 	if _, err := stmt.Exec(1, "a", 3.14, "test1", 255, -127); err != nil {
 		t.Fatal(err)
 	}
+
+	if err := stmt.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	stmt, err = db.Prepare(`select * from dbatman_test_proxy_stmt where id = ?`)
+
+	if _, err := stmt.Query(1); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := stmt.Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 /*

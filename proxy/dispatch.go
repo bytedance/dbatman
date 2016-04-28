@@ -58,8 +58,7 @@ func (session *Session) dispatch(data []byte) error {
 	case ComStmtExecute:
 		return session.handleComStmtExecute(data)
 	case ComStmtClose:
-		// TODO
-		//return session.handleComStmtClose(data)
+		return session.handleComStmtClose(data)
 	case ComStmtSendLongData:
 		// TODO
 		//return session.handleComStmtSendLongData(data)
