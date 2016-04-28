@@ -886,7 +886,7 @@ func (db *DB) putConnDBLocked(dc *driverConn, err error) bool {
 // maxBadConnRetries is the number of maximum retries if the driver returns
 // driver.ErrBadConn to signal a broken connection before forcing a new
 // connection to be opened.
-const maxBadConnRetries = 1
+const maxBadConnRetries = 2
 
 // Prepare creates a prepared statement for later queries or executions.
 // Multiple queries or executions may be run concurrently from the
