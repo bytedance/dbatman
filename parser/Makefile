@@ -5,7 +5,7 @@
 # MAKEFLAGS = -s
 
 sql.go: sql_yacc.yy
-	./bin/yacc -o sql_yacc.go -p MySQL sql_yacc.yy
+	goyacc -o sql_yacc.go -p MySQL sql_yacc.yy
 	gofmt -w sql_yacc.go
 
 clean:

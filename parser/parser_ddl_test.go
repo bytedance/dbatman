@@ -50,6 +50,11 @@ func TestCreate(t *testing.T) {
 	st = testParse(
 		`CREATE SERVER s FOREIGN DATA WRAPPER mysql
             OPTIONS (USER 'Remote', HOST '192.168.1.106', DATABASE 'test');`, t, false)
+
+	st = testParse(
+		`create view v1 as select s2,sum(s1) - count(s2) as vx 
+			from t1 group by s2 having sum(s1) - count(s2) < (select f1() from t2);`, t, false)
+	matchSchemas(t, st, `t1`, `t2`)
 }
 
 func TestCreateTable(t *testing.T) {
