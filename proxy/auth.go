@@ -67,7 +67,7 @@ func (session *Session) CheckAuth(username string, passwd []byte, db string) err
 	// There is no user named with parameter username
 	if session.user, err = session.config.GetUserByName(username); err != nil {
 		if session.user == nil {
-			return NewDefaultError(ER_BAD_DB_ERROR, db)
+			return NewDefaultError(ER_ACCESS_DENIED_ERROR, username, session.fc.RemoteAddr().String(), "Yes")
 		}
 		return NewDefaultError(ER_ACCESS_DENIED_ERROR, session.user.Username, session.fc.RemoteAddr().String(), "Yes")
 	}

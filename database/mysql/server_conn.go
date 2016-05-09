@@ -80,9 +80,8 @@ func (mc *MySQLServerConn) Handshake() error {
 	}
 
 	if err = mc.readHandshakeResponse(); err != nil {
-		if e, ok := err.(*MySQLError); ok {
+		if e, ok := errors.Real(err).(*MySQLError); ok {
 			mc.WriteError(e)
-			err = nil
 		}
 
 		mc.cleanup()
