@@ -36,7 +36,7 @@ users:
         password: test
         max_connections: 1000
         min_connections: 100
-        dbname: test
+        dbname: dbatman_test
         charset: utf8mb4
         cluster_name: test_cluster
         auth_ips:

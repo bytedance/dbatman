@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	. "github.com/bytedance/dbatman/database/mysql"
+	"github.com/ngaut/log"
 	"io"
 )
 
@@ -73,6 +74,7 @@ func (session *Session) CheckAuth(username string, passwd []byte, db string) err
 	}
 
 	if db != "" && session.user.DBName != db {
+		log.Debugf("request db: %s, user's db: %s", db, session.user.DBName)
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	}
 
