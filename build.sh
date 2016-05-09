@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if test "`which godep`" -ne "0"; then 
-	go get github.com/tools/godep
-fi
+set -e
+
+which godep || go get github.com/tools/godep
 
 godep restore
 
@@ -10,5 +10,5 @@ cd cmd/dbatman && go build && cd -
 
 mkdir -p output
 
-cp comd/dbatman/dbatman ./output
+cp cmd/dbatman/dbatman ./output
 cp config/proxy.yml ./output
