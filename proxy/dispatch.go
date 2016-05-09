@@ -50,9 +50,8 @@ func (session *Session) dispatch(data []byte) error {
 			return session.fc.WriteOK(nil)
 		}
 	case ComFieldList:
-		// return session.handleFieldList(data)
-		// TODO
-		return nil
+		log.Debugf("Com Field List")
+		return session.handleFieldList(data)
 	case ComStmtPrepare:
 		return session.handleComStmtPrepare(hack.String(data))
 	case ComStmtExecute:

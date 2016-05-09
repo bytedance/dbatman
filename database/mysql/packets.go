@@ -456,6 +456,35 @@ func (mc *MySQLConn) writeCommandPacketUint32(command byte, arg uint32) error {
 	return mc.writePacket(data)
 }
 
+func (mc *MySQLConn) WriteCommandFieldList(table string, wild string) error {
+	// Reset Packet Sequence
+	mc.sequence = 0
+
+	data := mc.buf.takeSmallBuffer(4 + 2 + len(table) + len(wild))
+	if data == nil {
+		// can not take the buffer. Something must be wrong with the connection
+		errLog.Print(ErrBusyBuffer)
+		return driver.ErrBadConn
+	}
+
+	// Add command byte
+	data[4] = ComFieldList
+
+	if len(table) > 0 {
+		copy(data[5:], table)
+	}
+
+	idx := 5 + len(table)
+	data[idx] = 0
+	idx += 1
+
+	if len(wild) > 0 {
+		copy(data[idx:], wild)
+	}
+	// Send CMD packet
+	return mc.writePacket(data)
+}
+
 /******************************************************************************
 *                              Result Packets                                 *
 ******************************************************************************/

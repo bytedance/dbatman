@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"bytes"
+	"fmt"
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/hack"
@@ -22,6 +24,19 @@ func (session *Session) handleShow(sqlstmt string, stmt parser.IShow) error {
 	}
 
 	return nil
+}
+
+func (c *Session) handleFieldList(data []byte) error {
+	index := bytes.IndexByte(data, 0x00)
+	table := string(data[0:index])
+	wildcard := string(data[index+1:])
+
+	sql := fmt.Sprintf("SHOW COLUMNS FROM %s", table)
+	if len(wildcard) > 0 {
+		sql = fmt.Sprintf("%s LIKE '%s'", sql, wildcard)
+	}
+
+	return c.comQuery(sql)
 }
 
 func (session *Session) handleShowDatabases() error {

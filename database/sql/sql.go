@@ -1148,7 +1148,7 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 			log.Warnf("Conneciton(#%d) is closed because of broken", conn.ci.ThreadId())
 			conn.Close()
 		} else {
-			log.Infof("Connection(#%d) is ok, conneciton idle %d", conn.ci.ThreadId(), idleSecond)
+			log.Debugf("Connection(#%d) is ok, conneciton idle %d", conn.ci.ThreadId(), idleSecond)
 			db.putConn(conn, nil)
 		}
 
@@ -1158,7 +1158,7 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 	}
 
 	db.mu.Unlock()
-	log.Infof("Probe idle connections with db(%s) finish", db.dsn)
+	log.Debugf("Probe idle connections with db(%s) finish", db.dsn)
 
 	return nil
 }
