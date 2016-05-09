@@ -39,12 +39,22 @@ type AlterView struct {
 	As   ISelect
 }
 
+func (av *AlterView) GetSchemas() []string {
+	d := av.View.GetSchemas()
+	p := av.As.GetSchemas()
+	if d != nil && p != nil {
+		d = append(d, p...)
+	}
+
+	return d
+}
+
 type viewTail struct {
 	View ISimpleTable
 	As   ISelect
 }
 
-func (av *AlterView) GetSchemas() []string {
+func (av *viewTail) GetSchemas() []string {
 	d := av.View.GetSchemas()
 	p := av.As.GetSchemas()
 	if d != nil && p != nil {

@@ -18,8 +18,7 @@
 
 %{
 package parser
-import (
-)
+import ()
 %}
 
 
@@ -2675,7 +2674,9 @@ select_init2:
 
 select_part2:
   select_options select_item_list select_into select_lock_type
-  { $$ = &Select {From: $3, LockType: $4} }
+  { 
+    $$ = &Select {From: $3, LockType: $4} 
+  }
 ;
 
 select_into:
@@ -4932,7 +4933,9 @@ view_suid:
 
 view_tail:
   view_suid VIEW_SYM table_ident view_list_opt AS view_select
-  { $$ = &viewTail{View: $3, As: $6} }
+  { 
+	$$ = &viewTail{View: $3, As: $6}
+  }
 ;
 
 view_list_opt:
