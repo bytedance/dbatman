@@ -1,8 +1,17 @@
+dist: trusty
+sudo: required
 language: go
-sudo: false
 go:
   - 1.5
   - 1.6
+
+addons:
+  apt:
+    packages:
+      - mysql-server-5.6
+      - mysql-client-core-5.6
+      - mysql-client-5.6
+      - mysql-testsuite-5.6
 
 before_install:
   - go get github.com/onsi/gomega
@@ -10,10 +19,14 @@ before_install:
   - go get golang.org/x/tools/cmd/cover
 
 before_script:
-  - mysql -e 'create database gotest;'
+  - mysql -u root -e 'create database gotest;'
+  - mysql -u root -e 'create database dbatman_test;'
 
 script:
-  - ./test.sh 
+  - ./test.sh
+  - go build ./...
+  - ./cmd/dbatman/dbatman -config config/test.yml &
+  - mysql_client_test -uroot -h127.0.0.1 -P4306 -Ddbatman_test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
