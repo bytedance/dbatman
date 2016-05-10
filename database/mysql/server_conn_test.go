@@ -6,16 +6,7 @@ import (
 
 func TestWriteCommandFieldList(t *testing.T) {
 
-	d := MySQLDriver{}
-
-	conn, err := d.Open(dsn)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	conn.(*MySQLConn).WriteCommandFieldList("test", "")
-
-	conn.(*MySQLConn).WriteCommandFieldList("test", "%%")
-
+	runTests(t, dsn, func(dbt *DBTest) {
+		dbt.db.FieldList("test", "")
+	})
 }

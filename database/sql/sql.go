@@ -1083,6 +1083,50 @@ func (db *DB) QueryRow(query string, args ...interface{}) *Row {
 	return &Row{rows: rows, err: err}
 }
 
+func (db *DB) FieldList(table string, wild string) (*sqlrows, error) {
+	var rows *sqlrows
+	var err error
+	for i := 0; i < maxBadConnRetries; i++ {
+		rows, err = db.fieldlist(table, wild, cachedOrNewConn)
+		if err != driver.ErrBadConn {
+			break
+		}
+	}
+	if err == driver.ErrBadConn {
+		return db.fieldlist(table, wild, alwaysNewConn)
+	}
+
+	return rows, err
+}
+
+func (db *DB) fieldlist(table string, wild string, strategy connReuseStrategy) (*sqlrows, error) {
+	dc, err := db.conn(strategy)
+	if err != nil {
+		return nil, err
+	}
+
+	dc.Lock()
+	rowsi, err := dc.ci.(driver.FieldLister).FieldList(table, wild)
+	dc.Unlock()
+
+	if err != driver.ErrSkip {
+		if err != nil {
+			dc.releaseConn(err)
+			return nil, err
+		}
+		// Note: ownership of dc passes to the *Rows, to be freed
+		// with releaseConn.
+		rows := &sqlrows{
+			dc:          dc,
+			releaseConn: dc.releaseConn,
+			rowsi:       rowsi,
+		}
+		return rows, nil
+	}
+
+	return nil, err
+}
+
 // Begin starts a transaction. The isolation level is dependent on
 // the driver.
 func (db *DB) Begin() (*Tx, error) {
@@ -1121,7 +1165,7 @@ func (db *DB) begin(strategy connReuseStrategy) (tx *Tx, err error) {
 
 // Probe and close idle connection when connection is timeout or broken
 func (db *DB) ProbeIdleConnection(idleTimeout int) error {
-	log.Infof("Probe idle connections with db(%s) start", db.dsn)
+	log.Debugf("Probe idle connections with db(%s) start", db.dsn)
 	db.mu.Lock()
 	if db.closed {
 		db.mu.Unlock()

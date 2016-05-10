@@ -456,7 +456,7 @@ func (mc *MySQLConn) writeCommandPacketUint32(command byte, arg uint32) error {
 	return mc.writePacket(data)
 }
 
-func (mc *MySQLConn) WriteCommandFieldList(table string, wild string) error {
+func (mc *MySQLConn) writeCommandFieldList(table string, wild string) error {
 	// Reset Packet Sequence
 	mc.sequence = 0
 
@@ -633,99 +633,139 @@ func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 			return nil, fmt.Errorf("column count mismatch n:%d len:%d", count, len(columns))
 		}
 
-		var pos int = 0
-
-		// Catalog
-		columns[i].Catalog, _, pos, err = readLengthEncodedString(data)
-		if err != nil {
+		if err = mc.readColumn(data, &columns[i]); err != nil {
 			return nil, err
-		}
-
-		// Database [len coded string]
-		var n int = 0
-		columns[i].Database, _, n, err = readLengthEncodedString(data[pos:])
-		if err != nil {
-			return nil, err
-		}
-		pos += n
-
-		// Table [len coded string]
-		if mc.cfg.ColumnsWithAlias {
-			tableName, _, n, err := readLengthEncodedString(data[pos:])
-			if err != nil {
-				return nil, err
-			}
-			pos += n
-			columns[i].Table = tableName
-		} else {
-			n, err = skipLengthEncodedString(data[pos:])
-			if err != nil {
-				return nil, err
-			}
-			pos += n
-		}
-
-		// Original table [len coded string]
-		columns[i].OrgTable, _, n, err = readLengthEncodedString(data[pos:])
-		if err != nil {
-			return nil, err
-		}
-		pos += n
-
-		// Name [len coded string]
-		columns[i].Name, _, n, err = readLengthEncodedString(data[pos:])
-		if err != nil {
-			return nil, err
-		}
-		pos += n
-
-		// Original name [len coded string]
-		columns[i].OrgName, _, n, err = readLengthEncodedString(data[pos:])
-		if err != nil {
-			return nil, err
-		}
-
-		// Filler [uint8] allways be 0x0c
-		pos += n + 1
-
-		// Charset [collation definitly uint16]
-		bytesToInt(data[pos:pos+2], &(columns[i].Charset))
-		pos += 2
-
-		// Length [uint32]
-		bytesToInt(data[pos:pos+4], &(columns[i].Length))
-		pos += 4
-
-		// Field type [uint8]
-		columns[i].FieldType = data[pos]
-		pos++
-
-		// Flags [uint16]
-		columns[i].Flags = fieldFlag(endian.Uint16(data[pos : pos+2]))
-		pos += 2
-
-		// Decimals [uint8]
-		columns[i].Decimals = data[pos]
-		pos++
-
-		// Filler [2 bytes allways 0x00 0x00]
-		pos += 2
-
-		// Default value [len coded binary]
-		// if command was COM_FIELD_LIST these fields may appear
-		if pos < len(data) {
-
-			columns[i].DefaultValueLength, _, n = readLengthEncodedInteger(data[pos:])
-			pos += n
-
-			if pos+int(columns[i].DefaultValueLength) > len(data) {
-				return nil, jujuerror.Trace(ErrMalformPkt)
-			}
-
-			//default value string[$len]
-			columns[i].DefaultValue = data[pos:]
 		}
 	}
+
+	return columns, nil
+}
+
+func (mc *MySQLConn) readFieldList() ([]MySQLField, error) {
+	columns := make([]MySQLField, 0, 16)
+
+	for {
+		data, err := mc.readPacket()
+		if err != nil {
+			return nil, err
+		}
+
+		if data[0] == iERR {
+			return nil, jujuerror.Trace(mc.handleErrorPacket(data))
+		}
+
+		// EOF Packet
+		if data[0] == iEOF && (len(data) == 5 || len(data) == 1) {
+			return columns, nil
+		}
+
+		var col *MySQLField = &MySQLField{}
+		if err = mc.readColumn(data, col); err != nil {
+			return nil, err
+		}
+
+		columns = append(columns, *col)
+	}
+
+	return columns, nil
+}
+
+func (mc *MySQLConn) readColumn(data []byte, column *MySQLField) error {
+	var pos int = 0
+	var err error
+
+	// Catalog
+	column.Catalog, _, pos, err = readLengthEncodedString(data)
+	if err != nil {
+		return err
+	}
+
+	// Database [len coded string]
+	var n int = 0
+	column.Database, _, n, err = readLengthEncodedString(data[pos:])
+	if err != nil {
+		return err
+	}
+	pos += n
+
+	// Table [len coded string]
+	if mc.cfg.ColumnsWithAlias {
+		tableName, _, n, err := readLengthEncodedString(data[pos:])
+		if err != nil {
+			return err
+		}
+		pos += n
+		column.Table = tableName
+	} else {
+		n, err = skipLengthEncodedString(data[pos:])
+		if err != nil {
+			return err
+		}
+		pos += n
+	}
+
+	// Original table [len coded string]
+	column.OrgTable, _, n, err = readLengthEncodedString(data[pos:])
+	if err != nil {
+		return err
+	}
+	pos += n
+
+	// Name [len coded string]
+	column.Name, _, n, err = readLengthEncodedString(data[pos:])
+	if err != nil {
+		return err
+	}
+	pos += n
+
+	// Original name [len coded string]
+	column.OrgName, _, n, err = readLengthEncodedString(data[pos:])
+	if err != nil {
+		return err
+	}
+
+	// Filler [uint8] allways be 0x0c
+	pos += n + 1
+
+	// Charset [collation definitly uint16]
+	bytesToInt(data[pos:pos+2], &(column.Charset))
+	pos += 2
+
+	// Length [uint32]
+	bytesToInt(data[pos:pos+4], &(column.Length))
+	pos += 4
+
+	// Field type [uint8]
+	column.FieldType = data[pos]
+	pos++
+
+	// Flags [uint16]
+	column.Flags = fieldFlag(endian.Uint16(data[pos : pos+2]))
+	pos += 2
+
+	// Decimals [uint8]
+	column.Decimals = data[pos]
+	pos++
+
+	// Filler [2 bytes allways 0x00 0x00]
+	pos += 2
+
+	// Default value [len coded binary]
+	// if command was COM_FIELD_LIST these fields may appear
+	if pos < len(data) {
+
+		column.DefaultValueLength, _, n = readLengthEncodedInteger(data[pos:])
+		pos += n
+
+		if pos+int(column.DefaultValueLength) > len(data) {
+			return jujuerror.Trace(ErrMalformPkt)
+		}
+
+		//default value string[$len]
+		column.DefaultValue = data[pos:]
+	}
+
+	return nil
 }
 
 // Read Packets as Field Packets until EOF-Packet or an Error appears

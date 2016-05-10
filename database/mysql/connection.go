@@ -356,6 +356,25 @@ func (mc *MySQLConn) Query(query string, args []driver.Value) (driver.Rows, erro
 	return nil, err
 }
 
+func (mc *MySQLConn) FieldList(table string, wild string) (driver.Rows, error) {
+	if mc.netConn == nil {
+		errLog.Print(ErrInvalidConn)
+		return nil, driver.ErrBadConn
+	}
+
+	err := mc.writeCommandFieldList(table, wild)
+	if err == nil {
+		rows := new(TextRows)
+		rows.mc = mc
+		rows.columns, err = mc.readFieldList()
+		if err == nil {
+			return rows, nil
+		}
+	}
+
+	return nil, err
+}
+
 // Gets the value of the given MySQL System Variable
 // The returned byte slice is only valid until the next read
 func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {

@@ -80,6 +80,10 @@ type Queryer interface {
 	Query(query string, args []Value) (Rows, error)
 }
 
+type FieldLister interface {
+	FieldList(table string, wild string) (Rows, error)
+}
+
 // Conn is a connection to a database. It is not used concurrently
 // by multiple goroutines.
 //
