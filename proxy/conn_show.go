@@ -2,11 +2,12 @@ package proxy
 
 import (
 	"bytes"
-	"fmt"
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
+	"github.com/ngaut/log"
 )
 
 func (session *Session) handleShow(sqlstmt string, stmt parser.IShow) error {
@@ -26,17 +27,44 @@ func (session *Session) handleShow(sqlstmt string, stmt parser.IShow) error {
 	return nil
 }
 
-func (c *Session) handleFieldList(data []byte) error {
+func (session *Session) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
 	table := string(data[0:index])
 	wildcard := string(data[index+1:])
 
-	sql := fmt.Sprintf("SHOW COLUMNS FROM %s", table)
-	if len(wildcard) > 0 {
-		sql = fmt.Sprintf("%s LIKE '%s'", sql, wildcard)
+	rs, err := session.bc.master.FieldList(table, wildcard)
+	// TODO here should handler error
+	if err != nil {
+		return session.handleMySQLError(err)
 	}
 
-	return c.comQuery(sql)
+	defer rs.Close()
+
+	return session.writeFieldList(rs)
+}
+
+func (session *Session) writeFieldList(rs sql.Rows) error {
+
+	cols, err := rs.ColumnPackets()
+
+	if err != nil {
+		return session.handleMySQLError(err)
+	}
+
+	// Write Columns Packet
+	for _, col := range cols {
+		if err := session.fc.WritePacket(col); err != nil {
+			log.Debugf("write columns packet error %v", err)
+			return errors.Trace(err)
+		}
+	}
+
+	// TODO Write a ok packet
+	if err = session.fc.WriteEOF(); err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
 }
 
 func (session *Session) handleShowDatabases() error {
@@ -46,7 +74,7 @@ func (session *Session) handleShowDatabases() error {
 	if r, err := session.buildSimpleShowResultset(dbs, "Database"); err != nil {
 		return err
 	} else {
-		return session.WriteRows(r)
+		return session.writeRows(r)
 	}
 }
 

@@ -365,6 +365,7 @@ func (mc *MySQLConn) FieldList(table string, wild string) (driver.Rows, error) {
 	err := mc.writeCommandFieldList(table, wild)
 	if err == nil {
 		rows := new(TextRows)
+		rows.comFieldList = true
 		rows.mc = mc
 		rows.columns, err = mc.readFieldList()
 		if err == nil {

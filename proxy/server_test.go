@@ -30,8 +30,8 @@ var proxyConfig *config.ProxyConfig
 
 var testConfigData = []byte(`
 global:
-  port: 3307
-  manage_port: 3308
+  port: 4307
+  manage_port: 4308
   max_connections: 10
   log_filename: ./log/dbatman.log
   log_level: 31
@@ -87,7 +87,7 @@ users:
 `)
 
 var testDBDSN = "root:@tcp(127.0.0.1:3306)/mysql"
-var testProxyDSN = "proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/dbatman_test"
+var testProxyDSN = "proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:4307)/dbatman_test"
 
 func newTestServer() (*Server, error) {
 	f := func() {

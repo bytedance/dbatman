@@ -27,14 +27,6 @@ func (session *Session) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
 
-	// https://dev.mysql.com/doc/internals/en/sequence-id.html
-	//defer func() {
-	//	if session.lastcmd != cmd {
-	//		session.lastcmd = cmd
-	//		session.fc.ResetSequence()
-	//	}
-	//}()
-
 	switch cmd {
 	case ComQuit:
 		session.Close()
@@ -50,8 +42,8 @@ func (session *Session) dispatch(data []byte) error {
 			return session.fc.WriteOK(nil)
 		}
 	case ComFieldList:
-		log.Debugf("Com Field List")
-		return session.handleFieldList(data)
+		err := session.handleFieldList(data)
+		return err
 	case ComStmtPrepare:
 		return session.handleComStmtPrepare(hack.String(data))
 	case ComStmtExecute:
@@ -114,7 +106,7 @@ func (session *Session) IsAutoCommit() bool {
 	return session.fc.Status()&uint16(StatusInAutocommit) > 0
 }
 
-func (session *Session) WriteRows(rs sql.Rows) error {
+func (session *Session) writeRows(rs sql.Rows) error {
 	var cols []driver.RawPacket
 	var err error
 	cols, err = rs.ColumnPackets()

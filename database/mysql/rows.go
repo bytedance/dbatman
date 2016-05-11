@@ -23,8 +23,8 @@ type MySQLField struct {
 	OrgName   []byte
 	Charset   uint16
 	Length    uint32
-	Flags     fieldFlag
 	FieldType byte
+	Flags     fieldFlag
 	Decimals  byte
 
 	DefaultValue       []byte
@@ -33,10 +33,8 @@ type MySQLField struct {
 
 func (f *MySQLField) Dump() []byte {
 
-	l := len(f.Database) + len(f.Table) + len(f.OrgTable) + len(f.Name) +
-		len(f.OrgName) + len(f.DefaultValue) + 52
-
-	data := make([]byte, 4, l)
+	data := make([]byte, 4, len(f.Database)+len(f.Table)+len(f.OrgTable)+len(f.Name)+
+		len(f.OrgName)+len(f.DefaultValue)+52)
 
 	data = appendLengthEncodedString(data, f.Catalog)
 	data = appendLengthEncodedString(data, f.Database)
@@ -52,7 +50,7 @@ func (f *MySQLField) Dump() []byte {
 
 	data = append(data, Uint16ToBytes(f.Charset)...)
 	data = append(data, Uint32ToBytes(f.Length)...)
-	data = append(data, Uint16ToBytes(uint16(f.FieldType))...)
+	data = append(data, f.FieldType)
 	data = append(data, Uint16ToBytes(uint16(f.Flags))...)
 	data = append(data, f.Decimals)
 
@@ -60,7 +58,7 @@ func (f *MySQLField) Dump() []byte {
 	data = append(data, 0, 0)
 
 	if f.DefaultValue != nil {
-		data = append(data, uint64ToBytes(f.DefaultValueLength)...)
+		data = appendLengthEncodedInteger(data, f.DefaultValueLength)
 		data = append(data, f.DefaultValue...)
 	}
 
@@ -70,6 +68,8 @@ func (f *MySQLField) Dump() []byte {
 type MySQLRows struct {
 	mc      *MySQLConn
 	columns []MySQLField
+
+	comFieldList bool
 }
 
 type BinaryRows struct {
@@ -117,6 +117,11 @@ func (rows *MySQLRows) Close() error {
 	}
 	if mc.netConn == nil {
 		return ErrInvalidConn
+	}
+
+	if rows.comFieldList {
+		rows.mc = nil
+		return nil
 	}
 
 	// Remove unread packets from stream

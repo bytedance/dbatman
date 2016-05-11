@@ -292,7 +292,7 @@ func (dc *driverConn) isIdleConnectionBroken() (bool, error) {
 // check idle connection is timeout or not
 func (dc *driverConn) idleSecond() int64 {
 	now := time.Now()
-	log.Infof("now %s %d, active %s %d", now.String(), now.Unix(), dc.lastActiveTime.String(), dc.lastActiveTime.Unix())
+	// log.Debugf("now %s %d, active %s %d", now.String(), now.Unix(), dc.lastActiveTime.String(), dc.lastActiveTime.Unix())
 	return now.Unix() - dc.lastActiveTime.Unix()
 }
 
@@ -1083,7 +1083,7 @@ func (db *DB) QueryRow(query string, args ...interface{}) *Row {
 	return &Row{rows: rows, err: err}
 }
 
-func (db *DB) FieldList(table string, wild string) (*sqlrows, error) {
+func (db *DB) FieldList(table string, wild string) (Rows, error) {
 	var rows *sqlrows
 	var err error
 	for i := 0; i < maxBadConnRetries; i++ {
@@ -1165,7 +1165,7 @@ func (db *DB) begin(strategy connReuseStrategy) (tx *Tx, err error) {
 
 // Probe and close idle connection when connection is timeout or broken
 func (db *DB) ProbeIdleConnection(idleTimeout int) error {
-	log.Debugf("Probe idle connections with db(%s) start", db.dsn)
+	// log.Debugf("Probe idle connections with db(%s) start", db.dsn)
 	db.mu.Lock()
 	if db.closed {
 		db.mu.Unlock()
@@ -1192,7 +1192,7 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 			log.Warnf("Conneciton(#%d) is closed because of broken", conn.ci.ThreadId())
 			conn.Close()
 		} else {
-			log.Debugf("Connection(#%d) is ok, conneciton idle %d", conn.ci.ThreadId(), idleSecond)
+			// log.Debugf("Connection(#%d) is ok, conneciton idle %d", conn.ci.ThreadId(), idleSecond)
 			db.putConn(conn, nil)
 		}
 
@@ -1202,7 +1202,7 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 	}
 
 	db.mu.Unlock()
-	log.Debugf("Probe idle connections with db(%s) finish", db.dsn)
+	// log.Debugf("Probe idle connections with db(%s) finish", db.dsn)
 
 	return nil
 }

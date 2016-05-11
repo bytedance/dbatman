@@ -91,5 +91,6 @@ func (s *Server) onConn(c net.Conn) {
 	if err := session.Run(); err != nil {
 		// TODO
 		// session.WriteError(NewDefaultError(err))
+		log.Warnf("session Run error: %s", err.Error())
 	}
 }

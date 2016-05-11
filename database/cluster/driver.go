@@ -90,7 +90,6 @@ func (c *Cluster) Probe(idleTimeout int) error {
 	}
 	for {
 		time.Sleep(time.Second * 5)
-		log.Infof("Cluster %s probe", c.cluserName)
 		err := c.masterDB.ProbeIdleConnection(idleTimeout)
 		if err != nil {
 			log.Errorf("Master node probe error msg:%s", err.Error())

@@ -14,6 +14,7 @@
 package proxy
 
 import (
+	"errors"
 	"github.com/bytedance/dbatman/cmd/version"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
@@ -76,9 +77,9 @@ func (session *Session) Run() error {
 		if err := session.dispatch(data); err != nil {
 			if err == driver.ErrBadConn {
 				// TODO handle error
-				// log.Warn(err)
 			}
 
+			log.Warnf("dispatch error: %s", err.Error())
 			return err
 		}
 
@@ -86,7 +87,7 @@ func (session *Session) Run() error {
 
 		if session.closed {
 			// TODO return MySQL Go Away ?
-			return nil
+			return errors.New("session closed!")
 		}
 	}
 

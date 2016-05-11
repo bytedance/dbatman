@@ -190,7 +190,7 @@ func (session *Session) handleStmtQuery(stmt *sql.Stmt, data []byte) error {
 		return session.handleMySQLError(err)
 	}
 
-	return session.WriteRows(rows)
+	return session.writeRows(rows)
 }
 
 /*

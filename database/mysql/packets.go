@@ -689,20 +689,12 @@ func (mc *MySQLConn) readColumn(data []byte, column *MySQLField) error {
 	pos += n
 
 	// Table [len coded string]
-	if mc.cfg.ColumnsWithAlias {
-		tableName, _, n, err := readLengthEncodedString(data[pos:])
-		if err != nil {
-			return err
-		}
-		pos += n
-		column.Table = tableName
-	} else {
-		n, err = skipLengthEncodedString(data[pos:])
-		if err != nil {
-			return err
-		}
-		pos += n
+
+	column.Table, _, n, err = readLengthEncodedString(data[pos:])
+	if err != nil {
+		return err
 	}
+	pos += n
 
 	// Original table [len coded string]
 	column.OrgTable, _, n, err = readLengthEncodedString(data[pos:])
