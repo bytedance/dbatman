@@ -23,33 +23,36 @@ import (
 	"io"
 )
 
-func (session *Session) dispatch(data []byte) error {
+func (session *Session) dispatch(data []byte) (err error) {
 	cmd := data[0]
 	data = data[1:]
+
+	defer func() {
+		err = session.fc.Flush()
+	}()
 
 	switch cmd {
 	case ComQuit:
 		session.Close()
-		return nil
+		err = nil
 	case ComQuery:
-		return session.comQuery(hack.String(data))
+		err = session.comQuery(hack.String(data))
 	case ComPing:
-		return session.fc.WriteOK(nil)
+		err = session.fc.WriteOK(nil)
 	case ComInitDB:
 		if err := session.useDB(hack.String(data)); err != nil {
-			return session.handleMySQLError(err)
+			err = session.handleMySQLError(err)
 		} else {
-			return session.fc.WriteOK(nil)
+			err = session.fc.WriteOK(nil)
 		}
 	case ComFieldList:
-		err := session.handleFieldList(data)
-		return err
+		err = session.handleFieldList(data)
 	case ComStmtPrepare:
-		return session.handleComStmtPrepare(hack.String(data))
+		err = session.handleComStmtPrepare(hack.String(data))
 	case ComStmtExecute:
-		return session.handleComStmtExecute(data)
+		err = session.handleComStmtExecute(data)
 	case ComStmtClose:
-		return session.handleComStmtClose(data)
+		err = session.handleComStmtClose(data)
 	case ComStmtSendLongData:
 		// TODO
 		//return session.handleComStmtSendLongData(data)
@@ -59,10 +62,10 @@ func (session *Session) dispatch(data []byte) error {
 	default:
 		msg := fmt.Sprintf("command %d not supported now", cmd)
 		log.Warnf(msg)
-		return NewDefaultError(ER_UNKNOWN_ERROR, msg)
+		err = NewDefaultError(ER_UNKNOWN_ERROR, msg)
 	}
 
-	return nil
+	return
 }
 
 func (session *Session) useDB(db string) error {

@@ -14,12 +14,14 @@
 package mysql
 
 import (
+	"bufio"
 	"bytes"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 	"net"
 	"sync/atomic"
+	"time"
 )
 
 // MySQLServerCtx is a server-side interface of 1-time-connection
@@ -31,6 +33,10 @@ type MySQLServerCtx interface {
 	ServerName() []byte
 }
 
+const (
+	defaultWriterSize = 16 * 1024
+)
+
 // Connection between mysql client <-> mysql server
 // here we wrap the go-mysql-driver.MySQLConn
 type MySQLServerConn struct {
@@ -38,6 +44,7 @@ type MySQLServerConn struct {
 	ctx       MySQLServerCtx
 	collation CollationId
 	connID    uint32
+	wb        *bufio.Writer
 }
 
 var baseConnId uint32 = 10000
@@ -54,6 +61,7 @@ func NewMySQLServerConn(s MySQLServerCtx, conn net.Conn) *MySQLServerConn {
 	}
 
 	c.buf = newBuffer(c.netConn)
+	c.wb = bufio.NewWriterSize(conn, defaultWriterSize)
 
 	// Default Capacity Flags
 	c.flags = ClientLongPassword | ClientLongFlag |
@@ -327,8 +335,58 @@ func (mc *MySQLServerConn) WriteEOF() error {
 	return mc.WritePacket(data)
 }
 
-func (mc *MySQLConn) WritePacket(data []byte) error {
-	return mc.writePacket(data)
+func (mc *MySQLServerConn) WritePacket(data []byte) error {
+	pktLen := len(data) - 4
+
+	if pktLen > mc.maxPacketAllowed {
+		return ErrPktTooLarge
+	}
+
+	for {
+		var size int
+		if pktLen >= maxPacketSize {
+			data[0] = 0xff
+			data[1] = 0xff
+			data[2] = 0xff
+			size = maxPacketSize
+		} else {
+			data[0] = byte(pktLen)
+			data[1] = byte(pktLen >> 8)
+			data[2] = byte(pktLen >> 16)
+			size = pktLen
+		}
+		data[3] = mc.sequence
+
+		// Write packet
+		if mc.writeTimeout > 0 {
+			if err := mc.netConn.SetWriteDeadline(time.Now().Add(mc.writeTimeout)); err != nil {
+				return err
+			}
+		}
+
+		n, err := mc.wb.Write(data[:4+size])
+		if err == nil && n == 4+size {
+			mc.sequence++
+			if size != maxPacketSize {
+				return nil
+			}
+			pktLen -= size
+			data = data[size:]
+			continue
+		}
+
+		// Handle error
+		if err == nil { // n != len(data)
+			errLog.Print(ErrMalformPkt)
+		} else {
+			errLog.Print(err)
+		}
+		return driver.ErrBadConn
+	}
+}
+
+func (mc *MySQLServerConn) Flush() error {
+	return mc.wb.Flush()
 }
 
 func (mc *MySQLConn) ReadPacket() ([]byte, error) {
@@ -339,10 +397,10 @@ func (mc *MySQLConn) ReadPacket() ([]byte, error) {
 *                   Function Wrapper for Export Visiable                      *
 ******************************************************************************/
 
-func (mc *MySQLConn) HandleOkPacket(data []byte) error {
+func (mc *MySQLServerConn) HandleOkPacket(data []byte) error {
 	return mc.handleOkPacket(data)
 }
 
-func (mc *MySQLConn) HandleErrorPacket(data []byte) error {
+func (mc *MySQLServerConn) HandleErrorPacket(data []byte) error {
 	return errors.Trace(mc.handleErrorPacket(data))
 }

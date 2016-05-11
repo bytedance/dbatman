@@ -60,6 +60,10 @@ func (session *Session) Handshake() error {
 		return err
 	}
 
+	if err := session.fc.Flush(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

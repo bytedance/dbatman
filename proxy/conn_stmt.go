@@ -23,11 +23,8 @@ func (c *Session) handleComStmtPrepare(sqlstmt string) error {
 	// Only a few statements supported by prepare statements
 	// http://dev.mysql.com/worklog/task/?id=2871
 	switch v := stmt.(type) {
-	case parser.ISelect, *parser.Insert, *parser.Update, *parser.Delete, *parser.Replace:
+	case parser.ISelect, *parser.Insert, *parser.Update, *parser.Delete, *parser.Replace, parser.IDDLStatement:
 		return c.prepare(v, sqlstmt)
-	case parser.IDDLStatement:
-		// return c.prepareDDL(v, sqlstmt)
-		return nil
 	default:
 		log.Warnf("statement %T[%s] not support prepare ops", stmt, sqlstmt)
 		return c.handleMySQLError(
