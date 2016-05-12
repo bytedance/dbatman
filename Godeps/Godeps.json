@@ -21,10 +21,6 @@
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
 			"Rev": "f7716cbe52baa25d2e9b0d0da546fcf909fc16b4"
-		},
-		{
-			"ImportPath": "github.com/cznic/goyacc",
-			"Rev": "4faa926f4f7cf4b7c9852a0bd2aae89d617f7d38"
 		}
 	]
 }
