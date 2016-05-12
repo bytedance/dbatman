@@ -102,6 +102,11 @@ func (mc *MySQLServerConn) Handshake() error {
 		return errors.Trace(err)
 	}
 
+	if err = mc.Flush(); err != nil {
+		mc.cleanup()
+		return errors.Trace(err)
+	}
+
 	mc.sequence = 0
 	return nil
 }
