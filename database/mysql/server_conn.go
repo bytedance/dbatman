@@ -211,6 +211,10 @@ func (mc *MySQLServerConn) writeInitPacket() error {
 		return err
 	}
 
+	if err := mc.Flush(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -403,4 +407,13 @@ func (mc *MySQLServerConn) HandleOkPacket(data []byte) error {
 
 func (mc *MySQLServerConn) HandleErrorPacket(data []byte) error {
 	return errors.Trace(mc.handleErrorPacket(data))
+}
+
+func (mc *MySQLServerConn) cleanup() {
+	if mc.wb != nil {
+		mc.Flush()
+		mc.wb = nil
+	}
+
+	mc.MySQLConn.cleanup()
 }
