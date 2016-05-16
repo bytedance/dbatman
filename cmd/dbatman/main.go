@@ -42,6 +42,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	go func() {
+		cfg.CheckConfigUpdate(config.NotifyChan)
+	}()
+
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
 		syscall.SIGHUP,

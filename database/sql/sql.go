@@ -292,7 +292,7 @@ func (dc *driverConn) isIdleConnectionBroken() (bool, error) {
 // check idle connection is timeout or not
 func (dc *driverConn) idleSecond() int64 {
 	now := time.Now()
-	log.Infof("now %s %d, active %s %d", now.String(), now.Unix(), dc.lastActiveTime.String(), dc.lastActiveTime.Unix())
+	log.Debugf("now %s %d, active %s %d", now.String(), now.Unix(), dc.lastActiveTime.String(), dc.lastActiveTime.Unix())
 	return now.Unix() - dc.lastActiveTime.Unix()
 }
 
@@ -501,6 +501,11 @@ func Open(driverName, dataSourceName string) (*DB, error) {
 	}
 	go db.connectionOpener()
 	return db, nil
+}
+
+//Get dataSourceName string
+func (db *DB) Dsn() string {
+	return db.dsn
 }
 
 // Ping verifies a connection to the database is still alive,
@@ -1121,7 +1126,7 @@ func (db *DB) begin(strategy connReuseStrategy) (tx *Tx, err error) {
 
 // Probe and close idle connection when connection is timeout or broken
 func (db *DB) ProbeIdleConnection(idleTimeout int) error {
-	log.Infof("Probe idle connections with db(%s) start", db.dsn)
+	log.Debugf("Probe idle connections with db(%s) start", db.dsn)
 	db.mu.Lock()
 	if db.closed {
 		db.mu.Unlock()
@@ -1140,7 +1145,6 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 
 		idleSecond := conn.idleSecond()
 
-		//TODO: log with conn addr/thread_id
 		if idleSecond >= int64(idleTimeout) {
 			log.Warnf("Conneciton(#%d) is closed because of connection idle %ds, lastActiveTime %s", conn.ci.ThreadId(), idleSecond, conn.lastActiveTime.String())
 			conn.Close()
@@ -1158,7 +1162,7 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 	}
 
 	db.mu.Unlock()
-	log.Infof("Probe idle connections with db(%s) finish", db.dsn)
+	log.Debugf("Probe idle connections with db(%s) finish", db.dsn)
 
 	return nil
 }
