@@ -26,7 +26,7 @@ script:
   - ./test.sh
   - go build ./...
   - ./cmd/dbatman/dbatman -config config/test.yml &
-  - mysql_client_test -uroot -h127.0.0.1 -P4306 -Ddbatman_test
+  - mysql_client_test -uproxy_test_user -ptest -h127.0.0.1 -P4306 -Dclient_test_db
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

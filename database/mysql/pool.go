@@ -10,7 +10,7 @@
 //
 // For more usage examples, see the wiki page at
 // https://golang.org/s/sqlwiki.
-package sql
+package mysql
 
 import (
 	"errors"

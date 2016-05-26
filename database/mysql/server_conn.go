@@ -329,6 +329,11 @@ func (mc *MySQLServerConn) WriteOK(r driver.Result) error {
 		data = append(data, byte(warnings), byte(warnings>>8))
 	}
 
+	info, _ := r.Info()
+	if len(info) > 0 {
+		data = append(data, []byte(info)...)
+	}
+
 	return mc.WritePacket(data)
 }
 

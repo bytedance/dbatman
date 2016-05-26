@@ -32,6 +32,7 @@ type MySQLConn struct {
 	parseTime        bool
 	strict           bool
 	threadId         uint32
+	status_info      string // General response info
 }
 
 // Handles parameters set in DSN after the connection is established
@@ -282,6 +283,7 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 			insertId:     int64(mc.insertId),
 			status:       mc.status,
 			warnings:     nil,
+			status_info:  mc.status_info,
 		}, nil
 	} else if errs, ok := err.(MySQLWarnings); ok {
 		return &MySQLResult{
@@ -289,6 +291,7 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 			insertId:     int64(mc.insertId),
 			status:       mc.status,
 			warnings:     errs.Errors(),
+			status_info:  mc.status_info,
 		}, err
 	}
 

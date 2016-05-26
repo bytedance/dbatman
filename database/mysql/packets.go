@@ -607,6 +607,12 @@ func (mc *MySQLConn) handleOkPacket(data []byte) error {
 	}
 
 	pos := 1 + n + m + 2
+
+	if pos+2 < len(data) {
+		mc.status_info = string(data[pos+2:])
+	}
+
+	// get warnings
 	if binary.LittleEndian.Uint16(data[pos:pos+2]) > 0 {
 		err := mc.getWarnings()
 		return err

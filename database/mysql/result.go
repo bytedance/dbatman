@@ -13,6 +13,7 @@ type MySQLResult struct {
 	warnings     []error
 	affectedRows int64
 	insertId     int64
+	status_info  string
 }
 
 func (r *MySQLResult) Status() (int64, error) {
@@ -23,10 +24,14 @@ func (r *MySQLResult) Warnings() []error {
 	return r.warnings
 }
 
-func (res *MySQLResult) LastInsertId() (int64, error) {
-	return res.insertId, nil
+func (r *MySQLResult) LastInsertId() (int64, error) {
+	return r.insertId, nil
 }
 
-func (res *MySQLResult) RowsAffected() (int64, error) {
-	return res.affectedRows, nil
+func (r *MySQLResult) RowsAffected() (int64, error) {
+	return r.affectedRows, nil
+}
+
+func (r *MySQLResult) Info() (string, error) {
+	return r.status_info, nil
 }

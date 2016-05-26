@@ -176,7 +176,7 @@ func getDsnFromNode(node *config.NodeConfig) string {
 		return ""
 	}
 
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&timeout=%dms",
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&timeout=%dms&strict=true",
 		node.Username,
 		node.Password,
 		node.Host,
