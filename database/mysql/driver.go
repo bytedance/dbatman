@@ -17,7 +17,6 @@
 package mysql
 
 import (
-	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"net"
 )
@@ -164,5 +163,5 @@ func handleAuthResult(mc *MySQLConn, cipher []byte) error {
 }
 
 func init() {
-	sql.Register("dbatman", &MySQLDriver{})
+	Register("dbatman", &MySQLDriver{})
 }

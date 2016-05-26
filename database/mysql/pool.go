@@ -974,11 +974,14 @@ func (db *DB) exec(query string, args []interface{}, strategy connReuseStrategy)
 		dc.Lock()
 		resi, err := execer.Exec(query, dargs)
 		dc.Unlock()
-		if err != driver.ErrSkip {
+		if juju.Real(err) != driver.ErrSkip {
 			if err != nil {
-				return nil, err
+				if _, ok := juju.Real(err).(MySQLWarnings); !ok {
+					return nil, err
+				}
 			}
-			return driverResult{dc, resi}, nil
+
+			return driverResult{dc, resi}, err
 		}
 	}
 
