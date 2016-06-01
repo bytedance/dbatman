@@ -41,6 +41,8 @@ type Session struct {
 	// lastcmd uint8
 }
 
+var errSessionQuit error = errors.New("session closed by client")
+
 func (s *Server) newSession(conn net.Conn) *Session {
 	session := new(Session)
 
@@ -73,6 +75,10 @@ func (session *Session) Run() error {
 		if err != nil {
 			log.Warn(err)
 			return err
+		}
+
+		if data[0] == ComQuit {
+			return errSessionQuit
 		}
 
 		if err := session.dispatch(data); err != nil {

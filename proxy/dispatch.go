@@ -26,13 +26,13 @@ func (session *Session) dispatch(data []byte) (err error) {
 	data = data[1:]
 
 	defer func() {
-		err = session.fc.Flush()
+		flush_error := session.fc.Flush()
+		if err == nil {
+			err = flush_error
+		}
 	}()
 
 	switch cmd {
-	case mysql.ComQuit:
-		session.Close()
-		err = nil
 	case mysql.ComQuery:
 		err = session.comQuery(hack.String(data))
 	case mysql.ComPing:

@@ -90,6 +90,10 @@ func (s *Server) onConn(c net.Conn) {
 	if err := session.Run(); err != nil {
 		// TODO
 		// session.WriteError(NewDefaultError(err))
-		log.Warnf("session Run error: %s", err.Error())
+		if err == errSessionQuit {
+			return
+		}
+
+		log.Warnf("session run error: %s", err.Error())
 	}
 }
