@@ -2,16 +2,16 @@ package proxy
 
 import (
 	"errors"
-	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/mysql"
 	juju "github.com/bytedance/dbatman/errors"
 )
 
 // Wrap the connection
 type SqlConn struct {
-	master *sql.DB
-	slave  *sql.DB
-	stmts  map[uint32]*sql.Stmt
-	tx     *sql.Tx
+	master *mysql.DB
+	slave  *mysql.DB
+	stmts  map[uint32]*mysql.Stmt
+	tx     *mysql.Tx
 
 	session *Session
 }
@@ -62,7 +62,7 @@ func (bc *SqlConn) rollback() error {
 	return nil
 }
 
-func (session *Session) Executor(isread bool) sql.Executor {
+func (session *Session) Executor(isread bool) mysql.Executor {
 
 	// TODO set autocommit
 	if session.isInTransaction() {

@@ -5,7 +5,6 @@ import (
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 
@@ -143,7 +142,7 @@ func newTestCluster(cluster_name string) (*cluster.Cluster, error) {
 	return testCluster, testClusterError
 }
 
-func newTestDB(t *testing.T) *sql.DB {
+func newTestDB(t *testing.T) *mysql.DB {
 	cls, err := newTestCluster("dbatman_test_cluster")
 	if err != nil {
 		t.Fatal(err)

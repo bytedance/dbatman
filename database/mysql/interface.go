@@ -1,4 +1,4 @@
-package sql
+package mysql
 
 type Executor interface {
 	Exec(query string, args ...interface{}) (Result, error)

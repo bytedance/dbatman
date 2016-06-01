@@ -3,8 +3,7 @@ package proxy
 import (
 	"encoding/binary"
 	"fmt"
-	. "github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/parser"
@@ -17,7 +16,7 @@ func (c *Session) handleComStmtPrepare(sqlstmt string) error {
 	if err != nil {
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
 		return c.handleMySQLError(
-			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
+			mysql.NewDefaultError(mysql.ER_SYNTAX_ERROR, err.Error()))
 	}
 
 	// Only a few statements supported by prepare statements
@@ -28,7 +27,7 @@ func (c *Session) handleComStmtPrepare(sqlstmt string) error {
 	default:
 		log.Warnf("statement %T[%s] not support prepare ops", stmt, sqlstmt)
 		return c.handleMySQLError(
-			NewDefaultError(ER_UNSUPPORTED_PS))
+			mysql.NewDefaultError(mysql.ER_UNSUPPORTED_PS))
 	}
 }
 
@@ -63,13 +62,13 @@ func (session *Session) prepare(istmt parser.IStatement, sqlstmt string) error {
 	return session.writePrepareResult(stmt)
 }
 
-func (session *Session) writePrepareResult(stmt *sql.Stmt) error {
+func (session *Session) writePrepareResult(stmt *mysql.Stmt) error {
 
 	colen := len(stmt.Columns)
 	paramlen := len(stmt.Params)
 
 	// Prepare Header
-	header := make([]byte, PacketHeaderLen, 12+PacketHeaderLen)
+	header := make([]byte, mysql.PacketHeaderLen, 12+mysql.PacketHeaderLen)
 
 	// OK Status
 	header = append(header, 0)
@@ -120,7 +119,7 @@ func (session *Session) writePrepareResult(stmt *sql.Stmt) error {
 func (session *Session) handleComStmtExecute(data []byte) error {
 
 	if len(data) < 9 {
-		return session.handleMySQLError(ErrMalformPkt)
+		return session.handleMySQLError(mysql.ErrMalformPkt)
 	}
 
 	pos := 0
@@ -129,7 +128,7 @@ func (session *Session) handleComStmtExecute(data []byte) error {
 
 	stmt, ok := session.bc.stmts[id]
 	if !ok {
-		return NewDefaultError(ER_UNKNOWN_STMT_HANDLER,
+		return mysql.NewDefaultError(mysql.ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_execute")
 	}
 
@@ -138,7 +137,7 @@ func (session *Session) handleComStmtExecute(data []byte) error {
 
 	//now we only support CURSOR_TYPE_NO_CURSOR flag
 	if flag != 0 {
-		return NewDefaultError(ER_UNKNOWN_ERROR, fmt.Sprintf("unsupported flag %d", flag))
+		return mysql.NewDefaultError(mysql.ER_UNKNOWN_ERROR, fmt.Sprintf("unsupported flag %d", flag))
 	}
 
 	//skip iteration-count, always 1
@@ -155,9 +154,9 @@ func (session *Session) handleComStmtExecute(data []byte) error {
 
 }
 
-func (session *Session) handleStmtExec(stmt *sql.Stmt, data []byte) error {
+func (session *Session) handleStmtExec(stmt *mysql.Stmt, data []byte) error {
 
-	var rs sql.Result
+	var rs mysql.Result
 	var err error
 
 	if len(data) > 0 {
@@ -173,8 +172,8 @@ func (session *Session) handleStmtExec(stmt *sql.Stmt, data []byte) error {
 	return session.fc.WriteOK(rs)
 }
 
-func (session *Session) handleStmtQuery(stmt *sql.Stmt, data []byte) error {
-	var rows sql.Rows
+func (session *Session) handleStmtQuery(stmt *mysql.Stmt, data []byte) error {
+	var rows mysql.Rows
 	var err error
 
 	if len(data) > 0 {

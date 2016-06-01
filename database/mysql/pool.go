@@ -1417,6 +1417,9 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 		if err == nil {
 			return driverResult{dc, resi}, nil
 		}
+		if _, ok := juju.Real(err).(MySQLWarnings); ok {
+			return driverResult{dc, resi}, err
+		}
 		if err != driver.ErrSkip {
 			return nil, err
 		}
@@ -1542,8 +1545,15 @@ func resultFromStatement(ds driverStmt, args ...interface{}) (Result, error) {
 	ds.Lock()
 	resi, err := ds.si.Exec(dargs)
 	ds.Unlock()
-	if err != nil {
-		return nil, juju.Trace(err)
+
+	if juju.Real(err) != driver.ErrSkip {
+		if err != nil {
+			if _, ok := juju.Real(err).(MySQLWarnings); !ok {
+				return nil, err
+			}
+		}
+
+		return driverResult{ds.Locker, resi}, err
 	}
 	return driverResult{ds.Locker, resi}, nil
 }

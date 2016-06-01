@@ -3,7 +3,7 @@ package cluster
 import (
 	"fmt"
 	"github.com/bytedance/dbatman/config"
-	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
 	"sync"
 	"time"
@@ -17,14 +17,14 @@ var (
 )
 
 type Cluster struct {
-	masterDB   *sql.DB
-	slavesDB   []*sql.DB
+	masterDB   *mysql.DB
+	slavesDB   []*mysql.DB
 	slaveNum   int
 	cluserName string
 	DBName     string
 }
 
-func (c *Cluster) Master() (*sql.DB, error) {
+func (c *Cluster) Master() (*mysql.DB, error) {
 	if c.masterDB == nil {
 		return nil, fmt.Errorf("MasterConn error c.masterDB==nil")
 	}
@@ -43,7 +43,7 @@ func (c *Cluster) Master() (*sql.DB, error) {
 	return db, nil
 }
 
-func (c *Cluster) Slave() (*sql.DB, error) {
+func (c *Cluster) Slave() (*mysql.DB, error) {
 	if c.slavesDB == nil {
 		return nil, fmt.Errorf("SlaveConn error c.slavesDB==nil")
 	}
@@ -76,7 +76,7 @@ func (c *Cluster) Slave() (*sql.DB, error) {
 	return db, nil
 }
 
-func (c *Cluster) DB(isread bool) (*sql.DB, error) {
+func (c *Cluster) DB(isread bool) (*mysql.DB, error) {
 	if isread {
 		return c.Master()
 	}
@@ -121,7 +121,7 @@ func Init(cfg *config.Conf) error {
 		slaves := clusterCfg.GetSlaveNodes()
 		slaveNum := len(slaves)
 		DBName := clusterCfg.GetMasterNode().DBName
-		oneCluster := Cluster{nil, make([]*sql.DB, slaveNum), slaveNum, clusterName, DBName}
+		oneCluster := Cluster{nil, make([]*mysql.DB, slaveNum), slaveNum, clusterName, DBName}
 
 		db, err := openDBFromNode(master)
 		if err != nil {
@@ -156,15 +156,15 @@ func New(clusterName string) (*Cluster, error) {
 	}
 }
 
-func openDBFromNode(node *config.NodeConfig) (*sql.DB, error) {
+func openDBFromNode(node *config.NodeConfig) (*mysql.DB, error) {
 	if node == nil {
 		return nil, fmt.Errorf("openDBFromNode error node==nil")
 	}
 
 	dsn := getDsnFromNode(node)
-	db, err := sql.Open("dbatman", dsn)
+	db, err := mysql.Open("dbatman", dsn)
 	if err != nil {
-		log.Errorf("openDBFromNod sql.open error dsn:%s msg:%s\n", dsn, err.Error())
+		log.Errorf("openDBFromNod mysql.open error dsn:%s msg:%s\n", dsn, err.Error())
 		return nil, err
 	}
 	return db, nil
@@ -186,7 +186,7 @@ func getDsnFromNode(node *config.NodeConfig) string {
 		node.ConnectTimeout)
 }
 
-func makeConnection(db *sql.DB) error {
+func makeConnection(db *mysql.DB) error {
 	if db == nil {
 		return fmt.Errorf("Can not make connection to database because of db is nil")
 	}

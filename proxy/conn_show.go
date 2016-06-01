@@ -2,8 +2,7 @@ package proxy
 
 import (
 	"bytes"
-	. "github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/database/sql"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
@@ -43,7 +42,7 @@ func (session *Session) handleFieldList(data []byte) error {
 	return session.writeFieldList(rs)
 }
 
-func (session *Session) writeFieldList(rs sql.Rows) error {
+func (session *Session) writeFieldList(rs mysql.Rows) error {
 
 	cols, err := rs.ColumnPackets()
 
@@ -78,15 +77,15 @@ func (session *Session) handleShowDatabases() error {
 	}
 }
 
-func (session *Session) buildSimpleShowResultset(values []interface{}, name string) (sql.Rows, error) {
+func (session *Session) buildSimpleShowResultset(values []interface{}, name string) (mysql.Rows, error) {
 
 	r := new(SimpleRows)
 
-	r.Cols = []*MySQLField{
-		&MySQLField{
+	r.Cols = []*mysql.MySQLField{
+		&mysql.MySQLField{
 			Name:      hack.Slice(name),
 			Charset:   uint16(session.fc.Collation()),
-			FieldType: FieldTypeVarString,
+			FieldType: mysql.FieldTypeVarString,
 		},
 	}
 
@@ -99,7 +98,7 @@ func (session *Session) buildSimpleShowResultset(values []interface{}, name stri
 			return nil, err
 		}
 
-		r.Rows = append(r.Rows, AppendLengthEncodedString(make([]byte, 0, len(row)+9), row))
+		r.Rows = append(r.Rows, mysql.AppendLengthEncodedString(make([]byte, 0, len(row)+9), row))
 	}
 
 	return r, nil
