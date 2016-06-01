@@ -199,6 +199,12 @@ func TestMain(m *testing.M) {
 	db := newSqlDB(testDBDSN)
 
 	// Create DataBase dbatman_test
+	if _, err := db.Exec("DROP DATABASE IF EXISTS `dbatman_test`"); err != nil {
+		fmt.Fprintln(os.Stderr, "create database `dbatman_test` failed: ", err.Error())
+		os.Exit(2)
+	}
+
+	// Create DataBase dbatman_test
 	if _, err := db.Exec("CREATE DATABASE IF NOT EXISTS `dbatman_test`"); err != nil {
 		fmt.Fprintln(os.Stderr, "create database `dbatman_test` failed: ", err.Error())
 		os.Exit(2)

@@ -399,7 +399,11 @@ func (mc *MySQLServerConn) WritePacket(data []byte) error {
 }
 
 func (mc *MySQLServerConn) Flush() error {
-	return mc.wb.Flush()
+	if mc.wb != nil {
+		return mc.wb.Flush()
+	}
+
+	return nil
 }
 
 func (mc *MySQLConn) ReadPacket() ([]byte, error) {

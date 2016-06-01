@@ -1414,15 +1414,16 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 		dc.Lock()
 		resi, err := execer.Exec(query, dargs)
 		dc.Unlock()
-		if err == nil {
-			return driverResult{dc, resi}, nil
-		}
-		if _, ok := err.(MySQLWarnings); ok {
-			return driverResult{dc, resi}, err
-		}
+
 		if err != driver.ErrSkip {
-			return nil, err
+			if _, ok := err.(MySQLWarnings); !ok {
+				return nil, err
+			} else {
+				log.Debug("Got MySQL Warnings: " + err.Error())
+			}
 		}
+
+		return driverResult{dc, resi}, nil
 	}
 
 	dc.Lock()
@@ -1546,13 +1547,12 @@ func resultFromStatement(ds driverStmt, args ...interface{}) (Result, error) {
 	resi, err := ds.si.Exec(dargs)
 	ds.Unlock()
 
-	if err != driver.ErrSkip {
-		if err != nil {
-			if _, ok := err.(MySQLWarnings); !ok {
-				return nil, err
-			}
+	if err != nil {
+		if _, ok := err.(MySQLWarnings); !ok {
+			return nil, err
 		}
 	}
+
 	return driverResult{ds.Locker, resi}, nil
 }
 

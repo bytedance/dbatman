@@ -616,6 +616,7 @@ func (mc *MySQLConn) handleOkPacket(data []byte) error {
 		err := mc.getWarnings()
 		return err
 	}
+
 	return nil
 }
 
