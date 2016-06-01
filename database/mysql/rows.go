@@ -10,7 +10,6 @@ package mysql
 
 import (
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/bytedance/dbatman/errors"
 	"io"
 )
 
@@ -151,19 +150,19 @@ func (rows *BinaryRows) Next(dest []driver.Value) error {
 func (rows *BinaryRows) NextRowPacket() (driver.RawPacket, error) {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
-			return nil, errors.Trace(ErrInvalidConn)
+			return nil, ErrInvalidConn
 		}
 
 		// Fetch next row from stream
 		return rows.readRowPacket()
 	}
-	return nil, errors.Trace(io.EOF)
+	return nil, io.EOF
 }
 
 func (rows *BinaryRows) readRowPacket() (driver.RawPacket, error) {
 	data, err := rows.mc.readPacket()
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err
 	}
 
 	// packet indicator [1 byte]
@@ -172,15 +171,15 @@ func (rows *BinaryRows) readRowPacket() (driver.RawPacket, error) {
 		if data[0] == iEOF && len(data) == 5 {
 			rows.mc.status = readStatus(data[3:])
 			if err := rows.mc.discardResults(); err != nil {
-				return nil, errors.Trace(err)
+				return nil, err
 			}
 			rows.mc = nil
-			return nil, errors.Trace(io.EOF)
+			return nil, io.EOF
 		}
 		rows.mc = nil
 
 		// Error otherwise
-		return nil, errors.Trace(rows.mc.handleErrorPacket(data))
+		return nil, rows.mc.handleErrorPacket(data)
 	}
 
 	return data, nil
@@ -201,19 +200,19 @@ func (rows *TextRows) Next(dest []driver.Value) error {
 func (rows *TextRows) NextRowPacket() (driver.RawPacket, error) {
 	if mc := rows.mc; mc != nil {
 		if mc.netConn == nil {
-			return nil, errors.Trace(ErrInvalidConn)
+			return nil, ErrInvalidConn
 		}
 
 		// Fetch next row from stream
 		return rows.readRowPacket()
 	}
-	return nil, errors.Trace(io.EOF)
+	return nil, io.EOF
 }
 
 func (rows *TextRows) readRowPacket() (driver.RawPacket, error) {
 	data, err := rows.mc.readPacket()
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err
 	}
 
 	// EOF Packet
@@ -221,14 +220,14 @@ func (rows *TextRows) readRowPacket() (driver.RawPacket, error) {
 		// server_status [2 bytes]
 		rows.mc.status = readStatus(data[3:])
 		if err := rows.mc.discardResults(); err != nil {
-			return nil, errors.Trace(err)
+			return nil, err
 		}
 		rows.mc = nil
-		return nil, errors.Trace(io.EOF)
+		return nil, io.EOF
 	}
 	if data[0] == iERR {
 		rows.mc = nil
-		return nil, errors.Trace(rows.mc.handleErrorPacket(data))
+		return nil, rows.mc.handleErrorPacket(data)
 	}
 
 	// Preserve packet header for proxy usage

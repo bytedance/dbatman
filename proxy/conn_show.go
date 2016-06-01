@@ -3,7 +3,6 @@ package proxy
 import (
 	"bytes"
 	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
@@ -54,13 +53,13 @@ func (session *Session) writeFieldList(rs mysql.Rows) error {
 	for _, col := range cols {
 		if err := session.fc.WritePacket(col); err != nil {
 			log.Debugf("write columns packet error %v", err)
-			return errors.Trace(err)
+			return err
 		}
 	}
 
 	// TODO Write a ok packet
 	if err = session.fc.WriteEOF(); err != nil {
-		return errors.Trace(err)
+		return err
 	}
 
 	return nil

@@ -16,7 +16,6 @@ import (
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/ngaut/log"
 	"io"
@@ -121,38 +120,37 @@ func (session *Session) writeRows(rs mysql.Rows) error {
 	data := make([]byte, 4, 32)
 	data = mysql.AppendLengthEncodedInteger(data, uint64(len(cols)))
 	if err = session.fc.WritePacket(data); err != nil {
-		return errors.Trace(err)
+		return err
 	}
 
 	// Write Columns Packet
 	for _, col := range cols {
 		if err := session.fc.WritePacket(col); err != nil {
 			log.Debugf("write columns packet error %v", err)
-			return errors.Trace(err)
+			return err
 		}
 	}
 
 	// TODO Write a ok packet
 	if err = session.fc.WriteEOF(); err != nil {
-		return errors.Trace(err)
+		return err
 	}
 
 	for {
 		packet, err := rs.NextRowPacket()
 
 		// Handle Error
-		rerr := errors.Real(err)
 
-		if rerr != nil {
-			if rerr == io.EOF {
+		if err != nil {
+			if err == io.EOF {
 				return session.fc.WriteEOF()
 			} else {
-				return session.handleMySQLError(rerr)
+				return session.handleMySQLError(err)
 			}
 		}
 
 		if err := session.fc.WritePacket(packet); err != nil {
-			return errors.Trace(err)
+			return err
 		}
 	}
 
@@ -161,19 +159,12 @@ func (session *Session) writeRows(rs mysql.Rows) error {
 
 func (session *Session) handleMySQLError(e error) error {
 
-	err := errors.Real(e)
-
-	switch inst := err.(type) {
+	switch inst := e.(type) {
 	case *mysql.MySQLError:
 		session.fc.WriteError(inst)
 		return nil
-	case *mysql.MySQLWarnings:
-		// TODO process warnings
-		log.Debugf("warnings %v", inst)
-		session.fc.WriteOK(nil)
-		return nil
 	default:
-		log.Warnf("default error: %T %s", err, errors.ErrorStack(e))
-		return err
+		log.Warnf("default error: %T %s", e, e)
+		return e
 	}
 }

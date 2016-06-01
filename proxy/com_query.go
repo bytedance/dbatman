@@ -3,7 +3,6 @@ package proxy
 import (
 	"fmt"
 	. "github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
@@ -69,7 +68,7 @@ func (session *Session) handleExec(stmt parser.IStatement, sqlstmt string, isrea
 		return session.handleMySQLError(err)
 	}
 
-	return errors.Trace(session.exec(sqlstmt, isread))
+	return session.exec(sqlstmt, isread)
 }
 
 // handleDDL process DDL Statements where
@@ -79,7 +78,7 @@ func (session *Session) handleDDL(ddl parser.IDDLStatement, sqlstmt string) erro
 	}
 
 	// All DDL statement must use master conn
-	return errors.Trace(session.exec(sqlstmt, false))
+	return session.exec(sqlstmt, false)
 }
 
 // for a weak secure issue, we check the db in statement to protect wrong ops
@@ -105,8 +104,8 @@ func (session *Session) exec(sqlstmt string, isread bool) error {
 
 	rs, err := session.Executor(isread).Exec(sqlstmt)
 	if err != nil {
-		return errors.Trace(session.handleMySQLError(err))
+		return session.handleMySQLError(err)
 	}
 
-	return errors.Trace(session.fc.WriteOK(rs))
+	return session.fc.WriteOK(rs)
 }

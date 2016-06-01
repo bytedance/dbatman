@@ -16,7 +16,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bytedance/dbatman/database/sql/driver"
-	juju "github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 	"io"
 	"runtime"
@@ -974,14 +973,15 @@ func (db *DB) exec(query string, args []interface{}, strategy connReuseStrategy)
 		dc.Lock()
 		resi, err := execer.Exec(query, dargs)
 		dc.Unlock()
-		if juju.Real(err) != driver.ErrSkip {
+
+		if err != driver.ErrSkip {
 			if err != nil {
-				if _, ok := juju.Real(err).(MySQLWarnings); !ok {
+				if _, ok := err.(MySQLWarnings); !ok {
 					return nil, err
 				}
 			}
 
-			return driverResult{dc, resi}, err
+			return driverResult{dc, resi}, nil
 		}
 	}
 
@@ -1417,7 +1417,7 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 		if err == nil {
 			return driverResult{dc, resi}, nil
 		}
-		if _, ok := juju.Real(err).(MySQLWarnings); ok {
+		if _, ok := err.(MySQLWarnings); ok {
 			return driverResult{dc, resi}, err
 		}
 		if err != driver.ErrSkip {
@@ -1507,13 +1507,13 @@ func (s *Stmt) Exec(args ...interface{}) (Result, error) {
 			if err == driver.ErrBadConn {
 				continue
 			}
-			return nil, juju.Trace(err)
+			return nil, err
 		}
 
 		res, err = resultFromStatement(driverStmt{dc, si}, args...)
 		releaseConn(err)
 		if err != driver.ErrBadConn {
-			return res, juju.Trace(err)
+			return res, err
 		}
 	}
 	return nil, driver.ErrBadConn
@@ -1539,21 +1539,19 @@ func resultFromStatement(ds driverStmt, args ...interface{}) (Result, error) {
 
 	dargs, err := driverArgs(&ds, args)
 	if err != nil {
-		return nil, juju.Trace(err)
+		return nil, err
 	}
 
 	ds.Lock()
 	resi, err := ds.si.Exec(dargs)
 	ds.Unlock()
 
-	if juju.Real(err) != driver.ErrSkip {
+	if err != driver.ErrSkip {
 		if err != nil {
-			if _, ok := juju.Real(err).(MySQLWarnings); !ok {
+			if _, ok := err.(MySQLWarnings); !ok {
 				return nil, err
 			}
 		}
-
-		return driverResult{ds.Locker, resi}, err
 	}
 	return driverResult{ds.Locker, resi}, nil
 }
@@ -1834,7 +1832,7 @@ func (rs *sqlrows) NextRowPacket() (driver.RawPacket, error) {
 	row, rs.lasterr = rs.rowsi.NextRowPacket()
 	if rs.lasterr != nil {
 		rs.Close()
-		return row, juju.Trace(rs.lasterr)
+		return row, rs.lasterr
 	}
 
 	return row, nil

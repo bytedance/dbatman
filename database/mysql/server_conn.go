@@ -17,7 +17,6 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 	"net"
 	"sync/atomic"
@@ -84,27 +83,27 @@ func (mc *MySQLServerConn) Handshake() error {
 	// Handeshake
 	if err = mc.writeInitPacket(); err != nil {
 		mc.cleanup()
-		return errors.Trace(err)
+		return err
 	}
 
 	if err = mc.readHandshakeResponse(); err != nil {
-		if e, ok := errors.Real(err).(*MySQLError); ok {
+		if e, ok := err.(*MySQLError); ok {
 			mc.WriteError(e)
 		}
 
 		mc.cleanup()
-		return errors.Trace(err)
+		return err
 	}
 
 	// TODO here we should proceed PROTOCOL41 ?
 	if err = mc.WriteOK(nil); err != nil {
 		mc.cleanup()
-		return errors.Trace(err)
+		return err
 	}
 
 	if err = mc.Flush(); err != nil {
 		mc.cleanup()
-		return errors.Trace(err)
+		return err
 	}
 
 	mc.sequence = 0
@@ -266,7 +265,7 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 	} else {
 		// connect must with db, otherwise it will deny the access
 		if len(data[pos:]) == 0 {
-			return errors.Trace(NewDefaultError(ER_ACCESS_DENIED_ERROR, mc.netConn.RemoteAddr().String(), user, "Yes"))
+			return NewDefaultError(ER_ACCESS_DENIED_ERROR, mc.netConn.RemoteAddr().String(), user, "Yes")
 		}
 
 		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
@@ -416,7 +415,7 @@ func (mc *MySQLServerConn) HandleOkPacket(data []byte) error {
 }
 
 func (mc *MySQLServerConn) HandleErrorPacket(data []byte) error {
-	return errors.Trace(mc.handleErrorPacket(data))
+	return mc.handleErrorPacket(data)
 }
 
 func (mc *MySQLServerConn) cleanup() {

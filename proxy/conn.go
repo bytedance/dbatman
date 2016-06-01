@@ -3,7 +3,6 @@ package proxy
 import (
 	"errors"
 	"github.com/bytedance/dbatman/database/mysql"
-	juju "github.com/bytedance/dbatman/errors"
 )
 
 // Wrap the connection
@@ -18,13 +17,13 @@ type SqlConn struct {
 
 func (bc *SqlConn) begin() error {
 	if bc.tx != nil {
-		return juju.Trace(errors.New("duplicate begin"))
+		return errors.New("duplicate begin")
 	}
 
 	var err error
 	bc.tx, err = bc.master.Begin()
 	if err != nil {
-		return juju.Trace(err)
+		return err
 	}
 
 	return nil
@@ -32,7 +31,7 @@ func (bc *SqlConn) begin() error {
 
 func (bc *SqlConn) commit() error {
 	if bc.tx == nil {
-		return juju.Trace(errors.New("unexpect commit"))
+		return errors.New("unexpect commit")
 	}
 
 	defer func() {
@@ -40,7 +39,7 @@ func (bc *SqlConn) commit() error {
 	}()
 
 	if err := bc.tx.Commit(); err != nil {
-		return juju.Trace(err)
+		return err
 	}
 
 	return nil
@@ -48,7 +47,7 @@ func (bc *SqlConn) commit() error {
 
 func (bc *SqlConn) rollback() error {
 	if bc.tx == nil {
-		return juju.Trace(errors.New("unexpect rollback"))
+		return errors.New("unexpect rollback")
 	}
 
 	defer func() {
@@ -56,7 +55,7 @@ func (bc *SqlConn) rollback() error {
 	}()
 
 	if err := bc.tx.Rollback(); err != nil {
-		return juju.Trace(err)
+		return err
 	}
 
 	return nil

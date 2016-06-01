@@ -10,7 +10,6 @@ package mysql
 
 import (
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/bytedance/dbatman/errors"
 	"net"
 	"strconv"
 	"strings"
@@ -295,7 +294,7 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 		}, err
 	}
 
-	return nil, errors.Trace(err)
+	return nil, err
 }
 
 // Internal function to execute commands
@@ -304,20 +303,20 @@ func (mc *MySQLConn) exec(query string) error {
 	// Send command
 	err := mc.writeCommandPacketStr(comQuery, query)
 	if err != nil {
-		return errors.Trace(err)
+		return err
 	}
 
 	// Read Result
 	resLen, err := mc.readResultSetHeaderPacket()
 	if err == nil && resLen > 0 {
 		if err = mc.readUntilEOF(); err != nil {
-			return errors.Trace(err)
+			return err
 		}
 
 		err = mc.readUntilEOF()
 	}
 
-	return errors.Trace(err)
+	return err
 }
 
 func (mc *MySQLConn) Query(query string, args []driver.Value) (driver.Rows, error) {
@@ -397,7 +396,7 @@ func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {
 		if resLen > 0 {
 			// Columns
 			if err := mc.readUntilEOF(); err != nil {
-				return nil, errors.Trace(err)
+				return nil, err
 			}
 		}
 
@@ -406,7 +405,7 @@ func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {
 			return dest[0].([]byte), mc.readUntilEOF()
 		}
 	}
-	return nil, errors.Trace(err)
+	return nil, err
 }
 
 func (mc *MySQLConn) IsBroken() bool {

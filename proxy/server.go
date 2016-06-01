@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/bytedance/dbatman/config"
 	_ "github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 	"net"
 	"runtime"
@@ -34,7 +33,7 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 	port := s.cfg.GetConfig().Global.Port
 	s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%d", port))
 	if err != nil {
-		return nil, errors.Trace(err)
+		return nil, err
 	}
 
 	log.Infof("Dbatman Listen(tcp4) at [%d]", port)
@@ -84,7 +83,7 @@ func (s *Server) onConn(c net.Conn) {
 
 	// Handshake error, here we do not need to close the conn
 	if err := session.Handshake(); err != nil {
-		log.Warnf("handshake error: %s", errors.ErrorStack(err))
+		log.Warnf("handshake error: %s", err)
 		return
 	}
 

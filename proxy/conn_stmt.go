@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
 	"strconv"
@@ -150,8 +149,7 @@ func (session *Session) handleComStmtExecute(data []byte) error {
 		err = session.handleStmtExec(stmt, data[pos:])
 	}
 
-	return errors.Trace(err)
-
+	return err
 }
 
 func (session *Session) handleStmtExec(stmt *mysql.Stmt, data []byte) error {

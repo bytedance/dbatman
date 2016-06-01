@@ -5,7 +5,6 @@ import (
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 
 	gosql "database/sql"
@@ -196,8 +195,6 @@ func newSqlDB(dsn string) *gosql.DB {
 
 func TestMain(m *testing.M) {
 	// Init dbatman_test database
-
-	errors.SetTrace(true)
 
 	db := newSqlDB(testDBDSN)
 

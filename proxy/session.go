@@ -20,7 +20,6 @@ import (
 	"github.com/bytedance/dbatman/database/cluster"
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql/driver"
-	juju "github.com/bytedance/dbatman/errors"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/ngaut/log"
 	"net"
@@ -58,7 +57,7 @@ func (s *Server) newSession(conn net.Conn) *Session {
 func (session *Session) Handshake() error {
 
 	if err := session.fc.Handshake(); err != nil {
-		log.Debug("handshake error: %s", juju.ErrorStack(err))
+		log.Debug("handshake error: %s", err)
 		return err
 	}
 
