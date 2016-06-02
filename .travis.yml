@@ -14,6 +14,7 @@ addons:
       - mysql-testsuite
 
 before_install:
+  - git submodule update --init --recursive
   - go get github.com/onsi/gomega
   - go get github.com/onsi/ginkgo
   - go get golang.org/x/tools/cmd/cover
@@ -23,7 +24,7 @@ before_script:
   - mysql -u root -e 'create database dbatman_test;'
 
 script:
-  - ./test.sh
+  - ./unitest.sh
   #- go build ./...
   #- ./cmd/dbatman/dbatman -config config/test.yml &
   #- mysql_client_test -uproxy_test_user -ptest -h127.0.0.1 -P4306 -Dclient_test_db

@@ -906,6 +906,46 @@ func TestUint64(t *testing.T) {
 	})
 }
 
+func TestResultWithInfo(t *testing.T) {
+
+	runTests(t, dsn, func(dbt *DBTest) {
+		// Create Table
+		dbt.mustExec("CREATE TABLE test (a INT, b INT, c INT, UNIQUE (A), UNIQUE(B))")
+
+		// Test for unexpected data
+		rows := dbt.mustQuery("SELECT * FROM test")
+		if rows.Next() {
+			dbt.Error("unexpected data in empty table")
+		}
+
+		// Create Data
+		res := dbt.mustExec("INSERT test VALUES (1,2,10), (3,4,20)")
+		count, err := res.RowsAffected()
+		if err != nil {
+			dbt.Fatalf("res.RowsAffected() returned error: %s", err.Error())
+		}
+		if count != 2 {
+			dbt.Fatalf("expected 2 affected row, got %d", count)
+		}
+
+		// Create Data With Duplicate
+		res = dbt.mustExec("INSERT test VALUES (5,6,30), (7,4,40), (8,9,60) ON DUPLICATE KEY UPDATE c=c+100;")
+		count, err = res.RowsAffected()
+		if err != nil {
+			dbt.Fatalf("res.RowsAffected() returned error: %s", err.Error())
+		}
+		if count != 4 {
+			dbt.Fatalf("expected 4 affected row, got %d", count)
+		}
+
+		info, _ := res.Info()
+		if len(info) == 0 {
+			dbt.Fatal("expected duplicate info, got nil string")
+		}
+		println(info)
+	})
+}
+
 func TestLongData(t *testing.T) {
 	runTests(t, dsn, func(dbt *DBTest) {
 		var maxAllowedPacketSize int

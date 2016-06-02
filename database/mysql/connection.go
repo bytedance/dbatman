@@ -100,6 +100,9 @@ func (mc *MySQLConn) cleanup() {
 		}
 		mc.netConn = nil
 	}
+
+	// must clean status_info
+	mc.status_info = ""
 	mc.cfg = nil
 	mc.buf.nc = nil
 }
