@@ -21,12 +21,15 @@ func TestProxy_Tx(t *testing.T) {
 	}
 
 	if rs, err := tx.Exec(`insert into dbatman_test_tx values(
-			1, 
+			1,
 			"abc")`); err != nil {
+		tx.Rollback()
 		t.Fatalf("insert in transaction failed: %s", err)
 	} else if rn, err := rs.RowsAffected(); err != nil {
+		tx.Rollback()
 		t.Fatalf("insert failed: %s", err)
 	} else if rn != 1 {
+		tx.Rollback()
 		t.Fatalf("expect 1 rows, got %d", rn)
 	}
 
@@ -66,12 +69,15 @@ func TestProxy_Tx(t *testing.T) {
 	}
 
 	if rs, err := tx.Exec(`insert into dbatman_test_tx values(
-			1, 
+			1,
 			"abc")`); err != nil {
+		tx.Rollback()
 		t.Fatalf("insert in transaction failed: %s", err)
 	} else if rn, err := rs.RowsAffected(); err != nil {
+		tx.Rollback()
 		t.Fatalf("insert failed: %s", err)
 	} else if rn != 1 {
+		tx.Rollback()
 		t.Fatalf("expect 1 rows, got %d", rn)
 	}
 

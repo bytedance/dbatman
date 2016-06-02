@@ -1414,13 +1414,13 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 		dc.Lock()
 		resi, err := execer.Exec(query, dargs)
 		dc.Unlock()
-
-		if err != driver.ErrSkip {
+		if err != nil && err != driver.ErrSkip {
 			if _, ok := err.(MySQLWarnings); !ok {
+				log.Debugf("Got Tx Error: %s", err)
 				return nil, err
-			} else {
-				log.Debug("Got MySQL Warnings: " + err.Error())
 			}
+
+			log.Debug("Got Tx Warnings: " + err.Error())
 		}
 
 		return driverResult{dc, resi}, nil
