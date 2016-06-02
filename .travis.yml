@@ -8,10 +8,10 @@ go:
 addons:
   apt:
     packages:
-      - mysql-server-5.7
-      - mysql-client-core-5.7
-      - mysql-client-5.7
-      - mysql-testsuite-5.7
+      - mysql-server-5.5
+      - mysql-client-core-5.5
+      - mysql-client-5.5
+      - mysql-testsuite
 
 before_install:
   - go get github.com/onsi/gomega
