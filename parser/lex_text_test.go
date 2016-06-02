@@ -53,12 +53,12 @@ func TestStringException(t *testing.T) {
 	str := `'\'`
 	lexer, lval := getLexer(str)
 	if r := lexer.Lex(lval); r != ABORT_SYM {
-		t.Fatalf("parse text failed. return[%s]", MySQLToknames[r-ABORT_SYM])
+		t.Fatalf("parse text failed. return[%s]", MySQLSymNames[r-ABORT_SYM])
 	}
 
 	lexer, lval = getLexer(`"\`)
 	if r := lexer.Lex(lval); r != ABORT_SYM {
-		t.Fatalf("parse text failed. return[%s]", MySQLToknames[r-ABORT_SYM])
+		t.Fatalf("parse text failed. return[%s]", MySQLSymNames[r-ABORT_SYM])
 	}
 }
 

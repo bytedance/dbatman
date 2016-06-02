@@ -45,7 +45,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestTokenName(t *testing.T) {
-	if name := MySQLTokname(ABORT_SYM); name == "" {
+	if name := MySQLSymName(ABORT_SYM); name == "" {
 		t.Fatal("get token name error")
 	}
 }

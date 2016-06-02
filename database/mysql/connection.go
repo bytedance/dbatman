@@ -10,7 +10,6 @@ package mysql
 
 import (
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/bytedance/dbatman/errors"
 	"net"
 	"strconv"
 	"strings"
@@ -32,6 +31,7 @@ type MySQLConn struct {
 	parseTime        bool
 	strict           bool
 	threadId         uint32
+	status_info      string // General response info
 }
 
 // Handles parameters set in DSN after the connection is established
@@ -282,6 +282,7 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 			insertId:     int64(mc.insertId),
 			status:       mc.status,
 			warnings:     nil,
+			status_info:  mc.status_info,
 		}, nil
 	} else if errs, ok := err.(MySQLWarnings); ok {
 		return &MySQLResult{
@@ -289,10 +290,11 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 			insertId:     int64(mc.insertId),
 			status:       mc.status,
 			warnings:     errs.Errors(),
+			status_info:  mc.status_info,
 		}, err
 	}
 
-	return nil, errors.Trace(err)
+	return nil, err
 }
 
 // Internal function to execute commands
@@ -301,20 +303,20 @@ func (mc *MySQLConn) exec(query string) error {
 	// Send command
 	err := mc.writeCommandPacketStr(comQuery, query)
 	if err != nil {
-		return errors.Trace(err)
+		return err
 	}
 
 	// Read Result
 	resLen, err := mc.readResultSetHeaderPacket()
 	if err == nil && resLen > 0 {
 		if err = mc.readUntilEOF(); err != nil {
-			return errors.Trace(err)
+			return err
 		}
 
 		err = mc.readUntilEOF()
 	}
 
-	return errors.Trace(err)
+	return err
 }
 
 func (mc *MySQLConn) Query(query string, args []driver.Value) (driver.Rows, error) {
@@ -356,6 +358,26 @@ func (mc *MySQLConn) Query(query string, args []driver.Value) (driver.Rows, erro
 	return nil, err
 }
 
+func (mc *MySQLConn) FieldList(table string, wild string) (driver.Rows, error) {
+	if mc.netConn == nil {
+		errLog.Print(ErrInvalidConn)
+		return nil, driver.ErrBadConn
+	}
+
+	err := mc.writeCommandFieldList(table, wild)
+	if err == nil {
+		rows := new(TextRows)
+		rows.comFieldList = true
+		rows.mc = mc
+		rows.columns, err = mc.readFieldList()
+		if err == nil {
+			return rows, nil
+		}
+	}
+
+	return nil, err
+}
+
 // Gets the value of the given MySQL System Variable
 // The returned byte slice is only valid until the next read
 func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {
@@ -374,7 +396,7 @@ func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {
 		if resLen > 0 {
 			// Columns
 			if err := mc.readUntilEOF(); err != nil {
-				return nil, errors.Trace(err)
+				return nil, err
 			}
 		}
 
@@ -383,7 +405,7 @@ func (mc *MySQLConn) getSystemVar(name string) ([]byte, error) {
 			return dest[0].([]byte), mc.readUntilEOF()
 		}
 	}
-	return nil, errors.Trace(err)
+	return nil, err
 }
 
 func (mc *MySQLConn) IsBroken() bool {

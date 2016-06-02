@@ -18,8 +18,7 @@
 
 %{
 package parser
-import (
-)
+import ()
 %}
 
 
@@ -800,15 +799,15 @@ import (
 %type <expr> expr set_expr_or_default
 %type <exprs> expr_list
 %type <boolexpr> bool_pri
-%type <valexpr> predicate bit_expr simple_expr simple_ident literal param_marker variable literal text_literal temporal_literal NUM_literal simple_ident_q 
+%type <valexpr> predicate bit_expr simple_expr simple_ident literal param_marker variable text_literal temporal_literal NUM_literal simple_ident_q 
 
 %%
 
 
 query:
-  END_OF_INPUT { SetParseTree(MySQLlex, nil) } 
-| verb_clause ';' opt_end_of_input { SetParseTree(MySQLlex, $1) } 
-| verb_clause END_OF_INPUT { SetParseTree(MySQLlex, $1) }
+  END_OF_INPUT { SetParseTree(yylex, nil) } 
+| verb_clause ';' opt_end_of_input { SetParseTree(yylex, $1) } 
+| verb_clause END_OF_INPUT { SetParseTree(yylex, $1) }
 ; 
 
 opt_end_of_input:
@@ -959,7 +958,7 @@ create:
   { 
     switch st := $2.(type) {
         case *viewTail:
-        $$ = &CreateView{View: st.View}
+        $$ = &CreateView{View: st.View, As: st.As}
         case *triggerTail:
         $$ = &CreateTrigger{Trigger: st.Trigger}
         case *spTail:
@@ -2675,7 +2674,9 @@ select_init2:
 
 select_part2:
   select_options select_item_list select_into select_lock_type
-  { $$ = &Select {From: $3, LockType: $4} }
+  { 
+    $$ = &Select {From: $3, LockType: $4} 
+  }
 ;
 
 select_into:
@@ -4932,7 +4933,9 @@ view_suid:
 
 view_tail:
   view_suid VIEW_SYM table_ident view_list_opt AS view_select
-  { $$ = &viewTail{View: $3, As: $6} }
+  { 
+	$$ = &viewTail{View: $3, As: $6}
+  }
 ;
 
 view_list_opt:

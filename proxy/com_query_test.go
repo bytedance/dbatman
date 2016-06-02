@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"github.com/bytedance/dbatman/errors"
 	"testing"
 )
 
@@ -36,9 +35,9 @@ func TestProxy_Query(t *testing.T) {
 			"test1", 
 			255, 
 			-127)`); err != nil {
-		t.Fatal("insert failed: ", errors.ErrorStack(err))
+		t.Fatal("insert failed: ", err)
 	} else if rows, err := rs.RowsAffected(); err != nil {
-		t.Fatal("insert failed: ", errors.ErrorStack(err))
+		t.Fatal("insert failed: ", err)
 	} else if rows != 1 {
 		t.Fatalf("expect insert 1 rows, got %d", rows)
 	}
@@ -47,9 +46,9 @@ func TestProxy_Query(t *testing.T) {
 		update go_proxy_test_proxy_conn 
 			set str="abcde", f=3.1415926, e="test2", u=128, i=126
 			where id=1`); err != nil {
-		t.Fatal("update failed: ", errors.ErrorStack(err))
+		t.Fatal("update failed: ", err)
 	} else if rows, err := rs.RowsAffected(); err != nil {
-		t.Fatal("update failed: ", errors.ErrorStack(err))
+		t.Fatal("update failed: ", err)
 	} else if rows != 1 {
 		t.Fatalf("expect update 1 rows, got %d", rows)
 	}
@@ -62,17 +61,17 @@ func TestProxy_Query(t *testing.T) {
 			"test1", 
 			255, 
 			-127)`); err != nil {
-		t.Fatal("insert failed: ", errors.ErrorStack(err))
+		t.Fatal("insert failed: ", err)
 	} else if rows, err := rs.RowsAffected(); err != nil {
-		t.Fatal("insert failed: ", errors.ErrorStack(err))
+		t.Fatal("insert failed: ", err)
 	} else if rows != 1 {
 		t.Fatalf("expect insert 1 rows, got %d", rows)
 	}
 
 	if rs, err := db.Exec(`delete from go_proxy_test_proxy_conn where id = 1 or id = 2`); err != nil {
-		t.Fatal("delete failed: ", errors.ErrorStack(err))
+		t.Fatal("delete failed: ", err)
 	} else if rows, err := rs.RowsAffected(); err != nil {
-		t.Fatal("delete failed: ", errors.ErrorStack(err))
+		t.Fatal("delete failed: ", err)
 	} else if rows != 2 {
 		t.Fatalf("expect delete 2 rows, got %d", rows)
 	}

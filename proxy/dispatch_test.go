@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/errors"
 	"testing"
 )
 
@@ -40,8 +39,8 @@ func TestProxy_ComInitDB(t *testing.T) {
 
 	if err := conn.ReadResultOK(); err == nil {
 		t.Fatal("expect an error result packet")
-	} else if e, ok := errors.Real(err).(*mysql.MySQLError); !ok {
-		t.Fatal(errors.ErrorStack(err))
+	} else if e, ok := err.(*mysql.MySQLError); !ok {
+		t.Fatal(err)
 	} else if e.Number != 1049 {
 		t.Fatal("expect an Unknow DB error")
 	}

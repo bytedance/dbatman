@@ -5,8 +5,6 @@ import (
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/database/sql"
-	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 
 	gosql "database/sql"
@@ -30,8 +28,8 @@ var proxyConfig *config.ProxyConfig
 
 var testConfigData = []byte(`
 global:
-  port: 3307
-  manage_port: 3308
+  port: 4307
+  manage_port: 4308
   max_connections: 10
   log_filename: ./log/dbatman.log
   log_level: 31
@@ -87,7 +85,7 @@ users:
 `)
 
 var testDBDSN = "root:@tcp(127.0.0.1:3306)/mysql"
-var testProxyDSN = "proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:3307)/dbatman_test"
+var testProxyDSN = "proxy_mysql_user:proxy_mysql_passwd@tcp(127.0.0.1:4307)/dbatman_test"
 
 func newTestServer() (*Server, error) {
 	f := func() {
@@ -143,7 +141,7 @@ func newTestCluster(cluster_name string) (*cluster.Cluster, error) {
 	return testCluster, testClusterError
 }
 
-func newTestDB(t *testing.T) *sql.DB {
+func newTestDB(t *testing.T) *mysql.DB {
 	cls, err := newTestCluster("dbatman_test_cluster")
 	if err != nil {
 		t.Fatal(err)
@@ -198,9 +196,13 @@ func newSqlDB(dsn string) *gosql.DB {
 func TestMain(m *testing.M) {
 	// Init dbatman_test database
 
-	errors.SetTrace(true)
-
 	db := newSqlDB(testDBDSN)
+
+	// Create DataBase dbatman_test
+	if _, err := db.Exec("DROP DATABASE IF EXISTS `dbatman_test`"); err != nil {
+		fmt.Fprintln(os.Stderr, "create database `dbatman_test` failed: ", err.Error())
+		os.Exit(2)
+	}
 
 	// Create DataBase dbatman_test
 	if _, err := db.Exec("CREATE DATABASE IF NOT EXISTS `dbatman_test`"); err != nil {

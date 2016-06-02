@@ -14,6 +14,7 @@
 package proxy
 
 import (
+	"errors"
 	"github.com/bytedance/dbatman/cmd/version"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
@@ -40,6 +41,8 @@ type Session struct {
 	// lastcmd uint8
 }
 
+var errSessionQuit error = errors.New("session closed by client")
+
 func (s *Server) newSession(conn net.Conn) *Session {
 	session := new(Session)
 
@@ -56,6 +59,7 @@ func (s *Server) newSession(conn net.Conn) *Session {
 func (session *Session) Handshake() error {
 
 	if err := session.fc.Handshake(); err != nil {
+		log.Debug("handshake error: %s", err)
 		return err
 	}
 
@@ -73,12 +77,16 @@ func (session *Session) Run() error {
 			return err
 		}
 
+		if data[0] == ComQuit {
+			return errSessionQuit
+		}
+
 		if err := session.dispatch(data); err != nil {
 			if err == driver.ErrBadConn {
 				// TODO handle error
-				// log.Warn(err)
 			}
 
+			log.Warnf("dispatch error: %s", err.Error())
 			return err
 		}
 
@@ -86,7 +94,7 @@ func (session *Session) Run() error {
 
 		if session.closed {
 			// TODO return MySQL Go Away ?
-			return nil
+			return errors.New("session closed!")
 		}
 	}
 

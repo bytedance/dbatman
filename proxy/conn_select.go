@@ -28,5 +28,5 @@ func (session *Session) handleQuery(stmt parser.IStatement, sqlstmt string) erro
 
 	defer rs.Close()
 
-	return session.WriteRows(rs)
+	return session.writeRows(rs)
 }

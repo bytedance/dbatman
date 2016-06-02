@@ -14,12 +14,13 @@
 package mysql
 
 import (
+	"bufio"
 	"bytes"
 	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/bytedance/dbatman/errors"
 	"github.com/ngaut/log"
 	"net"
 	"sync/atomic"
+	"time"
 )
 
 // MySQLServerCtx is a server-side interface of 1-time-connection
@@ -31,6 +32,10 @@ type MySQLServerCtx interface {
 	ServerName() []byte
 }
 
+const (
+	defaultWriterSize = 16 * 1024
+)
+
 // Connection between mysql client <-> mysql server
 // here we wrap the go-mysql-driver.MySQLConn
 type MySQLServerConn struct {
@@ -38,6 +43,7 @@ type MySQLServerConn struct {
 	ctx       MySQLServerCtx
 	collation CollationId
 	connID    uint32
+	wb        *bufio.Writer
 }
 
 var baseConnId uint32 = 10000
@@ -54,6 +60,7 @@ func NewMySQLServerConn(s MySQLServerCtx, conn net.Conn) *MySQLServerConn {
 	}
 
 	c.buf = newBuffer(c.netConn)
+	c.wb = bufio.NewWriterSize(conn, defaultWriterSize)
 
 	// Default Capacity Flags
 	c.flags = ClientLongPassword | ClientLongFlag |
@@ -76,22 +83,27 @@ func (mc *MySQLServerConn) Handshake() error {
 	// Handeshake
 	if err = mc.writeInitPacket(); err != nil {
 		mc.cleanup()
-		return errors.Trace(err)
+		return err
 	}
 
 	if err = mc.readHandshakeResponse(); err != nil {
-		if e, ok := errors.Real(err).(*MySQLError); ok {
+		if e, ok := err.(*MySQLError); ok {
 			mc.WriteError(e)
 		}
 
 		mc.cleanup()
-		return errors.Trace(err)
+		return err
 	}
 
 	// TODO here we should proceed PROTOCOL41 ?
 	if err = mc.WriteOK(nil); err != nil {
 		mc.cleanup()
-		return errors.Trace(err)
+		return err
+	}
+
+	if err = mc.Flush(); err != nil {
+		mc.cleanup()
+		return err
 	}
 
 	mc.sequence = 0
@@ -203,6 +215,10 @@ func (mc *MySQLServerConn) writeInitPacket() error {
 		return err
 	}
 
+	if err := mc.Flush(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -249,7 +265,7 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 	} else {
 		// connect must with db, otherwise it will deny the access
 		if len(data[pos:]) == 0 {
-			return errors.Trace(NewDefaultError(ER_ACCESS_DENIED_ERROR, mc.netConn.RemoteAddr().String(), user, "Yes"))
+			return NewDefaultError(ER_ACCESS_DENIED_ERROR, mc.netConn.RemoteAddr().String(), user, "Yes")
 		}
 
 		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
@@ -312,6 +328,11 @@ func (mc *MySQLServerConn) WriteOK(r driver.Result) error {
 		data = append(data, byte(warnings), byte(warnings>>8))
 	}
 
+	info, _ := r.Info()
+	if len(info) > 0 {
+		data = append(data, []byte(info)...)
+	}
+
 	return mc.WritePacket(data)
 }
 
@@ -327,8 +348,62 @@ func (mc *MySQLServerConn) WriteEOF() error {
 	return mc.WritePacket(data)
 }
 
-func (mc *MySQLConn) WritePacket(data []byte) error {
-	return mc.writePacket(data)
+func (mc *MySQLServerConn) WritePacket(data []byte) error {
+	pktLen := len(data) - 4
+
+	if pktLen > mc.maxPacketAllowed {
+		return ErrPktTooLarge
+	}
+
+	for {
+		var size int
+		if pktLen >= maxPacketSize {
+			data[0] = 0xff
+			data[1] = 0xff
+			data[2] = 0xff
+			size = maxPacketSize
+		} else {
+			data[0] = byte(pktLen)
+			data[1] = byte(pktLen >> 8)
+			data[2] = byte(pktLen >> 16)
+			size = pktLen
+		}
+		data[3] = mc.sequence
+
+		// Write packet
+		if mc.writeTimeout > 0 {
+			if err := mc.netConn.SetWriteDeadline(time.Now().Add(mc.writeTimeout)); err != nil {
+				return err
+			}
+		}
+
+		n, err := mc.wb.Write(data[:4+size])
+		if err == nil && n == 4+size {
+			mc.sequence++
+			if size != maxPacketSize {
+				return nil
+			}
+			pktLen -= size
+			data = data[size:]
+			continue
+		}
+
+		// Handle error
+		if err == nil { // n != len(data)
+			errLog.Print(ErrMalformPkt)
+		} else {
+			errLog.Print(err)
+		}
+		return driver.ErrBadConn
+	}
+}
+
+func (mc *MySQLServerConn) Flush() error {
+	if mc.wb != nil {
+		return mc.wb.Flush()
+	}
+
+	return nil
 }
 
 func (mc *MySQLConn) ReadPacket() ([]byte, error) {
@@ -339,10 +414,19 @@ func (mc *MySQLConn) ReadPacket() ([]byte, error) {
 *                   Function Wrapper for Export Visiable                      *
 ******************************************************************************/
 
-func (mc *MySQLConn) HandleOkPacket(data []byte) error {
+func (mc *MySQLServerConn) HandleOkPacket(data []byte) error {
 	return mc.handleOkPacket(data)
 }
 
-func (mc *MySQLConn) HandleErrorPacket(data []byte) error {
-	return errors.Trace(mc.handleErrorPacket(data))
+func (mc *MySQLServerConn) HandleErrorPacket(data []byte) error {
+	return mc.handleErrorPacket(data)
+}
+
+func (mc *MySQLServerConn) cleanup() {
+	if mc.wb != nil {
+		mc.Flush()
+		mc.wb = nil
+	}
+
+	mc.MySQLConn.cleanup()
 }

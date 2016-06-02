@@ -10,7 +10,7 @@ package mysql
 
 import (
 	"bytes"
-	"github.com/bytedance/dbatman/database/sql"
+	//"github.com/bytedance/dbatman/database/sql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"math"
 	"strings"
@@ -28,24 +28,24 @@ func (tb *TB) check(err error) {
 	}
 }
 
-func (tb *TB) checkDB(db *sql.DB, err error) *sql.DB {
+func (tb *TB) checkDB(db *DB, err error) *DB {
 	tb.check(err)
 	return db
 }
 
-func (tb *TB) checkRows(rows sql.Rows, err error) sql.Rows {
+func (tb *TB) checkRows(rows Rows, err error) Rows {
 	tb.check(err)
 	return rows
 }
 
-func (tb *TB) checkStmt(stmt *sql.Stmt, err error) *sql.Stmt {
+func (tb *TB) checkStmt(stmt *Stmt, err error) *Stmt {
 	tb.check(err)
 	return stmt
 }
 
-func initDB(b *testing.B, queries ...string) *sql.DB {
+func initDB(b *testing.B, queries ...string) *DB {
 	tb := (*TB)(b)
-	db := tb.checkDB(sql.Open("mysql", dsn))
+	db := tb.checkDB(Open("mysql", dsn))
 	for _, query := range queries {
 		if _, err := db.Exec(query); err != nil {
 			if w, ok := err.(MySQLWarnings); ok {
@@ -106,7 +106,7 @@ func BenchmarkExec(b *testing.B) {
 	tb := (*TB)(b)
 	b.StopTimer()
 	b.ReportAllocs()
-	db := tb.checkDB(sql.Open("mysql", dsn))
+	db := tb.checkDB(Open("mysql", dsn))
 	db.SetMaxIdleConns(concurrencyLevel)
 	defer db.Close()
 
@@ -151,7 +151,7 @@ func BenchmarkRoundtripTxt(b *testing.B) {
 	sampleString := string(sample)
 	b.ReportAllocs()
 	tb := (*TB)(b)
-	db := tb.checkDB(sql.Open("mysql", dsn))
+	db := tb.checkDB(Open("mysql", dsn))
 	defer db.Close()
 	b.StartTimer()
 	var result string
@@ -184,12 +184,12 @@ func BenchmarkRoundtripBin(b *testing.B) {
 	sample, min, max := initRoundtripBenchmarks()
 	b.ReportAllocs()
 	tb := (*TB)(b)
-	db := tb.checkDB(sql.Open("mysql", dsn))
+	db := tb.checkDB(Open("mysql", dsn))
 	defer db.Close()
 	stmt := tb.checkStmt(db.Prepare("SELECT ?"))
 	defer stmt.Close()
 	b.StartTimer()
-	var result sql.RawBytes
+	var result RawBytes
 	for i := 0; i < b.N; i++ {
 		length := min + i
 		if length > max {

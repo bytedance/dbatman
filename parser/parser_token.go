@@ -14,9 +14,9 @@ func TokenName(tok int) string {
 		return fmt.Sprintf("%c", tok)
 	}
 
-	if (tok-ABORT_SYM) < 0 || (tok-ABORT_SYM) > len(MySQLToknames) {
+	if (tok-ABORT_SYM) < 0 || (tok-ABORT_SYM) > len(MySQLSymNames) {
 		return fmt.Sprintf("Unknown Token:%d", tok)
 	}
 
-	return MySQLToknames[tok-ABORT_SYM]
+	return MySQLSymNames[tok-ABORT_SYM]
 }

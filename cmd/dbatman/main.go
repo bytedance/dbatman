@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
+	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/proxy"
 	"github.com/ngaut/log"
 	"net/http"
@@ -41,6 +42,8 @@ func main() {
 		log.Fatal(err.Error())
 		os.Exit(1)
 	}
+
+	mysql.SetLogger(log.Logger())
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,

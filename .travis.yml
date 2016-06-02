@@ -8,10 +8,10 @@ go:
 addons:
   apt:
     packages:
-      - mysql-server-5.6
-      - mysql-client-core-5.6
-      - mysql-client-5.6
-      - mysql-testsuite-5.6
+      - mysql-server-5.5
+      - mysql-client-core-5.5
+      - mysql-client-5.5
+      - mysql-testsuite
 
 before_install:
   - go get github.com/onsi/gomega
@@ -24,9 +24,9 @@ before_script:
 
 script:
   - ./test.sh
-  - go build ./...
-  - ./cmd/dbatman/dbatman -config config/test.yml &
-  - mysql_client_test -uroot -h127.0.0.1 -P4306 -Ddbatman_test
+  #- go build ./...
+  #- ./cmd/dbatman/dbatman -config config/test.yml &
+  #- mysql_client_test -uproxy_test_user -ptest -h127.0.0.1 -P4306 -Dclient_test_db
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

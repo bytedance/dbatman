@@ -42,6 +42,7 @@ func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 		} else if i == 1 {
 			c.fc.XORStatus(uint16(StatusInAutocommit))
 			log.Debug("autocommit is set")
+			// return c.handleBegin()
 		} else if i == 0 {
 			c.fc.AndStatus(^uint16(StatusInAutocommit))
 			log.Debug("auto commit is unset")
@@ -54,6 +55,7 @@ func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 		} else if us := strings.ToUpper(s); us == `ON` {
 			c.fc.XORStatus(uint16(StatusInAutocommit))
 			log.Debug("auto commit is set")
+			// return c.handleBegin()
 		} else if us == `OFF` {
 			c.fc.AndStatus(^uint16(StatusInAutocommit))
 			log.Debug("auto commit is unset")

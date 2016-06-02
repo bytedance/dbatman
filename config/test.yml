@@ -14,6 +14,7 @@ global:
     - 10.4.64.1
     - 10.4.64.2
 
+
 clusters:
     test_cluster:
         master:
@@ -21,7 +22,7 @@ clusters:
             port: 3306
             username: root
             password:
-            dbname: dbatman_test
+            dbname: client_test_db
             charset: utf8mb4
             max_connections: 100
             max_connection_pool_size: 10
@@ -29,14 +30,24 @@ clusters:
             time_reconnect_interval: 10
             weight: 1
         slaves:
-
+            - host: 127.0.0.1
+              port: 3306
+              username: root
+              password:
+              dbname: client_test_db
+              charset: utf8mb4
+              max_connections: 100
+              max_connection_pool_size: 10
+              connect_timeout: 10
+              time_reconnect_interval: 10
+              weight: 1
 users:
     proxy_test_user:
         username: proxy_test_user
         password: test
         max_connections: 1000
         min_connections: 100
-        dbname: dbatman_test
+        dbname: client_test_db
         charset: utf8mb4
         cluster_name: test_cluster
         auth_ips:

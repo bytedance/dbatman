@@ -80,6 +80,10 @@ type Queryer interface {
 	Query(query string, args []Value) (Rows, error)
 }
 
+type FieldLister interface {
+	FieldList(table string, wild string) (Rows, error)
+}
+
 // Conn is a connection to a database. It is not used concurrently
 // by multiple goroutines.
 //
@@ -122,6 +126,8 @@ type Result interface {
 	Status() (int64, error)
 
 	Warnings() []error
+
+	Info() (string, error)
 }
 
 // Stmt is a prepared statement. It is bound to a Conn and not
@@ -229,6 +235,10 @@ func (RowsAffected) Warnings() []error {
 	return nil
 }
 
+func (RowsAffected) Info() (string, error) {
+	return "", nil
+}
+
 // ResultNoRows is a pre-defined Result for drivers to return when a DDL
 // command (such as a CREATE TABLE) succeeds. It returns an error for both
 // LastInsertId and RowsAffected.
@@ -252,4 +262,8 @@ func (noRows) Status() (int64, error) {
 
 func (noRows) Warnings() []error {
 	return nil
+}
+
+func (noRows) Info() (string, error) {
+	return "", nil
 }
