@@ -285,7 +285,7 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 			insertId:     int64(mc.insertId),
 			status:       mc.status,
 			warnings:     nil,
-			status_info:  mc.popStatusInfo(),
+			statusInfo:   mc.popStatusInfo(),
 		}, nil
 	} else if errs, ok := err.(MySQLWarnings); ok {
 		return &MySQLResult{
@@ -293,7 +293,7 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 			insertId:     int64(mc.insertId),
 			status:       mc.status,
 			warnings:     errs.Errors(),
-			status_info:  mc.popStatusInfo(),
+			statusInfo:   mc.popStatusInfo(),
 		}, err
 	}
 
