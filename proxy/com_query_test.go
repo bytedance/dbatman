@@ -90,6 +90,51 @@ func TestProxy_QueryFailed(t *testing.T) {
 	}
 }
 
+func TestProxy_QueryWithInfo(t *testing.T) {
+
+	db := newSqlDB(testProxyDSN)
+	defer db.Close()
+
+	if _, err := db.Exec(`
+		CREATE TABLE test (a INT, b INT, c INT, UNIQUE (A), UNIQUE(B))`); err != nil {
+		t.Fatalf("create table failed: %s", err)
+	}
+
+	res, err := db.Exec("INSERT test VALUES (1,2,10), (3,4,20)")
+	if err != nil {
+		t.Fatalf("insert table failed: %s", err)
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		t.Fatalf("res.RowsAffected() returned error: %s", err.Error())
+	}
+	if count != 2 {
+		t.Fatalf("expected 2 affected row, got %d", count)
+	}
+
+	// Create Data With Duplicate
+	res, err = db.Exec("INSERT test VALUES (5,6,30), (7,4,40), (8,9,60) ON DUPLICATE KEY UPDATE c=c+100;")
+	if err != nil {
+		t.Fatalf("insert table failed: %s", err)
+	}
+
+	count, err = res.RowsAffected()
+	if err != nil {
+		t.Fatalf("res.RowsAffected() returned error: %s", err.Error())
+	}
+	if count != 4 {
+		t.Fatalf("expected 4 affected row, got %d", count)
+	}
+
+	info, _ := res.Info()
+	
+	if len(info) == 0 {
+		t.Fatal("expected duplicate message, got empty string")
+	}
+
+}
+
 func TestProxy_Use(t *testing.T) {
 
 	db := newSqlDB(testProxyDSN)

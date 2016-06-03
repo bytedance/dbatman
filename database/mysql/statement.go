@@ -79,6 +79,7 @@ func (stmt *mysqlStmt) Exec(args []driver.Value) (driver.Result, error) {
 				insertId:     int64(mc.insertId),
 				status:       mc.status,
 				warnings:     nil,
+				statusInfo:   mc.popStatusInfo(),
 			}, nil
 		} else if errs, ok := err.(MySQLWarnings); ok {
 			return &MySQLResult{
@@ -86,6 +87,7 @@ func (stmt *mysqlStmt) Exec(args []driver.Value) (driver.Result, error) {
 				insertId:     int64(mc.insertId),
 				status:       mc.status,
 				warnings:     errs.Errors(),
+				statusInfo:   mc.popStatusInfo(),
 			}, err
 		}
 	}

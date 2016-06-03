@@ -601,9 +601,9 @@ func (mc *MySQLConn) handleOkPacket(data []byte) error {
 	}
 
 	// warning count [2 bytes]
-	if !mc.strict {
-		return nil
-	}
+	//if !mc.strict {
+	//	return nil
+	//}
 
 	pos := 1 + n + m + 2
 

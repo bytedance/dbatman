@@ -13,7 +13,7 @@ type MySQLResult struct {
 	warnings     []error
 	affectedRows int64
 	insertId     int64
-	status_info  string
+	statusInfo   string
 }
 
 func (r *MySQLResult) Status() (int64, error) {
@@ -33,5 +33,5 @@ func (r *MySQLResult) RowsAffected() (int64, error) {
 }
 
 func (r *MySQLResult) Info() (string, error) {
-	return r.status_info, nil
+	return r.statusInfo, nil
 }

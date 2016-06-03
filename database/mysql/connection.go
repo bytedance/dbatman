@@ -100,6 +100,9 @@ func (mc *MySQLConn) cleanup() {
 		}
 		mc.netConn = nil
 	}
+
+	// must clean status_info
+	mc.status_info = ""
 	mc.cfg = nil
 	mc.buf.nc = nil
 }
@@ -282,7 +285,7 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 			insertId:     int64(mc.insertId),
 			status:       mc.status,
 			warnings:     nil,
-			status_info:  mc.status_info,
+			statusInfo:   mc.popStatusInfo(),
 		}, nil
 	} else if errs, ok := err.(MySQLWarnings); ok {
 		return &MySQLResult{
@@ -290,7 +293,7 @@ func (mc *MySQLConn) Exec(query string, args []driver.Value) (driver.Result, err
 			insertId:     int64(mc.insertId),
 			status:       mc.status,
 			warnings:     errs.Errors(),
-			status_info:  mc.status_info,
+			statusInfo:   mc.popStatusInfo(),
 		}, err
 	}
 
@@ -317,6 +320,12 @@ func (mc *MySQLConn) exec(query string) error {
 	}
 
 	return err
+}
+
+func (mc *MySQLConn) popStatusInfo() string {
+	str := mc.status_info
+	mc.status_info = ""
+	return str
 }
 
 func (mc *MySQLConn) Query(query string, args []driver.Value) (driver.Rows, error) {

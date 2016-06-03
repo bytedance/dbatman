@@ -980,7 +980,6 @@ func (db *DB) exec(query string, args []interface{}, strategy connReuseStrategy)
 					return nil, err
 				}
 			}
-
 			return driverResult{dc, resi}, nil
 		}
 	}
