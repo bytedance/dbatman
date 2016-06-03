@@ -182,7 +182,7 @@ func (rows *BinaryRows) readRowPacket() (driver.RawPacket, error) {
 		return nil, rows.mc.handleErrorPacket(data)
 	}
 
-	return data, nil
+	return append(make([]byte, PacketHeaderLen, len(data)+PacketHeaderLen), data...), nil
 }
 
 func (rows *TextRows) Next(dest []driver.Value) error {
