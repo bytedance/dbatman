@@ -6,10 +6,6 @@ import (
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
-
-	gosql "database/sql"
-	_ "github.com/go-sql-driver/mysql"
-
 	"os"
 	"sync"
 	"testing"
@@ -177,9 +173,9 @@ func newRawProxyConn(t *testing.T) *mysql.MySQLConn {
 }
 
 // return a direct connection to proxy server, this is a
-func newSqlDB(dsn string) *gosql.DB {
+func newSqlDB(dsn string) *mysql.DB {
 
-	db, err := gosql.Open("mysql", dsn)
+	db, err := mysql.Open("dbatman", dsn)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s is unavailable", dsn)
 		os.Exit(2)

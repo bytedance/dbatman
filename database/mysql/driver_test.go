@@ -942,7 +942,6 @@ func TestResultWithInfo(t *testing.T) {
 		if len(info) == 0 {
 			dbt.Fatal("expected duplicate info, got nil string")
 		}
-		println(info)
 	})
 }
 
