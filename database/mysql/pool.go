@@ -1691,7 +1691,13 @@ func rowsiFromStatement(ds driverStmt, args ...interface{}) (driver.Rows, error)
 	// placeholders, so we won't sanity check input here and instead let the
 	// driver deal with errors.
 	if want != -1 && len(args) != want {
-		return nil, fmt.Errorf("sql: statement expects %d inputs; got %d", want, len(args))
+		if len(args) == 1 {
+			if _, ok := args[0].(driver.RawStmtParams); !ok {
+				return nil, fmt.Errorf("sql: statement expects %d inputs; got %d", want, len(args))
+			}
+		} else {
+			return nil, fmt.Errorf("sql: statement expects %d inputs; got %d", want, len(args))
+		}
 	}
 
 	dargs, err := driverArgs(&ds, args)

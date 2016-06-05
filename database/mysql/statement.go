@@ -49,50 +49,53 @@ func (stmt *mysqlStmt) Exec(args []driver.Value) (driver.Result, error) {
 		errLog.Print(ErrInvalidConn)
 		return nil, driver.ErrBadConn
 	}
+
+	err := stmt.exec(args)
+	mc := stmt.mc
+	if err == nil {
+		return &MySQLResult{
+			affectedRows: int64(mc.affectedRows),
+			insertId:     int64(mc.insertId),
+			status:       mc.status,
+			warnings:     nil,
+			statusInfo:   mc.popStatusInfo(),
+		}, nil
+	} else if errs, ok := err.(MySQLWarnings); ok {
+		return &MySQLResult{
+			affectedRows: int64(mc.affectedRows),
+			insertId:     int64(mc.insertId),
+			status:       mc.status,
+			warnings:     errs.Errors(),
+			statusInfo:   mc.popStatusInfo(),
+		}, err
+	}
+
+	return nil, err
+}
+
+func (stmt *mysqlStmt) exec(args []driver.Value) error {
 	// Send command
 	err := stmt.writeExecutePacket(args)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	mc := stmt.mc
 
-	mc.affectedRows = 0
-	mc.insertId = 0
-
 	// Read Result
 	resLen, err := mc.readResultSetHeaderPacket()
-	if err == nil {
-		if resLen > 0 {
-			// Columns
-			err = mc.readUntilEOF()
-			if err != nil {
-				return nil, err
-			}
+	if err == nil && resLen > 0 {
+		// Columns
+		err = mc.readUntilEOF()
+		if err != nil {
+			return err
+		}
 
-			// Rows
-			err = mc.readUntilEOF()
-		}
-		if err == nil {
-			return &MySQLResult{
-				affectedRows: int64(mc.affectedRows),
-				insertId:     int64(mc.insertId),
-				status:       mc.status,
-				warnings:     nil,
-				statusInfo:   mc.popStatusInfo(),
-			}, nil
-		} else if errs, ok := err.(MySQLWarnings); ok {
-			return &MySQLResult{
-				affectedRows: int64(mc.affectedRows),
-				insertId:     int64(mc.insertId),
-				status:       mc.status,
-				warnings:     errs.Errors(),
-				statusInfo:   mc.popStatusInfo(),
-			}, err
-		}
+		// Rows
+		err = mc.readUntilEOF()
 	}
 
-	return nil, err
+	return err
 }
 
 func (stmt *mysqlStmt) Query(args []driver.Value) (driver.Rows, error) {

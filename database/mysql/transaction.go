@@ -17,6 +17,7 @@ func (tx *mysqlTx) Commit() (err error) {
 		return ErrInvalidConn
 	}
 	err = tx.mc.exec("COMMIT")
+
 	tx.mc = nil
 	return
 }

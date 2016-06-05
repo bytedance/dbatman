@@ -21,7 +21,16 @@ func (c *Session) handleComStmtPrepare(sqlstmt string) error {
 	// Only a few statements supported by prepare statements
 	// http://dev.mysql.com/worklog/task/?id=2871
 	switch v := stmt.(type) {
-	case parser.ISelect, *parser.Insert, *parser.Update, *parser.Delete, *parser.Replace, parser.IDDLStatement:
+	case parser.ISelect, *parser.Insert, *parser.Update, *parser.Delete,
+		*parser.Replace,
+		parser.IDDLStatement,
+		*parser.ShowTables,
+		*parser.ShowColumns,
+		*parser.ShowVariables,
+		*parser.ShowIndex,
+		*parser.Set,
+		*parser.DescribeTable,
+		*parser.Do:
 		return c.prepare(v, sqlstmt)
 	default:
 		log.Warnf("statement %T[%s] not support prepare ops", stmt, sqlstmt)
@@ -143,9 +152,16 @@ func (session *Session) handleComStmtExecute(data []byte) error {
 	pos += 4
 
 	var err error
-	if _, ok := stmt.SQL.(parser.ISelect); ok {
+	switch stmt.SQL.(type) {
+	case parser.ISelect,
+		*parser.ShowTables,
+		*parser.ShowVariables,
+		*parser.ShowColumns,
+		*parser.ShowIndex,
+		*parser.DescribeTable,
+		*parser.Do:
 		err = session.handleStmtQuery(stmt, data[pos:])
-	} else {
+	default:
 		err = session.handleStmtExec(stmt, data[pos:])
 	}
 
