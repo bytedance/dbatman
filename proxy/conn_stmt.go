@@ -203,30 +203,29 @@ func (session *Session) handleStmtQuery(stmt *mysql.Stmt, data []byte) error {
 	return session.writeRows(rows)
 }
 
-/*
-func (c *Session) handleComStmtSendLongData(data []byte) error {
+func (session *Session) handleComStmtSendLongData(data []byte) error {
 	if len(data) < 6 {
-		AppLog.Warn("ErrMalFormPacket")
-		return ErrMalformPacket
+		return session.handleMySQLError(mysql.ErrMalformPkt)
 	}
 
 	id := binary.LittleEndian.Uint32(data[0:4])
 
-	s, ok := c.stmts[id]
+	stmt, ok := session.bc.stmts[id]
 	if !ok {
-		return NewDefaultError(ER_UNKNOWN_STMT_HANDLER,
+		return mysql.NewDefaultError(mysql.ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_send_longdata")
 	}
 
 	paramId := binary.LittleEndian.Uint16(data[4:6])
-	if paramId >= uint16(s.params) {
-		return NewDefaultError(ER_WRONG_ARGUMENTS, "stmt_send_longdata")
+	if paramId >= uint16(len(stmt.Params)) {
+		return mysql.NewDefaultError(mysql.ER_WRONG_ARGUMENTS, "stmt_send_longdata")
 	}
 
-	s.cstmt.SendLongData(paramId, data[6:])
+	stmt.SendLongData(int(paramId), data[6:])
 	return nil
 }
 
+/*
 func (c *Session) handleComStmtReset(data []byte) error {
 	if len(data) < 4 {
 		AppLog.Warn("ErrMalFormPacket")

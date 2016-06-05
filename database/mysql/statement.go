@@ -153,6 +153,15 @@ func (s *mysqlStmt) Params() []driver.RawPacket {
 	return ret
 }
 
+func (stmt *mysqlStmt) SendLongData(paramId int, data []byte) error {
+	if stmt.mc.netConn == nil {
+		errLog.Print(ErrInvalidConn)
+		return driver.ErrBadConn
+	}
+
+	return stmt.writeSendLongPacket(uint16(paramId), data)
+}
+
 func (s *mysqlStmt) StatementID() uint32 {
 	return s.id
 }
