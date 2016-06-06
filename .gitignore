@@ -36,3 +36,5 @@ coverage.txt
 git.sh
 output
 GoDeps/_workspace/src
+
+mysql-workbench

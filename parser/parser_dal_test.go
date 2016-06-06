@@ -31,6 +31,7 @@ func TestSet(t *testing.T) {
 		t.Fatal("missed varname")
 	}
 
+	testParse(`set @var=(1 in (select * from t1))`, t, false)
 }
 
 func TestShow(t *testing.T) {
