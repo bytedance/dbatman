@@ -1733,6 +1733,51 @@ func (s *Stmt) QueryRow(args ...interface{}) *Row {
 	return &Row{rows: rows}
 }
 
+// SendLongData executes a prepared statement with the given arguments and
+// returns a error if there is any error.
+func (s *Stmt) SendLongData(param_id int, data []byte) error {
+	s.closemu.RLock()
+	defer s.closemu.RUnlock()
+
+	for i := 0; i < maxBadConnRetries; i++ {
+		dc, releaseConn, si, err := s.connStmt()
+		if err != nil {
+			if err == driver.ErrBadConn {
+				continue
+			}
+			return err
+		}
+
+		err = sendLongDataForStatement(driverStmt{dc, si}, param_id, data)
+		releaseConn(err)
+		if err != driver.ErrBadConn {
+			return err
+		}
+	}
+	return driver.ErrBadConn
+}
+
+func sendLongDataForStatement(ds driverStmt, param_id int, data []byte) error {
+	ds.Lock()
+	want := ds.si.NumInput()
+	ds.Unlock()
+
+	// -1 means the driver doesn't know how to count the number of
+	// placeholders, so we won't sanity check input here and instead let the
+	// driver deal with errors.
+	if want != -1 && param_id >= want {
+		return fmt.Errorf("sql: statement expects %d inputs; got %d", want, param_id)
+	}
+
+	ds.Lock()
+	err := ds.si.SendLongData(param_id, data)
+	ds.Unlock()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Close closes the statement.
 func (s *Stmt) Close() error {
 	s.closemu.Lock()

@@ -162,6 +162,9 @@ type Stmt interface {
 	// Query executes a query that may return rows, such as a
 	// SELECT.
 	Query(args []Value) (Rows, error)
+
+	// SendLongData
+	SendLongData(paramId int, data []byte) error
 }
 
 // ColumnConverter may be optionally implemented by Stmt if the

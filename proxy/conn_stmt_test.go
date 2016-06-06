@@ -44,6 +44,38 @@ func TestProxy_Stmt(t *testing.T) {
 	}
 }
 
+// TODO fix send long test case
+/*
+func TestProxy_Stmt_SendLong(t *testing.T) {
+	db := newSqlDB(testProxyDSN)
+	if _, err := db.Exec(`
+		CREATE TABLE test_long_data(col1 int,
+		col2 long varchar, col3 long varbinary) `); err != nil {
+		t.Fatal("create statement table failed: ", err)
+	}
+
+	stmt, err := db.Prepare(`INSERT INTO test_long_data(col1, col2, col3) VALUES(?, ?, ?)`)
+	if err != nil {
+		t.Fatal("prepare Insert Statement Failed")
+	}
+
+	if err = stmt.SendLongData(1, []byte("Michael")); err != nil {
+		t.Fatal("Send Long Data Failed!")
+	}
+
+	if err = stmt.SendLongData(1, []byte(" 'Monty' Widenius")); err != nil {
+		t.Fatal("Send Long Data Failed!")
+	}
+
+	if err = stmt.SendLongData(2, []byte("Venu")); err != nil {
+		t.Fatal("Send Long Data Failed!")
+	}
+
+	if _, err := stmt.Exec(1); err != nil {
+		t.Fatal(err)
+	}
+}*/
+
 /*
 func TestStmt_DropTable(t *testing.T) {
 	server := newTestServer(t)

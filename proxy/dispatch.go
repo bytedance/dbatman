@@ -52,8 +52,7 @@ func (session *Session) dispatch(data []byte) (err error) {
 	case mysql.ComStmtClose:
 		err = session.handleComStmtClose(data)
 	case mysql.ComStmtSendLongData:
-		// TODO
-		//return session.handleComStmtSendLongData(data)
+		err = session.handleComStmtSendLongData(data)
 	case mysql.ComStmtReset:
 		// TODO
 		// return session.handleComStmtReset(data)

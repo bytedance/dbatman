@@ -34,9 +34,7 @@ func (c *Session) comQuery(sqlstmt string) error {
 		return c.handleShow(sqlstmt, v)
 	case parser.IDDLStatement:
 		return c.handleDDL(v, sqlstmt)
-	case *parser.Do:
-		return c.handleExec(stmt, sqlstmt, false)
-	case *parser.Call:
+	case *parser.Do, *parser.Call, *parser.FlushTables:
 		return c.handleExec(stmt, sqlstmt, false)
 	case *parser.Use:
 		if err := c.useDB(hack.String(stmt.(*parser.Use).DB)); err != nil {
