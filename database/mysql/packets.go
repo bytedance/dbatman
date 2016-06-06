@@ -905,7 +905,7 @@ func (stmt *mysqlStmt) writeCommandLongData(paramID int, arg []byte) error {
 
 	copy(data[4+dataOffset:], arg)
 
-	for argLen := len(arg); argLen > 0; argLen -= pktLen - dataOffset {
+	for argLen := len(arg); argLen >= 0; argLen -= pktLen - dataOffset {
 		if dataOffset+argLen < maxLen {
 			pktLen = dataOffset + argLen
 		}
@@ -927,11 +927,16 @@ func (stmt *mysqlStmt) writeCommandLongData(paramID int, arg []byte) error {
 		// Send CMD packet
 		err := stmt.mc.writePacket(data[:4+pktLen])
 		if err == nil {
+
+			// fix: when send long data is just zero length
+			if argLen == 0 {
+				break
+			}
 			data = data[pktLen-dataOffset:]
 			continue
 		}
-		return err
 
+		return err
 	}
 
 	// Reset Packet Sequence
