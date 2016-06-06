@@ -165,6 +165,7 @@ type Stmt interface {
 
 	// SendLongData
 	SendLongData(paramId int, data []byte) error
+	Reset() (Result, error)
 }
 
 // ColumnConverter may be optionally implemented by Stmt if the

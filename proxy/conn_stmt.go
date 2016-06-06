@@ -224,30 +224,25 @@ func (session *Session) handleComStmtSendLongData(data []byte) error {
 	return nil
 }
 
-/*
-func (c *Session) handleComStmtReset(data []byte) error {
+func (session *Session) handleComStmtReset(data []byte) error {
 	if len(data) < 4 {
-		AppLog.Warn("ErrMalFormPacket")
-		return ErrMalformPacket
+		return session.handleMySQLError(mysql.ErrMalformPkt)
 	}
 
 	id := binary.LittleEndian.Uint32(data[0:4])
 
-	s, ok := c.stmts[id]
+	stmt, ok := session.bc.stmts[id]
 	if !ok {
-		return NewDefaultError(ER_UNKNOWN_STMT_HANDLER,
+		return mysql.NewDefaultError(mysql.ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_reset")
 	}
 
-	if r, err := s.cstmt.Reset(); err != nil {
-		return err
+	if rs, err := stmt.Reset(); err != nil {
+		return session.handleMySQLError(err)
 	} else {
-		s.ClearParams()
-		return c.writeOK(r)
+		return session.fc.WriteOK(rs)
 	}
 }
-
-*/
 
 func (c *Session) handleComStmtClose(data []byte) error {
 	if len(data) < 4 {

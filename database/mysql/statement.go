@@ -98,6 +98,32 @@ func (stmt *mysqlStmt) exec(args []driver.Value) error {
 	return err
 }
 
+func (stmt *mysqlStmt) reset() error {
+
+	// Send command
+	err := stmt.mc.writeCommandPacketUint32(comStmtReset, stmt.id)
+	if err != nil {
+		return err
+	}
+
+	mc := stmt.mc
+
+	// Read Result
+	resLen, err := mc.readResultSetHeaderPacket()
+	if err == nil && resLen > 0 {
+		// Columns
+		err = mc.readUntilEOF()
+		if err != nil {
+			return err
+		}
+
+		// Rows
+		err = mc.readUntilEOF()
+	}
+
+	return err
+}
+
 func (stmt *mysqlStmt) Query(args []driver.Value) (driver.Rows, error) {
 	if stmt.mc.netConn == nil {
 		errLog.Print(ErrInvalidConn)
@@ -159,7 +185,36 @@ func (stmt *mysqlStmt) SendLongData(paramId int, data []byte) error {
 		return driver.ErrBadConn
 	}
 
-	return stmt.writeSendLongPacket(uint16(paramId), data)
+	return stmt.writeCommandLongData(paramId, data)
+}
+
+func (stmt *mysqlStmt) Reset() (driver.Result, error) {
+	if stmt.mc.netConn == nil {
+		errLog.Print(ErrInvalidConn)
+		return nil, driver.ErrBadConn
+	}
+
+	err := stmt.reset()
+	mc := stmt.mc
+	if err == nil {
+		return &MySQLResult{
+			affectedRows: int64(mc.affectedRows),
+			insertId:     int64(mc.insertId),
+			status:       mc.status,
+			warnings:     nil,
+			statusInfo:   mc.popStatusInfo(),
+		}, nil
+	} else if errs, ok := err.(MySQLWarnings); ok {
+		return &MySQLResult{
+			affectedRows: int64(mc.affectedRows),
+			insertId:     int64(mc.insertId),
+			status:       mc.status,
+			warnings:     errs.Errors(),
+			statusInfo:   mc.popStatusInfo(),
+		}, err
+	}
+
+	return nil, err
 }
 
 func (s *mysqlStmt) StatementID() uint32 {
