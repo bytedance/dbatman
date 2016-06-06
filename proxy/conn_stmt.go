@@ -158,8 +158,7 @@ func (session *Session) handleComStmtExecute(data []byte) error {
 		*parser.ShowVariables,
 		*parser.ShowColumns,
 		*parser.ShowIndex,
-		*parser.DescribeTable,
-		*parser.Do:
+		*parser.DescribeTable:
 		err = session.handleStmtQuery(stmt, data[pos:])
 	default:
 		err = session.handleStmtExec(stmt, data[pos:])
