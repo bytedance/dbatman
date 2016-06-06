@@ -8,7 +8,7 @@ func testTextParse(t *testing.T, str string, mode SQLMode) {
 	lexer, lval := getLexer(str)
 	lexer.sqlMode = mode
 	if r := lexer.Lex(lval); r != TEXT_STRING {
-		t.Fatalf("parse text failed. return[%s]", TokenName(r))
+		t.Fatalf("parse text failed. return[%s]", MySQLSymName(r))
 	}
 
 	if string(lval.bytes) != str {
@@ -71,7 +71,7 @@ func TestNChar(t *testing.T) {
 
 func lexExpect(t *testing.T, lexer *SQLLexer, lval *MySQLSymType, expect int) {
 	if ret := lexer.Lex(lval); ret != expect {
-		t.Fatalf("expect[%s] return[%s]", TokenName(expect), TokenName(ret))
+		t.Fatalf("expect[%s] return[%s]", MySQLSymName(expect), MySQLSymName(ret))
 	}
 }
 

@@ -446,7 +446,8 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 			}
 		case MY_LEX_USER_END: // end '@' of user@hostname
 			switch state_map[lex.yyPeek()] {
-			case MY_LEX_STRING, MY_LEX_USER_VARIABLE_DELIMITER, MY_LEX_STRING_OR_DELIMITER:
+			case MY_LEX_STRING, MY_LEX_USER_VARIABLE_DELIMITER, MY_LEX_STRING_OR_DELIMITER, MY_LEX_IDENT:
+				// break
 			case MY_LEX_USER_END:
 				lex.next_state = MY_LEX_SYSTEM_VAR
 			default:
@@ -515,7 +516,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 TG_RET:
 
-	DEBUG(fmt.Sprintf("dbg return [%s]\n", TokenName(retstate)))
+	DEBUG(fmt.Sprintf("dbg return [%s]\n", MySQLSymName(retstate)))
 	return
 }
 

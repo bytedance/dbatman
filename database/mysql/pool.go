@@ -1778,6 +1778,36 @@ func sendLongDataForStatement(ds driverStmt, param_id int, data []byte) error {
 	return nil
 }
 
+func (s *Stmt) Reset() (Result, error) {
+	s.closemu.RLock()
+	defer s.closemu.RUnlock()
+
+	for i := 0; i < maxBadConnRetries; i++ {
+		dc, releaseConn, si, err := s.connStmt()
+		if err != nil {
+			if err == driver.ErrBadConn {
+				continue
+			}
+			return nil, err
+		}
+
+		ds := driverStmt{dc, si}
+
+		ds.Lock()
+		resi, err := ds.si.Reset()
+		ds.Unlock()
+		releaseConn(err)
+
+		if err != driver.ErrBadConn {
+			return nil, err
+		}
+
+		return driverResult{ds.Locker, resi}, err
+	}
+
+	return nil, driver.ErrBadConn
+}
+
 // Close closes the statement.
 func (s *Stmt) Close() error {
 	s.closemu.Lock()

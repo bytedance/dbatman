@@ -54,8 +54,7 @@ func (session *Session) dispatch(data []byte) (err error) {
 	case mysql.ComStmtSendLongData:
 		err = session.handleComStmtSendLongData(data)
 	case mysql.ComStmtReset:
-		// TODO
-		// return session.handleComStmtReset(data)
+		err = session.handleComStmtReset(data)
 	default:
 		msg := fmt.Sprintf("command %d not supported now", cmd)
 		log.Warnf(msg)

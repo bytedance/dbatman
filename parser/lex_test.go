@@ -16,7 +16,7 @@ func testMatchReturn(t *testing.T, str string, match int, dbg bool) (*SQLLexer, 
 	lexer, lval := getLexer(str)
 	ret := lexer.Lex(lval)
 	if ret != match {
-		t.Fatalf("test failed! expect[%s] return[%s]", TokenName(match), TokenName(ret))
+		t.Fatalf("test failed! expect[%s] return[%s]", MySQLSymName(match), MySQLSymName(ret))
 	}
 
 	return lexer, lval
@@ -35,7 +35,4 @@ func TestSingleComment(t *testing.T) {
 	if lexer.Lex(lval) != END_OF_INPUT {
 		t.Fatal("test failed")
 	}
-}
-
-func TestSingleComment2(t *testing.T) {
 }

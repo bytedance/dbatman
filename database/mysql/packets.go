@@ -905,7 +905,7 @@ func (stmt *mysqlStmt) writeCommandLongData(paramID int, arg []byte) error {
 
 	copy(data[4+dataOffset:], arg)
 
-	for argLen := len(arg); argLen > 0; argLen -= pktLen - dataOffset {
+	for argLen := len(arg); argLen >= 0; argLen -= pktLen - dataOffset {
 		if dataOffset+argLen < maxLen {
 			pktLen = dataOffset + argLen
 		}
@@ -927,11 +927,16 @@ func (stmt *mysqlStmt) writeCommandLongData(paramID int, arg []byte) error {
 		// Send CMD packet
 		err := stmt.mc.writePacket(data[:4+pktLen])
 		if err == nil {
+
+			// fix: when send long data is just zero length
+			if argLen == 0 {
+				break
+			}
 			data = data[pktLen-dataOffset:]
 			continue
 		}
-		return err
 
+		return err
 	}
 
 	// Reset Packet Sequence
@@ -1157,46 +1162,6 @@ func (stmt *mysqlStmt) writeExecutePacket(args []driver.Value) error {
 		pos += len(paramValues)
 		data = data[:pos]
 	}
-
-	return mc.writePacket(data)
-}
-
-func (stmt *mysqlStmt) writeSendLongPacket(paramID uint16, payload []byte) error {
-
-	const minPktLen = 4 + 1 + 4 + 2
-	mc := stmt.mc
-
-	// Reset packet-sequence
-	mc.sequence = 0
-
-	var data []byte
-
-	if len(payload) == 0 {
-		data = mc.buf.takeBuffer(minPktLen)
-	} else {
-		data = mc.buf.takeBuffer(minPktLen + len(payload))
-	}
-
-	if data == nil {
-		// can not take the buffer. Something must be wrong with the connection
-		errLog.Print(ErrBusyBuffer)
-		return driver.ErrBadConn
-	}
-
-	// command [1 byte]
-	data[4] = comStmtSendLongData
-
-	// statement_id [4 bytes]
-	data[5] = byte(stmt.id)
-	data[6] = byte(stmt.id >> 8)
-	data[7] = byte(stmt.id >> 16)
-	data[8] = byte(stmt.id >> 24)
-
-	// parameter_id [2 bytes]
-	data[9] = byte(paramID)
-	data[10] = byte(paramID >> 8)
-
-	copy(data[11:], payload)
 
 	return mc.writePacket(data)
 }
