@@ -28,15 +28,9 @@ build:
 
     # Gets the dependencies
     - script:
-        name: go get
+        name: build
         code: |
-          go get
-
-    # Build the project
-    - script:
-        name: go build
-        code: |
-          go build ./...
+          sh build.sh
 
     # Test the project
     - script:
