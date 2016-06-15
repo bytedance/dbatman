@@ -32,3 +32,9 @@ build:
         code: |
           sh build.sh
 
+test:
+    steps:
+      -script:
+        name: test
+        code: |
+          go test ./...
