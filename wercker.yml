@@ -32,8 +32,3 @@ build:
         code: |
           sh build.sh
 
-    # Test the project
-    - script:
-        name: go test
-        code: |
-          go test ./...
