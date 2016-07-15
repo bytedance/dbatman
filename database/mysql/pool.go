@@ -288,6 +288,11 @@ func (dc *driverConn) isIdleConnectionBroken() (bool, error) {
 	return dc.ci.IsBroken(), nil
 }
 
+// add by xuegeng add Dsn module
+func (db *DB) Dsn() string {
+	return db.dsn
+}
+
 // check idle connection is timeout or not
 func (dc *driverConn) idleSecond() int64 {
 	now := time.Now()

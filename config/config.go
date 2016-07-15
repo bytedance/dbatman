@@ -11,6 +11,9 @@ import (
 )
 
 var conf Conf
+var (
+	NotifyChan = make(chan bool)
+)
 
 type Conf struct {
 	path             string
@@ -167,17 +170,16 @@ func (c *Conf) GetConfig() *ProxyConfig {
 	return proxyConfig
 }
 
-func (c *Conf) CheckConfigUpdate() {
+func (c *Conf) CheckConfigUpdate(notifyChans ...chan bool) {
 	if c.proxyConfig.Global.ConfAutoload == 1 {
 		for {
-			time.Sleep(time.Minute)
+			time.Sleep(time.Second * 10)
 			log.Infof("CheckConfigUpdate checking")
 			fileinfo, err := os.Stat(c.path)
 			if err != nil {
 				log.Errorf("CheckConfigUpdate error %s", err.Error())
 				continue
 			}
-			//config been modified
 			if c.lastModifiedTime.Before(fileinfo.ModTime()) {
 				log.Infof("CheckConfigUpdate config change and load new config")
 				defaultProxyConfig := getDefaultProxyConfig()

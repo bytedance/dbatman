@@ -45,6 +45,11 @@ func main() {
 
 	mysql.SetLogger(log.Logger())
 
+	go func() {
+		//log.info("start checking config file")
+		cfg.CheckConfigUpdate(config.NotifyChan)
+	}()
+
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
 		syscall.SIGHUP,
