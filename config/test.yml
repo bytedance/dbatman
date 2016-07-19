@@ -18,23 +18,24 @@ global:
 clusters:
     test_cluster:
         master:
-            host: 127.0.0.1
+            host: 10.2.98.41
             port: 3306
-            username: root
-            password:
-            dbname: client_test_db
+            username: pgc
+            password: pgc
+            dbname: pgc
             charset: utf8mb4
             max_connections: 100
             max_connection_pool_size: 10
             connect_timeout: 10
             time_reconnect_interval: 10
             weight: 1
+        
         slaves:
-            - host: 127.0.0.1
+            - host: 10.2.98.41
               port: 3306
-              username: root
-              password:
-              dbname: client_test_db
+              username: pgc
+              password: pgc
+              dbname: pgc
               charset: utf8mb4
               max_connections: 100
               max_connection_pool_size: 10
@@ -42,12 +43,12 @@ clusters:
               time_reconnect_interval: 10
               weight: 1
 users:
-    proxy_test_user:
-        username: proxy_test_user
-        password: test
+    pgc:
+        username: pgc
+        password: pgc
         max_connections: 1000
         min_connections: 100
-        dbname: client_test_db
+        dbname: pgc
         charset: utf8mb4
         cluster_name: test_cluster
         auth_ips:

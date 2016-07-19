@@ -3,7 +3,7 @@ package proxy
 import (
 	"fmt"
 	"github.com/bytedance/dbatman/config"
-	_ "github.com/bytedance/dbatman/database/mysql"
+	//"github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
 	"net"
 	"runtime"
@@ -49,7 +49,9 @@ func (s *Server) Serve() error {
 			log.Warning("accept error %s", err.Error())
 			continue
 		}
-
+		log.Debug("Get a connect from remote addr : ", conn.RemoteAddr().String())
+		//fmt.Println(conn.RemoteAddr().String())
+		log.Debug("get a conn")
 		go s.onConn(conn)
 	}
 
@@ -80,7 +82,6 @@ func (s *Server) onConn(c net.Conn) {
 
 		session.Close()
 	}()
-
 	// Handshake error, here we do not need to close the conn
 	if err := session.Handshake(); err != nil {
 		log.Warnf("handshake error: %s", err)

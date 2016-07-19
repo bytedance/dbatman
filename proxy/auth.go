@@ -66,16 +66,38 @@ func (session *Session) CheckAuth(username string, passwd []byte, db string) err
 	var err error
 
 	// There is no user named with parameter username
+
 	if session.user, err = session.config.GetUserByName(username); err != nil {
+		log.Debug(session.user)
 		if session.user == nil {
 			return NewDefaultError(ER_ACCESS_DENIED_ERROR, username, session.fc.RemoteAddr().String(), "Yes")
 		}
+
 		return NewDefaultError(ER_ACCESS_DENIED_ERROR, session.user.Username, session.fc.RemoteAddr().String(), "Yes")
 	}
-
+	log.Debug(session.user)
 	if db != "" && session.user.DBName != db {
 		log.Debugf("request db: %s, user's db: %s", db, session.user.DBName)
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
+	}
+	//TODO add the IP auth module to check the global auth_ip
+	//check user config auth_IP with current Session Ip
+	userIPs := &session.user.AuthIPs
+	cliAddr := session.cliAddr
+	authIpFalg := false
+	log.Debug("client IP : ", session.cliAddr)
+	log.Debug("User's Auth IP is: ", userIPs)
+	for _, ip := range *userIPs {
+		if cliAddr == ip {
+			authIpFalg = true
+			break
+		}
+	}
+	if authIpFalg != true {
+		log.Debug("This user's Ip is not in the list of User's auth_Ip")
+		//return NewDefaultError(ER_NO, session.user.Username, session.fc.RemoteAddr().String(), "Yes")
+
+		return NewDefaultError(ER_NO, "IP Is not in the auth_ip list of the user")
 	}
 
 	if !bytes.Equal(passwd, CalcPassword(session.salt, []byte(session.user.Password))) {
