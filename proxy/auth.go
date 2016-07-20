@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha1"
+	"io"
+
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
-	"io"
 )
 
 func RandomBuf(size int) ([]byte, error) {
@@ -67,6 +68,8 @@ func (session *Session) CheckAuth(username string, passwd []byte, db string) err
 
 	// There is no user named with parameter username
 
+	gc, err := session.config.GetGlobalConfig()
+	log.Debug(gc)
 	if session.user, err = session.config.GetUserByName(username); err != nil {
 		log.Debug(session.user)
 		if session.user == nil {
