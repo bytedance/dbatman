@@ -167,12 +167,13 @@ func (c *Conf) GetConfig() *ProxyConfig {
 	c.mu.RLock()
 	proxyConfig := c.proxyConfig
 	c.mu.RUnlock()
-	return proxyConfig
+	return proxyConfigt
 }
 
 func (c *Conf) CheckConfigUpdate(notifyChans ...chan bool) {
 	if c.proxyConfig.Global.ConfAutoload == 1 {
 		for {
+			//TODO sleep config by the config file
 			time.Sleep(time.Second * 10)
 			//log.Infof("CheckConfigUpdate checking")
 			fileinfo, err := os.Stat(c.path)
