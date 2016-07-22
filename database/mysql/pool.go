@@ -288,7 +288,6 @@ func (dc *driverConn) isIdleConnectionBroken() (bool, error) {
 	return dc.ci.IsBroken(), nil
 }
 
-// add by xuegeng add Dsn module
 func (db *DB) Dsn() string {
 	return db.dsn
 }

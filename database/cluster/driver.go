@@ -102,7 +102,10 @@ func Init(cfg *config.Conf) error {
 	}
 
 	cfgHandler = cfg
-	allClusterConfigs, _ := cfg.GetConfig().GetAllClusters()
+	allClusterConfigs, err := cfg.GetConfig().GetAllClusters()
+	if err != nil {
+		return err
+	}
 
 	for clusterName, clusterCfg := range allClusterConfigs {
 		cluster, err := makeCluster(clusterName, clusterCfg)
@@ -130,10 +133,10 @@ func monitor() {
 }
 
 func probe() error {
-	log.Info("Cluster probing")
+	//log.Info("Cluster probing")
 	idleTimeout := cfgHandler.GetConfig().ServerTimeout()
 	for _, c := range clusterConns {
-		log.Infof("Cluster[%s] probe", c.cluserName)
+		//log.Infof("Cluster[%s] probe", c.cluserName)
 		err := c.masterNode.ProbeIdleConnection(idleTimeout)
 		if err != nil {
 			log.Errorf("Master node probe error msg:%s", err.Error())

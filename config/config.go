@@ -167,7 +167,7 @@ func (c *Conf) GetConfig() *ProxyConfig {
 	c.mu.RLock()
 	proxyConfig := c.proxyConfig
 	c.mu.RUnlock()
-	return proxyConfigt
+	return proxyConfig
 }
 
 func (c *Conf) CheckConfigUpdate(notifyChans ...chan bool) {
@@ -182,7 +182,7 @@ func (c *Conf) CheckConfigUpdate(notifyChans ...chan bool) {
 				continue
 			}
 			if c.lastModifiedTime.Before(fileinfo.ModTime()) {
-				//log.Infof("CheckConfigUpdate config change and load new config")
+				log.Infof("CheckConfigUpdate config change and load new config")
 				defaultProxyConfig := getDefaultProxyConfig()
 				err = c.parseConfigFile(defaultProxyConfig)
 				if err != nil {
