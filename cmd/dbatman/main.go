@@ -2,17 +2,18 @@ package main
 
 import (
 	"flag"
-	"github.com/bytedance/dbatman/config"
-	"github.com/bytedance/dbatman/database/cluster"
-	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/proxy"
-	"github.com/ngaut/log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
+
+	"github.com/bytedance/dbatman/config"
+	"github.com/bytedance/dbatman/database/cluster"
+	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/proxy"
+	"github.com/ngaut/log"
 )
 
 var (
@@ -47,7 +48,7 @@ func main() {
 
 	go func() {
 		//log.info("start checking config file")
-		cfg.CheckConfigUpdate(config.NotifyChan)
+		cfg.CheckConfigUpdate(cluster.NotifyChan)
 	}()
 
 	sc := make(chan os.Signal, 1)

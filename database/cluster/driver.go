@@ -2,11 +2,12 @@ package cluster
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
-	"sync"
-	"time"
 )
 
 var (
@@ -133,10 +134,10 @@ func monitor() {
 }
 
 func probe() error {
-	//log.Info("Cluster probing")
+	log.Info("Cluster probing")
 	idleTimeout := cfgHandler.GetConfig().ServerTimeout()
 	for _, c := range clusterConns {
-		//log.Infof("Cluster[%s] probe", c.cluserName)
+		log.Infof("Cluster[%s] probe", c.cluserName)
 		err := c.masterNode.ProbeIdleConnection(idleTimeout)
 		if err != nil {
 			log.Errorf("Master node probe error msg:%s", err.Error())
@@ -160,6 +161,7 @@ func reload() error {
 	proxyConfig := cfgHandler.GetConfig()
 	allClusterConfigs, _ := proxyConfig.GetAllClusters()
 
+	log.Info("Detect a Cluster change ")
 	clustersMu.Lock()
 	defer clustersMu.Unlock()
 	currentClusterVersion += 1
@@ -175,6 +177,7 @@ func reload() error {
 				log.Errorf("Cluster reload make new cluster[%s] error msg:%s", clusterName, err.Error())
 			}
 		} else { // update exist cluster
+			log.Debug("cluserName exists", clusterCfg)
 			newMasterNodeCfg := clusterCfg.GetMasterNode()
 			newMasterNodeDsn := getDsnFromNodeCfg(newMasterNodeCfg)
 			oldMasterNodeDsn := cluster.masterNode.Dsn()

@@ -2,18 +2,16 @@ package config
 
 import (
 	"fmt"
-	"github.com/ngaut/log"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/ngaut/log"
+	"gopkg.in/yaml.v2"
 )
 
 var conf Conf
-var (
-	NotifyChan = make(chan bool)
-)
 
 type Conf struct {
 	path             string
@@ -194,7 +192,11 @@ func (c *Conf) CheckConfigUpdate(notifyChans ...chan bool) {
 				c.mu.Lock()
 				c.proxyConfig = defaultProxyConfig
 				c.mu.Unlock()
+
 				//log.Infof("CheckConfigUpdate new config load success")
+				for _, notifyChan := range notifyChans {
+					notifyChan <- true
+				}
 			}
 		}
 
