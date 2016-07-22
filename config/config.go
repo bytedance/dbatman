@@ -174,14 +174,14 @@ func (c *Conf) CheckConfigUpdate(notifyChans ...chan bool) {
 	if c.proxyConfig.Global.ConfAutoload == 1 {
 		for {
 			time.Sleep(time.Second * 10)
-			log.Infof("CheckConfigUpdate checking")
+			//log.Infof("CheckConfigUpdate checking")
 			fileinfo, err := os.Stat(c.path)
 			if err != nil {
 				log.Errorf("CheckConfigUpdate error %s", err.Error())
 				continue
 			}
 			if c.lastModifiedTime.Before(fileinfo.ModTime()) {
-				log.Infof("CheckConfigUpdate config change and load new config")
+				//log.Infof("CheckConfigUpdate config change and load new config")
 				defaultProxyConfig := getDefaultProxyConfig()
 				err = c.parseConfigFile(defaultProxyConfig)
 				if err != nil {
@@ -193,7 +193,7 @@ func (c *Conf) CheckConfigUpdate(notifyChans ...chan bool) {
 				c.mu.Lock()
 				c.proxyConfig = defaultProxyConfig
 				c.mu.Unlock()
-				log.Infof("CheckConfigUpdate new config load success")
+				//log.Infof("CheckConfigUpdate new config load success")
 			}
 		}
 
