@@ -134,10 +134,10 @@ func monitor() {
 }
 
 func probe() error {
-	log.Info("Cluster probing")
+	//log.Info("Cluster probing")
 	idleTimeout := cfgHandler.GetConfig().ServerTimeout()
 	for _, c := range clusterConns {
-		log.Infof("Cluster[%s] probe", c.cluserName)
+		//log.Infof("Cluster[%s] probe", c.cluserName)
 		err := c.masterNode.ProbeIdleConnection(idleTimeout)
 		if err != nil {
 			log.Errorf("Master node probe error msg:%s", err.Error())
@@ -153,7 +153,7 @@ func probe() error {
 }
 
 func reload() error {
-	log.Info("Cluster reloading because of config update")
+	//log.Info("Cluster reloading because of config update")
 	if cfgHandler == nil {
 		err := fmt.Errorf("cfgHandler is nil")
 		return err
@@ -161,7 +161,7 @@ func reload() error {
 	proxyConfig := cfgHandler.GetConfig()
 	allClusterConfigs, _ := proxyConfig.GetAllClusters()
 
-	log.Info("Detect a Cluster change ")
+	//log.Info("Detect a Cluster change ")
 	clustersMu.Lock()
 	defer clustersMu.Unlock()
 	currentClusterVersion += 1
