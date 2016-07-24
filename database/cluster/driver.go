@@ -2,12 +2,11 @@ package cluster
 
 import (
 	"fmt"
-	"sync"
-	"time"
-
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
+	"sync"
+	"time"
 )
 
 var (
@@ -177,7 +176,6 @@ func reload() error {
 				log.Errorf("Cluster reload make new cluster[%s] error msg:%s", clusterName, err.Error())
 			}
 		} else { // update exist cluster
-			log.Debug("cluserName exists", clusterCfg)
 			newMasterNodeCfg := clusterCfg.GetMasterNode()
 			newMasterNodeDsn := getDsnFromNodeCfg(newMasterNodeCfg)
 			oldMasterNodeDsn := cluster.masterNode.Dsn()

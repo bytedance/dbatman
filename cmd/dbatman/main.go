@@ -2,18 +2,17 @@ package main
 
 import (
 	"flag"
+	"github.com/bytedance/dbatman/config"
+	"github.com/bytedance/dbatman/database/cluster"
+	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/proxy"
+	"github.com/ngaut/log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
-
-	"github.com/bytedance/dbatman/config"
-	"github.com/bytedance/dbatman/database/cluster"
-	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/proxy"
-	"github.com/ngaut/log"
 )
 
 var (
