@@ -2,11 +2,12 @@ package cluster
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
-	"sync"
-	"time"
 )
 
 var (
@@ -23,6 +24,12 @@ type Cluster struct {
 	cluserName string
 	DBName     string
 	version    int
+}
+
+type CrashDb struct {
+	crashNum   int
+	masterNode *mysql.DB
+	slaveNode  []*mysql.DB
 }
 
 func (c *Cluster) Master() (*mysql.DB, error) {
@@ -77,6 +84,65 @@ func (c *Cluster) Slave() (*mysql.DB, error) {
 	return db, nil
 }
 
+//TODO HeartBeat test for each node
+/*
+Problem the ping use the conn pool to ping the db
+
+*/
+func DisasterControl() error {
+	index := 1
+	for {
+		if index > 10 {
+			break
+		}
+		index++
+		time.Sleep(time.Second)
+		log.Info("")
+		if len(clusterConns) == 0 {
+			err := fmt.Errorf("There is no cluster init")
+			return err
+		}
+		for _, c := range clusterConns {
+			crashDb, err := c.HeartBeat()
+			if err != nil {
+				return err
+			}
+			if crashDb.crashNum != 0 {
+				//TODO
+				log.Debug("db disconnect :", crashDb)
+			}
+			//all dbs of the current cluster connecting pass
+		}
+	}
+	return nil
+}
+func (c *Cluster) HeartBeat() (*CrashDb, error) {
+	if c.masterNode == nil {
+		log.Info("master node did not exists")
+		err := fmt.Errorf("config is nil")
+		return nil, err
+	}
+	ret := &CrashDb{crashNum: 0, masterNode: nil}
+
+	//get all the cluster cfg
+	masterDb := c.masterNode
+	slaveDbs := c.slaveNodes
+
+	err := masterDb.Ping()
+	if err != nil {
+		ret.crashNum++
+		ret.masterNode = masterDb
+	}
+
+	for _, slavedb := range slaveDbs {
+		err := slavedb.Ping()
+		if err != nil {
+			ret.slaveNode = append(ret.slaveNode, slavedb)
+		}
+	}
+
+	return ret, nil
+}
 func (c *Cluster) DB(isread bool) (*mysql.DB, error) {
 	if isread {
 		return c.Master()

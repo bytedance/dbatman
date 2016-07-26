@@ -42,7 +42,6 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 
 func (s *Server) Serve() error {
 	s.running = true
-
 	for s.running {
 		conn, err := s.listener.Accept()
 		if err != nil {
