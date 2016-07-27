@@ -92,17 +92,17 @@ Problem the ping use the conn pool to ping the db
 func DisasterControl() error {
 	index := 1
 	for {
-		if index > 10 {
+		if index > 1000 {
 			break
 		}
 		index++
 		time.Sleep(time.Second)
-		log.Info("")
 		if len(clusterConns) == 0 {
 			err := fmt.Errorf("There is no cluster init")
 			return err
 		}
-		for _, c := range clusterConns {
+		for name, c := range clusterConns {
+			log.Info("HeartBeart test the db healthy of clusters:", name)
 			crashDb, err := c.HeartBeat()
 			if err != nil {
 				return err
