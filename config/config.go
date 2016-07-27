@@ -2,12 +2,13 @@ package config
 
 import (
 	"fmt"
-	"github.com/ngaut/log"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/ngaut/log"
+	"gopkg.in/yaml.v2"
 )
 
 var conf Conf
@@ -36,6 +37,7 @@ type GlobalConfig struct {
 	ServerTimeout     int      `yaml:"server_timeout"`
 	WriteTimeInterval int      `yaml:"write_time_interval"`
 	ConfAutoload      int      `yaml:"conf_autoload"`
+	AuthIPActive      bool     `yaml:"authip_active"`
 	AuthIPs           []string `yaml:"auth_ips,omitempty"`
 }
 
@@ -134,6 +136,16 @@ func (p *ProxyConfig) GetUserByName(username string) (*UserConfig, error) {
 	return user, nil
 }
 
+func (p *ProxyConfig) GetGlobalConfig() (*GlobalConfig, error) {
+
+	globalconfig := p.Global
+	if globalconfig == nil {
+		err := fmt.Errorf("Global config do not exist")
+		return nil, err
+	}
+	return globalconfig, nil
+}
+
 func (p *ProxyConfig) ServerTimeout() int {
 	return p.Global.ServerTimeout
 }
@@ -148,8 +160,10 @@ func (cc *ClusterConfig) GetSlaveNodes() []*NodeConfig {
 
 func (c *Conf) parseConfigFile(proxyConfig *ProxyConfig) error {
 	data, err := ioutil.ReadFile(c.path)
+	log.Debug(c.path)
 	if err == nil {
 		err = yaml.Unmarshal([]byte(data), proxyConfig)
+		log.Debug(proxyConfig.GetGlobalConfig())
 		if err == nil {
 			if !validateConfig(proxyConfig) {
 				err = fmt.Errorf("config is invalidate")
@@ -278,6 +292,7 @@ func getDefaultProxyConfig() *ProxyConfig {
 			ServerTimeout:     1800,
 			WriteTimeInterval: 10,
 			ConfAutoload:      1,
+			AuthIPActive:      true,
 			AuthIPs:           []string{"127.0.0.1"},
 		},
 	}
