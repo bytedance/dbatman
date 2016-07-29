@@ -15,14 +15,15 @@ package mysql
 import (
 	"errors"
 	"fmt"
-	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/ngaut/log"
 	"io"
 	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/ngaut/log"
 )
 
 var (
@@ -228,7 +229,9 @@ type DB struct {
 	// connections in Stmt.css.
 	numClosed uint64
 
-	mu           sync.Mutex // protects following fields
+	mu     sync.Mutex  // protects following fields
+	hbConn *driverConn //heart beat Conn
+
 	freeConn     []*driverConn
 	connRequests []chan connRequest
 	numOpen      int
@@ -520,6 +523,30 @@ func (db *DB) Ping() error {
 	return nil
 }
 
+//heartbeat ping verifies the health of a db,
+//establish if the conn is nil
+func (db *DB) HeartBeatPing() error {
+	// var dc *driverConn
+	if db.hbConn == nil {
+		dc, err := db.signleconn()
+		if err != nil {
+			return err
+		}
+		db.mu.Lock()
+		db.hbConn = dc
+		db.mu.Unlock()
+	}
+
+	if broken, err := db.hbConn.isIdleConnectionBroken(); broken {
+		db.mu.Unlock()
+		db.hbConn.Close()
+		db.mu.Lock()
+		log.Warnf("close db(%s) broken conneciton", db.dsn)
+		return err
+	}
+	return nil
+}
+
 // Close closes the database, releasing any open resources.
 //
 // It is rare to Close a DB, as the DB handle is meant to be
@@ -776,6 +803,21 @@ func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) {
 	dc.inUse = true
 	dc.lastActiveTime = time.Now()
 	db.mu.Unlock()
+	return dc, nil
+}
+
+//just make a new conn and don;t not dep on the pool
+func (db *DB) signleconn() (*driverConn, error) {
+	ci, err := db.driver.Open(db.dsn)
+	if err != nil {
+		return nil, err
+	}
+	dc := &driverConn{
+		db: db,
+		ci: ci,
+	}
+	dc.inUse = true
+	dc.lastActiveTime = time.Now()
 	return dc, nil
 }
 

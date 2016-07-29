@@ -135,7 +135,7 @@ func (c *Cluster) HeartBeat() (*CrashDb, error) {
 	}
 
 	for _, slavedb := range slaveDbs {
-		err := slavedb.Ping()
+		err := slavedb.HeartBeatPing()
 		if err != nil {
 			ret.slaveNode = append(ret.slaveNode, slavedb)
 		}
