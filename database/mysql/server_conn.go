@@ -86,6 +86,7 @@ func (mc *MySQLServerConn) Handshake() error {
 		return err
 	}
 
+	log.Debug("write init packet to client fineshed")
 	if err = mc.readHandshakeResponse(); err != nil {
 		if e, ok := err.(*MySQLError); ok {
 			mc.WriteError(e)
@@ -94,13 +95,14 @@ func (mc *MySQLServerConn) Handshake() error {
 		mc.cleanup()
 		return err
 	}
+	log.Debug("Auth the Client finished")
 
 	// TODO here we should proceed PROTOCOL41 ?
 	if err = mc.WriteOK(nil); err != nil {
 		mc.cleanup()
 		return err
 	}
-
+	log.Debug("Write ok to Client")
 	if err = mc.Flush(); err != nil {
 		mc.cleanup()
 		return err
@@ -228,6 +230,7 @@ func (mc *MySQLServerConn) writeInitPacket() error {
 // http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
 func (mc *MySQLServerConn) readHandshakeResponse() error {
 	data, err := mc.readPacket()
+	log.Debug(data)
 	if err != nil {
 		return err
 	}
@@ -258,12 +261,15 @@ func (mc *MySQLServerConn) readHandshakeResponse() error {
 	auth := data[pos : pos+authLen]
 	pos += authLen
 
+	log.Debug(mc.flags, clientConnectWithDB)
 	if mc.flags&clientConnectWithDB == 0 {
+		log.Debug(user, auth)
 		if err := mc.ctx.CheckAuth(user, auth, ""); err != nil {
 			return err
 		}
 	} else {
 		// connect must with db, otherwise it will deny the access
+		log.Debug(pos, data[pos:])
 		if len(data[pos:]) == 0 {
 			return NewDefaultError(ER_ACCESS_DENIED_ERROR, mc.netConn.RemoteAddr().String(), user, "Yes")
 		}

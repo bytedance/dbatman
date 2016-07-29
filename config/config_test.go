@@ -24,6 +24,7 @@ func TestConfig(t *testing.T) {
 		ServerTimeout:     1800,
 		WriteTimeInterval: 10,
 		ConfAutoload:      1,
+		AuthIPActive:      false,
 		AuthIPs:           []string{"10.4.64.1", "10.4.64.2"},
 	}
 
