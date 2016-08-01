@@ -530,6 +530,7 @@ func (db *DB) HeartBeatPing() error {
 	if db.hbConn == nil {
 		dc, err := db.signleconn()
 		if err != nil {
+			log.Info("could not connect to db:", db.dsn)
 			return err
 		}
 		db.mu.Lock()

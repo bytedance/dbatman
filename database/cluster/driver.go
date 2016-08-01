@@ -108,8 +108,14 @@ func DisasterControl() error {
 				return err
 			}
 			if crashDb.crashNum != 0 {
-				//TODO
-				log.Debug("db disconnect :", crashDb)
+				//TODO add the Manager module to contorle the diseaster
+				if crashDb.masterNode != nil {
+					log.Debug("db disconnect :", crashDb.masterNode.Dsn())
+				}
+				if len(crashDb.slaveNode) != 0 {
+					log.Debug("db disconnect ", crashDb.slaveNode)
+				}
+
 			}
 			//all dbs of the current cluster connecting pass
 		}
@@ -128,7 +134,7 @@ func (c *Cluster) HeartBeat() (*CrashDb, error) {
 	masterDb := c.masterNode
 	slaveDbs := c.slaveNodes
 
-	err := masterDb.Ping()
+	err := masterDb.HeartBeatPing()
 	if err != nil {
 		ret.crashNum++
 		ret.masterNode = masterDb
