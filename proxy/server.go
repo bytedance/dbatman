@@ -2,15 +2,27 @@ package proxy
 
 import (
 	"fmt"
+	"net"
+	"runtime"
+
+	"sync"
+
 	"github.com/bytedance/dbatman/config"
 	_ "github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
-	"net"
-	"runtime"
 )
 
 // Server is the proxy server. It handle the request from frontend, process and dispatch
 // queries, picking right backend conn due to the request context.
+
+type LimitReqNode struct {
+	excess     int64
+	last       int64
+	query      string
+	count      int64
+	lastSecond int64 //Last second to refresh the excess?
+}
+
 type Server struct {
 	cfg *config.Conf
 
@@ -19,8 +31,11 @@ type Server struct {
 	// schemas map[string]*Schema
 
 	// users    *userAuth
-	listener net.Listener
-	running  bool
+	mu *sync.Mutex
+
+	fingerprints map[string]*LimitReqNode
+	listener     net.Listener
+	running      bool
 }
 
 func NewServer(cfg *config.Conf) (*Server, error) {
@@ -29,6 +44,9 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 	s.cfg = cfg
 
 	var err error
+
+	s.fingerprints = make(map[string]*LimitReqNode)
+	s.mu = &sync.Mutex{}
 
 	port := s.cfg.GetConfig().Global.Port
 	s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%d", port))

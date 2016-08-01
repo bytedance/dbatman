@@ -1,14 +1,62 @@
 package proxy
 
 import (
+	"errors"
 	"fmt"
+	"time"
+
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
+	"github.com/percona/go-mysql/query"
 )
 
+//we just go the microsecond timestamp
+func getTimestamp() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
+}
+
 func (c *Session) comQuery(sqlstmt string) error {
+	//add the printfingermodule
+	var excess int64
+
+	fp := query.Fingerprint(sqlstmt)
+	now := getTimestamp()
+	c.server.mu.Lock()
+	if lr, ok := c.server.fingerprints[fp]; ok {
+		//how many microsecond elapsed since last query
+		ms := now - lr.last
+		//Default, we have 1 r/s
+		excess = lr.excess - 1000*(ms/1000) + 1000
+
+		//If we need caculate every second speed,
+		//Shouldn't reset to zero;
+		if excess < 0 {
+			excess = 0
+		}
+
+		//the race out the max Burst?
+		if excess > 1000 {
+			//Just close the client or
+			return fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, excess, 1000, sqlstmt)
+
+			//TODO: more gracefully add a Timer and retry?
+		}
+		lr.excess = excess
+		lr.last = now
+		lr.count++
+
+	} else {
+		lr := &LimitReqNode{}
+		lr.excess = 0
+		lr.last = getTimestamp()
+		lr.query = fp
+
+		lr.count = 1
+		c.server.fingerprints[fp] = lr
+	}
+	c.server.mu.Unlock()
 
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
@@ -44,7 +92,11 @@ func (c *Session) comQuery(sqlstmt string) error {
 		}
 	default:
 		log.Warnf("statement %T[%s] not support now", stmt, sqlstmt)
-		return nil
+		// err := log.Error("statement  not support now")
+		// return nil
+		err := errors.New("statement not support now")
+		return c.handleMySQLError(
+			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
 	}
 
 	return nil

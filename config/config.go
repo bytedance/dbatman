@@ -2,12 +2,13 @@ package config
 
 import (
 	"fmt"
-	"github.com/ngaut/log"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/ngaut/log"
+	"gopkg.in/yaml.v2"
 )
 
 var conf Conf
