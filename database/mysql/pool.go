@@ -541,6 +541,7 @@ func (db *DB) HeartBeatPing() error {
 	if broken, err := db.hbConn.isIdleConnectionBroken(); broken {
 		db.mu.Unlock()
 		db.hbConn.Close()
+		db.hbConn = nil
 		db.mu.Lock()
 		log.Warnf("close db(%s) broken conneciton", db.dsn)
 		return err

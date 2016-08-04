@@ -134,14 +134,14 @@ func (c *Cluster) HeartBeat() (*CrashDb, error) {
 	masterDb := c.masterNode
 	slaveDbs := c.slaveNodes
 
-	err := masterDb.HeartBeatPing()
+	err := masterDb.Ping() //HeartBeatPing or Ping use single conn or user conn from conn pools
 	if err != nil {
 		ret.crashNum++
 		ret.masterNode = masterDb
 	}
 
 	for _, slavedb := range slaveDbs {
-		err := slavedb.HeartBeatPing()
+		err := slavedb.Ping()
 		if err != nil {
 			ret.slaveNode = append(ret.slaveNode, slavedb)
 		}
