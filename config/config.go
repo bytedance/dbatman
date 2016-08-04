@@ -160,10 +160,8 @@ func (cc *ClusterConfig) GetSlaveNodes() []*NodeConfig {
 
 func (c *Conf) parseConfigFile(proxyConfig *ProxyConfig) error {
 	data, err := ioutil.ReadFile(c.path)
-	log.Debug(c.path)
 	if err == nil {
 		err = yaml.Unmarshal([]byte(data), proxyConfig)
-		log.Debug(proxyConfig.GetGlobalConfig())
 		if err == nil {
 			if !validateConfig(proxyConfig) {
 				err = fmt.Errorf("config is invalidate")
