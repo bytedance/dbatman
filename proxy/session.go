@@ -15,6 +15,9 @@ package proxy
 
 import (
 	"errors"
+	"net"
+	"strings"
+
 	"github.com/bytedance/dbatman/cmd/version"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
@@ -22,7 +25,6 @@ import (
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/ngaut/log"
-	"net"
 )
 
 type Session struct {
@@ -35,6 +37,8 @@ type Session struct {
 	cluster *cluster.Cluster
 	bc      *SqlConn
 	fc      *MySQLServerConn
+
+	cliAddr string //client ip for auth
 
 	closed bool
 
@@ -49,6 +53,8 @@ func (s *Server) newSession(conn net.Conn) *Session {
 	session.server = s
 	session.config = s.cfg.GetConfig()
 	session.salt, _ = RandomBuf(20)
+
+	session.cliAddr = strings.Split(conn.RemoteAddr().String(), ":")[0]
 
 	session.fc = NewMySQLServerConn(session, conn)
 	//session.lastcmd = ComQuit
