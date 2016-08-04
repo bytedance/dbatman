@@ -9,7 +9,6 @@ import (
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
-	"github.com/percona/go-mysql/query"
 )
 
 //we just go the microsecond timestamp
@@ -18,45 +17,75 @@ func getTimestamp() int64 {
 }
 
 func (c *Session) comQuery(sqlstmt string) error {
-	//add the printfingermodule
-	var excess int64
+	//calculate the ip
+	// var excess int64
 
-	fp := query.Fingerprint(sqlstmt)
-	now := getTimestamp()
-	c.server.mu.Lock()
-	if lr, ok := c.server.fingerprints[fp]; ok {
-		//how many microsecond elapsed since last query
-		ms := now - lr.last
-		//Default, we have 1 r/s
-		excess = lr.excess - 1000*(ms/1000) + 1000
+	// fp := query.Fingerprint(sqlstmt)
+	// now := getTimestamp()
+	// c.server.mu.Lock()
+	// server := c.server
+	// ip := "127.0.0.1"
 
-		//If we need caculate every second speed,
-		//Shouldn't reset to zero;
-		if excess < 0 {
-			excess = 0
-		}
+	// if user, ok := server.users[c.user.Username]; ok {
+	// 	if ipinfo, ok := user.iplist[ip]; ok {
 
-		//the race out the max Burst?
-		if excess > 1000 {
-			//Just close the client or
-			return fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, excess, 1000, sqlstmt)
+	// 		if lr, ok := ipinfo.printfinger[fp]; ok {
+	// 			//print finger exist calcute the qps
+	// 			tmp := lr
+	// 			log.Debug(tmp)
 
-			//TODO: more gracefully add a Timer and retry?
-		}
-		lr.excess = excess
-		lr.last = now
-		lr.count++
+	// 		} else {
+	// 			lr := &LimitReqNode{}
+	// 			lr.query = fp
+	// 			lr.count = 1
+	// 			lr.excess = 0
+	// 			lr.last = getTimestamp()
+	// 			ipinfo.printfinger[fp] = lr
+	// 		}
+	// 	} else {
+	// 		ipinfo := &Ip{}
+	// 		ipinfo.ip = ip
+	// 		ipinfo.printfinger = make(map[string]*LimitReqNode)
 
-	} else {
-		lr := &LimitReqNode{}
-		lr.excess = 0
-		lr.last = getTimestamp()
-		lr.query = fp
+	// 	}
+	// } else {
+	// 	user := &User{}
+	// 	user.user = c.user.Username
+	// 	user.iplist = make(map[string]*Ip)
 
-		lr.count = 1
-		c.server.fingerprints[fp] = lr
-	}
-	c.server.mu.Unlock()
+	// }
+	// if lr, ok := c.server.fingerprints[fp]; ok {
+	// 	//how many microsecond elapsed since last query
+	// 	ms := now - lr.last
+	// 	//Default, we have 1 r/s
+	// 	excess = lr.excess - 1000*(ms/1000) + 1000
+
+	// 	//If we need caculate every second speed,
+	// 	//Shouldn't reset to zero;
+	// 	if excess < 0 {
+	// 		excess = 0
+	// 	}
+	// 	//the race out the max Burst?
+	// 	if excess > 1000 {
+	// 		//Just close the client or
+	// 		return fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, excess, 1000, sqlstmt)
+
+	// 		//TODO: more gracefully add a Timer and retry?
+	// 	}
+	// 	lr.excess = excess
+	// 	lr.last = now
+	// 	lr.count++
+
+	// } else {
+	// 	lr := &LimitReqNode{}
+	// 	lr.excess = 0
+	// 	lr.last = getTimestamp()
+	// 	lr.query = fp
+
+	// 	lr.count = 1
+	// 	c.server.fingerprints[fp] = lr
+	// }
+	// c.server.mu.Unlock()
 
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
@@ -158,4 +187,63 @@ func (session *Session) exec(sqlstmt string, isread bool) error {
 	}
 
 	return session.fc.WriteOK(rs)
+}
+
+func (c *Session) collectfp(fp string) {
+	now := getTimestamp()
+	//*necessary to lock the server
+	// c.server.mu.Lock()
+	server := c.server
+	ip := "127.0.0.1"
+
+	if user, ok := server.users[c.user.Username]; ok {
+		if ipinfo, ok := user.iplist[ip]; ok {
+			ipinfo.mu.Unlock()
+
+			if lr, ok := ipinfo.printfinger[fp]; ok {
+				//print finger exist calcute the qps
+
+				//calculate the interval
+				interval := now - lr.last
+
+				//if interval <1000ms ADD the reqst to the previous 1s period
+				//if interval >1000ms begin a new period to record the count
+				lr.count += 1
+				if interval < 1000 {
+					lr.period_count += 1
+					//TODO process if qps > configuration
+					//if lr.period_count > c.user.AuthIPs[ip]
+					//return fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, lr.period_count, 1000, sqlstmt)
+				} else {
+					// new period
+					if interval > 2000 { // previous period doesn`t have any query
+						lr.lastqps = 0
+					} else {
+						lr.lastqps = lr.count
+					}
+
+					lr.last = now
+					lr.period_count = 1
+				}
+
+			} else {
+				lr := &LimitReqNode{}
+				lr.query = fp
+				lr.count = 1
+				lr.last = getTimestamp()
+				ipinfo.printfinger[fp] = lr
+			}
+			ipinfo.mu.Unlock()
+		} else {
+			ipinfo := &Ip{}
+			ipinfo.ip = ip
+			ipinfo.printfinger = make(map[string]*LimitReqNode)
+
+		}
+	} else {
+		user := &User{}
+		user.user = c.user.Username
+		user.iplist = make(map[string]*Ip)
+
+	}
 }

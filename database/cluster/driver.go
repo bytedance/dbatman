@@ -2,11 +2,12 @@ package cluster
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
-	"sync"
-	"time"
 )
 
 var (
