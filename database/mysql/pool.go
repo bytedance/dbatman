@@ -229,6 +229,8 @@ type DB struct {
 	// connections in Stmt.css.
 	numClosed uint64
 
+	aliveStatus bool // indicate the result heartbeat detected the healthy of the db
+
 	mu     sync.Mutex  // protects following fields
 	hbConn *driverConn //heart beat Conn
 
@@ -627,6 +629,17 @@ func (db *DB) SetMaxIdleConns(n int) {
 	}
 }
 
+//
+func (db *DB) SetDbAliveStatus(status bool) {
+	db.mu.Lock()
+	db.aliveStatus = status
+	db.mu.Unlock()
+}
+
+func (db *DB) GetDbAliveStatus() bool {
+	return db.aliveStatus
+}
+
 // SetMaxOpenConns sets the maximum number of open connections to the database.
 //
 // If MaxIdleConns is greater than 0 and the new MaxOpenConns is less than
@@ -654,6 +667,7 @@ type DBStats struct {
 	// FreeConnections is the number of pool connections to the database
 	OpenConnections int
 	FreeConnections int
+	AliveStatus     bool
 }
 
 // Stats returns database statistics.
@@ -662,6 +676,7 @@ func (db *DB) Stats() DBStats {
 	stats := DBStats{
 		OpenConnections: db.numOpen,
 		FreeConnections: len(db.freeConn),
+		AliveStatus:     db.aliveStatus,
 	}
 	db.mu.Unlock()
 	return stats

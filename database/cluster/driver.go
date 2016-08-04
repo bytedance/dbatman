@@ -67,10 +67,12 @@ func (c *Cluster) Slave() (*mysql.DB, error) {
 	for key, db := range c.slaveNodes {
 		if db != nil {
 			stats := db.Stats()
-			if stats.FreeConnections > freeConnections ||
-				(stats.FreeConnections == freeConnections && stats.OpenConnections < openConnections) {
-				freeConnections, openConnections = stats.FreeConnections, stats.OpenConnections
-				serviceSlaveKey = key
+			if stats.AliveStatus == true { // only alive db can server
+				if stats.FreeConnections > freeConnections ||
+					(stats.FreeConnections == freeConnections && stats.OpenConnections < openConnections) {
+					freeConnections, openConnections = stats.FreeConnections, stats.OpenConnections
+					serviceSlaveKey = key
+				}
 			}
 		}
 	}
@@ -90,12 +92,7 @@ Problem the ping use the conn pool to ping the db
 
 */
 func DisasterControl() error {
-	index := 1
 	for {
-		if index > 1000 {
-			break
-		}
-		index++
 		time.Sleep(time.Second)
 		if len(clusterConns) == 0 {
 			err := fmt.Errorf("There is no cluster init")
@@ -109,11 +106,18 @@ func DisasterControl() error {
 			}
 			if crashDb.crashNum != 0 {
 				//TODO add the Manager module to contorle the diseaster
+
 				if crashDb.masterNode != nil {
 					log.Debug("db disconnect :", crashDb.masterNode.Dsn())
 				}
 				if len(crashDb.slaveNode) != 0 {
-					log.Debug("db disconnect ", crashDb.slaveNode)
+					//TODO  INFO the manager module that the slave node has been cut down
+					for _, db := range crashDb.slaveNode {
+						db.SetDbAliveStatus(false)
+						log.Debug("db disconnect ", db.Dsn())
+						log.Info("cut down the db:", db.Dsn())
+					}
+
 				}
 
 			}
@@ -141,9 +145,12 @@ func (c *Cluster) HeartBeat() (*CrashDb, error) {
 	}
 
 	for _, slavedb := range slaveDbs {
-		err := slavedb.Ping()
-		if err != nil {
-			ret.slaveNode = append(ret.slaveNode, slavedb)
+		// check the alive status of db if has been cut down don't need to detect again
+		if slavedb.GetDbAliveStatus() == true {
+			err := slavedb.Ping()
+			if err != nil {
+				ret.slaveNode = append(ret.slaveNode, slavedb)
+			}
 		}
 	}
 
@@ -372,6 +379,7 @@ func openDBFromNodeCfg(nodeCfg *config.NodeConfig) (*mysql.DB, error) {
 func setDBProperty(db *mysql.DB, nodeCfg *config.NodeConfig) {
 	db.SetMaxOpenConns(nodeCfg.MaxConnections)
 	db.SetMaxIdleConns(nodeCfg.MaxConnectionPoolSize)
+	db.SetDbAliveStatus(true)
 }
 
 func getDsnFromNodeCfg(nodeCfg *config.NodeConfig) string {
