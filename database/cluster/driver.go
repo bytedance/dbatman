@@ -52,15 +52,16 @@ func (c *Cluster) Master() (*mysql.DB, error) {
 }
 
 func (c *Cluster) Slave() (*mysql.DB, error) {
-	if len(c.slaveNodes) == 0 {
-		log.Warnf("Slave no exsits, use master in instead")
-		return c.Master()
-	}
+
+	//	if len(c.slaveNodes) == 0 {
+	//		log.Warnf("Slave no exsits, use master in instead")
+	//		return c.Master()
+	//	}
 
 	var (
-		freeConnections int = -1
-		openConnections int = -1
-		serviceSlaveKey string
+		freeConnections int    = -1
+		openConnections int    = -1
+		serviceSlaveKey string = ""
 	)
 
 	//load balance mechanism
@@ -75,6 +76,10 @@ func (c *Cluster) Slave() (*mysql.DB, error) {
 				}
 			}
 		}
+	}
+	if serviceSlaveKey == "" { //there is no slave exist user master instead
+		log.Warnf("Slave no exsits, use master in instead")
+		return c.Master()
 	}
 	db := c.slaveNodes[serviceSlaveKey]
 	if openConnections == 0 {
@@ -99,10 +104,11 @@ func DisasterControl() error {
 			return err
 		}
 		for name, c := range clusterConns {
-			log.Info("HeartBeart test the db healthy of clusters:", name)
+			//	log.Info("HeartBeart test the db healthy of clusters:", name)
 			crashDb, err := c.HeartBeat()
 			if err != nil {
-				return err
+				//return err
+				log.Debug(err)
 			}
 			if crashDb.crashNum != 0 {
 				//TODO add the Manager module to contorle the diseaster
@@ -138,7 +144,7 @@ func (c *Cluster) HeartBeat() (*CrashDb, error) {
 	masterDb := c.masterNode
 	slaveDbs := c.slaveNodes
 
-	err := masterDb.Ping() //HeartBeatPing or Ping use single conn or user conn from conn pools
+	err := masterDb.HeartBeatPing() //HeartBeatPing or Ping use single conn or user conn from conn pools
 	if err != nil {
 		ret.crashNum++
 		ret.masterNode = masterDb
@@ -147,8 +153,9 @@ func (c *Cluster) HeartBeat() (*CrashDb, error) {
 	for _, slavedb := range slaveDbs {
 		// check the alive status of db if has been cut down don't need to detect again
 		if slavedb.GetDbAliveStatus() == true {
-			err := slavedb.Ping()
+			err := slavedb.HeartBeatPing()
 			if err != nil {
+				ret.crashNum++
 				ret.slaveNode = append(ret.slaveNode, slavedb)
 			}
 		}
@@ -158,9 +165,11 @@ func (c *Cluster) HeartBeat() (*CrashDb, error) {
 }
 func (c *Cluster) DB(isread bool) (*mysql.DB, error) {
 	if isread {
+		log.Info("return a master conn")
 		return c.Master()
 	}
 
+	log.Info("return a slave conn")
 	return c.Slave()
 }
 
