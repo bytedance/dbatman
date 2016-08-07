@@ -2,11 +2,12 @@ package proxy
 
 import (
 	"fmt"
+	"net"
+	"runtime"
+
 	"github.com/bytedance/dbatman/config"
 	_ "github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
-	"net"
-	"runtime"
 )
 
 // Server is the proxy server. It handle the request from frontend, process and dispatch
@@ -88,11 +89,11 @@ func (s *Server) onConn(c net.Conn) {
 
 	if err := session.Run(); err != nil {
 		// TODO
-		// session.WriteError(NewDefaultError(err))
+
 		if err == errSessionQuit {
 			return
 		}
-
+		session.Close()
 		log.Warnf("session run error: %s", err.Error())
 	}
 }
