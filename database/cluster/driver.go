@@ -103,7 +103,7 @@ func DisasterControl() error {
 			err := fmt.Errorf("There is no cluster init")
 			return err
 		}
-		for name, c := range clusterConns {
+		for _, c := range clusterConns {
 			//	log.Info("HeartBeart test the db healthy of clusters:", name)
 			crashDb, err := c.HeartBeat()
 			if err != nil {

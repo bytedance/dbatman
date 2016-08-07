@@ -10,6 +10,7 @@ global:
   server_timeout: 1800
   write_time_interval: 10
   conf_autoload: 1
+  authip_active: false 
   auth_ips:
     - 10.4.64.1
     - 10.4.64.2
