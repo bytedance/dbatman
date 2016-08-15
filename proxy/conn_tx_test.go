@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+var inAutoCommit bool = true
+
 func TestProxy_Tx(t *testing.T) {
 	db := newSqlDB(testProxyDSN)
 	if _, err := db.Exec(`
@@ -23,13 +25,13 @@ func TestProxy_Tx(t *testing.T) {
 	if rs, err := tx.Exec(`insert into dbatman_test_tx values(
 			1,
 			"abc")`); err != nil {
-		tx.Rollback()
+		tx.Rollback(inAutoCommit)
 		t.Fatalf("insert in transaction failed: %s", err)
 	} else if rn, err := rs.RowsAffected(); err != nil {
-		tx.Rollback()
+		tx.Rollback(inAutoCommit)
 		t.Fatalf("insert failed: %s", err)
 	} else if rn != 1 {
-		tx.Rollback()
+		tx.Rollback(inAutoCommit)
 		t.Fatalf("expect 1 rows, got %d", rn)
 	}
 
@@ -46,7 +48,7 @@ func TestProxy_Tx(t *testing.T) {
 		}
 	}
 
-	if err := tx.Rollback(); err != nil {
+	if err := tx.Rollback(inAutoCommit); err != nil {
 		t.Fatalf("rollback in trans failed: %s", err)
 	}
 
@@ -71,13 +73,13 @@ func TestProxy_Tx(t *testing.T) {
 	if rs, err := tx.Exec(`insert into dbatman_test_tx values(
 			1,
 			"abc")`); err != nil {
-		tx.Rollback()
+		tx.Rollback(inAutoCommit)
 		t.Fatalf("insert in transaction failed: %s", err)
 	} else if rn, err := rs.RowsAffected(); err != nil {
-		tx.Rollback()
+		tx.Rollback(inAutoCommit)
 		t.Fatalf("insert failed: %s", err)
 	} else if rn != 1 {
-		tx.Rollback()
+		tx.Rollback(inAutoCommit)
 		t.Fatalf("expect 1 rows, got %d", rn)
 	}
 
@@ -94,7 +96,7 @@ func TestProxy_Tx(t *testing.T) {
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(inAutoCommit); err != nil {
 		t.Fatalf("commit in trans failed: %s", err)
 	}
 

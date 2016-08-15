@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"errors"
+
 	"github.com/bytedance/dbatman/database/mysql"
 )
 
@@ -29,32 +30,37 @@ func (bc *SqlConn) begin() error {
 	return nil
 }
 
-func (bc *SqlConn) commit() error {
+func (bc *SqlConn) commit(inAutoCommit bool) error {
 	if bc.tx == nil {
 		return errors.New("unexpect commit")
 	}
 
 	defer func() {
-		bc.tx = nil
+		if inAutoCommit {
+			bc.tx = nil
+		}
 	}()
 
-	if err := bc.tx.Commit(); err != nil {
+	if err := bc.tx.Commit(inAutoCommit); err != nil {
+		// fmt.Println("commit err :", err)
 		return err
 	}
 
 	return nil
 }
 
-func (bc *SqlConn) rollback() error {
+func (bc *SqlConn) rollback(inAutoCommit bool) error {
 	if bc.tx == nil {
 		return errors.New("unexpect rollback")
 	}
 
 	defer func() {
-		bc.tx = nil
+		if inAutoCommit {
+			bc.tx = nil
+		}
 	}()
 
-	if err := bc.tx.Rollback(); err != nil {
+	if err := bc.tx.Rollback(inAutoCommit); err != nil {
 		return err
 	}
 
@@ -64,6 +70,7 @@ func (bc *SqlConn) rollback() error {
 func (session *Session) Executor(isread bool) mysql.Executor {
 
 	// TODO set autocommit
+	// fmt.Println("query with transaction:", session.isInTransaction())
 	if session.isInTransaction() {
 		return session.bc.tx
 	}

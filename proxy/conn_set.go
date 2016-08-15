@@ -2,10 +2,12 @@ package proxy
 
 import (
 	"fmt"
+
+	"strings"
+
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
-	"strings"
 )
 
 func (c *Session) handleSet(stmt *parser.Set, sql string) error {
@@ -17,13 +19,22 @@ func (c *Session) handleSet(stmt *parser.Set, sql string) error {
 	for _, v := range stmt.VarList {
 		if strings.ToUpper(v.Name) == "AUTOCOMMIT" {
 			log.Debug("handle autocommit")
-			err = c.handleSetAutoCommit(v.Value)
+			err = c.handleSetAutoCommit(v.Value) //??
 		}
 	}
 
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		//only execute when the autocommit 0->1
+		if c.autoCommit == 1 {
+			c.fc.XORStatus(uint16(StatusInAutocommit))
+			c.fc.AndStatus(^uint16(StatusInTrans))
+		}
+
+	}()
 	return c.handleOtherSet(stmt, sql)
 }
 
@@ -40,12 +51,32 @@ func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 		if i, err := value.ParseInt(); err != nil {
 			return err
 		} else if i == 1 {
-			c.fc.XORStatus(uint16(StatusInAutocommit))
+			//
+			if c.isAutoCommit() {
+				return nil
+			}
+
+			//inply the tx  cleanUp step after last query c.handleOtherSet(stmt, sql)
+			c.autoCommit = 1 //indicate 0 -> 1
+			//TODO when previous handle error need
+
 			log.Debug("autocommit is set")
-			// return c.handleBegin()
 		} else if i == 0 {
+			// indicate a transection
+			//current is autocommit = true  do nothing
+			if !c.isAutoCommit() {
+				return nil
+			}
 			c.fc.AndStatus(^uint16(StatusInAutocommit))
-			log.Debug("auto commit is unset")
+			////atuocommit  1->0 start a transection
+			err := c.bc.begin()
+			if err != nil {
+				log.Debug(err)
+			}
+			c.fc.XORStatus(uint16(StatusInTrans))
+			c.autoCommit = 2 // indicate 1 -> zero
+			// log.Debug("start a transection")
+			// log.Debug("auto commit is unset")
 		} else {
 			return fmt.Errorf("Variable 'autocommit' can't be set to the value of '%s'", i)
 		}

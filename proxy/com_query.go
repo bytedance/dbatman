@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
@@ -16,7 +17,7 @@ func (c *Session) comQuery(sqlstmt string) error {
 		return c.handleMySQLError(
 			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
 	}
-
+	// log.Info(sqlstmt)
 	switch v := stmt.(type) {
 	case parser.ISelect:
 		return c.handleQuery(v, sqlstmt)

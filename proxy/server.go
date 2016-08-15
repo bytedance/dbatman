@@ -80,7 +80,6 @@ func (s *Server) onConn(c net.Conn) {
 
 		session.Close()
 	}()
-
 	// Handshake error, here we do not need to close the conn
 	if err := session.Handshake(); err != nil {
 		log.Warnf("handshake error: %s", err)

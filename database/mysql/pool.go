@@ -1337,26 +1337,33 @@ func (tx *Tx) closePrepared() {
 }
 
 // Commit commits the transaction.
-func (tx *Tx) Commit() error {
+func (tx *Tx) Commit(inAutoCommit bool) error {
 	if tx.done {
 		return ErrTxDone
 	}
-	defer tx.close()
+	//only close when autocommit = false
+	if inAutoCommit {
+		defer tx.close()
+	}
 	tx.dc.Lock()
 	err := tx.txi.Commit()
+	// fmt.Println("poll commit err :", err)
 	tx.dc.Unlock()
 	if err != driver.ErrBadConn {
 		tx.closePrepared()
+		// fmt.Println("close  tx prepared")
 	}
 	return err
 }
 
 // Rollback aborts the transaction.
-func (tx *Tx) Rollback() error {
+func (tx *Tx) Rollback(inAutoCommit bool) error {
 	if tx.done {
 		return ErrTxDone
 	}
-	defer tx.close()
+	if inAutoCommit {
+		defer tx.close()
+	}
 	tx.dc.Lock()
 	err := tx.txi.Rollback()
 	tx.dc.Unlock()
