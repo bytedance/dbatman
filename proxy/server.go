@@ -26,12 +26,22 @@ import (
 // }
 type LimitReqNode struct {
 	// start        int64  //the fp start time
-	query        string //record the sql fingerprint
-	lastqps      int64
-	last         int64
-	period_count int64 // 1s period count
-	count        int64 //the total count of the printfinger
-	lastSecond   int64 //record last per
+	// query        string //record the sql fingerprint
+	// lastqps      int64
+	// last         int64
+	// period_count int64 // 1s period count
+	// count        int64 //the total count of the printfinger
+	// lastSecond   int64 //record last per
+
+	excess     int64
+	last       int64
+	query      string
+	count      int64
+	lastSecond int64 //Last second to refresh the excess?
+
+	start        int64 //qps start time by millsecond
+	lastcount    int64 //last count rep num means qps
+	currentcount int64 //repnum in current 1s dperiod
 }
 
 type Ip struct {
@@ -51,11 +61,14 @@ type Server struct {
 	// schemas map[string]*Schema
 
 	// users    *userAuth
-	mu           *sync.Mutex
-	users        map[string]*User
+	mu *sync.Mutex
+	// users        map[string]*User
+	//qps base on fingerprint
 	fingerprints map[string]*LimitReqNode
-	listener     net.Listener
-	running      bool
+	//qps base on server
+	qpsOnServer *LimitReqNode
+	listener    net.Listener
+	running     bool
 }
 
 func NewServer(cfg *config.Conf) (*Server, error) {
@@ -66,7 +79,8 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 	var err error
 
 	s.fingerprints = make(map[string]*LimitReqNode)
-	s.users = make(map[string]*User)
+	// s.users = make(map[string]*User)
+	// s.qpsOnServer = &LimitReqNode{}
 	s.mu = &sync.Mutex{}
 
 	port := s.cfg.GetConfig().Global.Port

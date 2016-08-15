@@ -9,6 +9,7 @@ import (
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
+	"github.com/percona/go-mysql/query"
 )
 
 //we just go the microsecond timestamp
@@ -17,76 +18,13 @@ func getTimestamp() int64 {
 }
 
 func (c *Session) comQuery(sqlstmt string) error {
-	//calculate the ip
-	// var excess int64
 
-	// fp := query.Fingerprint(sqlstmt)
-	// now := getTimestamp()
-	// c.server.mu.Lock()
-	// server := c.server
-	// ip := "127.0.0.1"
-
-	// if user, ok := server.users[c.user.Username]; ok {
-	// 	if ipinfo, ok := user.iplist[ip]; ok {
-
-	// 		if lr, ok := ipinfo.printfinger[fp]; ok {
-	// 			//print finger exist calcute the qps
-	// 			tmp := lr
-	// 			log.Debug(tmp)
-
-	// 		} else {
-	// 			lr := &LimitReqNode{}
-	// 			lr.query = fp
-	// 			lr.count = 1
-	// 			lr.excess = 0
-	// 			lr.last = getTimestamp()
-	// 			ipinfo.printfinger[fp] = lr
-	// 		}
-	// 	} else {
-	// 		ipinfo := &Ip{}
-	// 		ipinfo.ip = ip
-	// 		ipinfo.printfinger = make(map[string]*LimitReqNode)
-
-	// 	}
-	// } else {
-	// 	user := &User{}
-	// 	user.user = c.user.Username
-	// 	user.iplist = make(map[string]*Ip)
-
-	// }
-	// if lr, ok := c.server.fingerprints[fp]; ok {
-	// 	//how many microsecond elapsed since last query
-	// 	ms := now - lr.last
-	// 	//Default, we have 1 r/s
-	// 	excess = lr.excess - 1000*(ms/1000) + 1000
-
-	// 	//If we need caculate every second speed,
-	// 	//Shouldn't reset to zero;
-	// 	if excess < 0 {
-	// 		excess = 0
-	// 	}
-	// 	//the race out the max Burst?
-	// 	if excess > 1000 {
-	// 		//Just close the client or
-	// 		return fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, excess, 1000, sqlstmt)
-
-	// 		//TODO: more gracefully add a Timer and retry?
-	// 	}
-	// 	lr.excess = excess
-	// 	lr.last = now
-	// 	lr.count++
-
-	// } else {
-	// 	lr := &LimitReqNode{}
-	// 	lr.excess = 0
-	// 	lr.last = getTimestamp()
-	// 	lr.query = fp
-
-	// 	lr.count = 1
-	// 	c.server.fingerprints[fp] = lr
-	// }
-	// c.server.mu.Unlock()
-
+	err := c.intercept(sqlstmt)
+	if err != nil {
+		return err
+	}
+	c.updatefp(sqlstmt)
+	log.Debug(sqlstmt)
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
@@ -189,61 +127,76 @@ func (session *Session) exec(sqlstmt string, isread bool) error {
 	return session.fc.WriteOK(rs)
 }
 
-func (c *Session) collectfp(fp string) {
+func (c *Session) intercept(sqlstmt string) error {
+	var excess int64
 	now := getTimestamp()
-	//*necessary to lock the server
-	// c.server.mu.Lock()
-	server := c.server
-	ip := "127.0.0.1"
+	c.server.mu.Lock()
+	if qpsOnServer := c.server.qpsOnServer; qpsOnServer != nil {
 
-	if user, ok := server.users[c.user.Username]; ok {
-		if ipinfo, ok := user.iplist[ip]; ok {
-			ipinfo.mu.Unlock()
-
-			if lr, ok := ipinfo.printfinger[fp]; ok {
-				//print finger exist calcute the qps
-
-				//calculate the interval
-				interval := now - lr.last
-
-				//if interval <1000ms ADD the reqst to the previous 1s period
-				//if interval >1000ms begin a new period to record the count
-				lr.count += 1
-				if interval < 1000 {
-					lr.period_count += 1
-					//TODO process if qps > configuration
-					//if lr.period_count > c.user.AuthIPs[ip]
-					//return fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, lr.period_count, 1000, sqlstmt)
-				} else {
-					// new period
-					if interval > 2000 { // previous period doesn`t have any query
-						lr.lastqps = 0
-					} else {
-						lr.lastqps = lr.count
-					}
-
-					lr.last = now
-					lr.period_count = 1
-				}
-
-			} else {
-				lr := &LimitReqNode{}
-				lr.query = fp
-				lr.count = 1
-				lr.last = getTimestamp()
-				ipinfo.printfinger[fp] = lr
-			}
-			ipinfo.mu.Unlock()
-		} else {
-			ipinfo := &Ip{}
-			ipinfo.ip = ip
-			ipinfo.printfinger = make(map[string]*LimitReqNode)
-
+		//how many microsecond elapsed since last query
+		ms := now - qpsOnServer.last
+		//Default, we have 1 r/s
+		excess = qpsOnServer.excess - (c.config.Global.ReqRate*ms)/1000 + 1000
+		if excess < 0 {
+			excess = 0
 		}
+		log.Info("current qps excess is : ", excess)
+		//If we need caculate every second speed,
+		//Shouldn't reset to zero;
+
+		//the race out the max Burst?
+		if excess > c.config.Global.ReqBurst {
+			//Just close the client or
+			return fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, excess, c.config.Global.ReqBurst, sqlstmt)
+
+			//TODO: more gracefully add a Timer and retry?
+		}
+		qpsOnServer.excess = excess
+		qpsOnServer.last = now
+		qpsOnServer.count++
 	} else {
-		user := &User{}
-		user.user = c.user.Username
-		user.iplist = make(map[string]*Ip)
+		qpsOnServer := &LimitReqNode{}
+		qpsOnServer.count = 1
+		qpsOnServer.currentcount = 1
+		qpsOnServer.last = now
+		qpsOnServer.excess = 0
+		c.server.qpsOnServer = qpsOnServer
 
 	}
+
+	c.server.mu.Unlock()
+	return nil
+}
+
+//only collect the qps of the Fingerprint on server
+func (c *Session) updatefp(sqlstmt string) {
+	now := getTimestamp()
+	//*necessary to lock the server
+
+	fp := query.Fingerprint(sqlstmt)
+
+	c.server.mu.Lock()
+
+	if lr, ok := c.server.fingerprints[fp]; ok {
+		//how many microsecond elapsed since last query
+		interval := now - lr.start
+
+		if interval < 1000 {
+			lr.currentcount++
+		} else {
+			lr.lastcount = lr.currentcount
+			lr.start = lr.start + interval/1000*1000
+			lr.currentcount = 1
+		}
+		lr.count++ //total num of printfinger
+
+	} else {
+		lr := &LimitReqNode{}
+		lr.start = now
+		lr.lastcount = 0
+		lr.currentcount = 1
+		lr.count = 1
+		c.server.fingerprints[fp] = lr
+	}
+	c.server.mu.Unlock()
 }
