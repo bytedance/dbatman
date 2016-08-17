@@ -68,22 +68,24 @@ func (session *Session) CheckAuth(username string, passwd []byte, db string) err
 	//check the global authip
 	gc, err := session.config.GetGlobalConfig()
 	cliAddr := session.cliAddr
-	if len(gc.AuthIPs) > 0 {
-		//TODO white and black ip logic
-		globalAuthIp := &gc.AuthIPs
-		authIpFlag := false
-		for _, ip := range *globalAuthIp {
-			if ip == cliAddr {
-				authIpFlag = true
-				break
+	if gc.AuthIPActive == true {
+		if len(gc.AuthIPs) > 0 {
+			//TODO white and black ip logic
+			globalAuthIp := &gc.AuthIPs
+			authIpFlag := false
+			for _, ip := range *globalAuthIp {
+				if ip == cliAddr {
+					authIpFlag = true
+					break
+				}
 			}
-		}
 
-		if authIpFlag != true {
-			// log.Info("This user's Ip is not in the list of User's auth_Ip")
-			return NewDefaultError(ER_NO, "IP Is not in the auth_ip list of the global config")
-		}
+			if authIpFlag != true {
+				// log.Info("This user's Ip is not in the list of User's auth_Ip")
+				return NewDefaultError(ER_NO, "IP Is not in the auth_ip list of the global config")
+			}
 
+		}
 	}
 	//global auth pass
 	// There is no user named with parameter username
