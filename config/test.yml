@@ -12,8 +12,8 @@ global:
   conf_autoload: 1
   authip_active: false 
   auth_ips:
-  - 10.4.64.1
-  - 10.4.64.2
+    - 10.4.64.1
+    - 10.4.64.2
 clusters:
   test_cluster:
     master:

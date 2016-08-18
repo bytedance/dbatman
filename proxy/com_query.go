@@ -141,15 +141,15 @@ func (c *Session) intercept(sqlstmt string) error {
 		if excess < 0 {
 			excess = 0
 		}
-		log.Info("current qps excess is : ", excess)
+		// log.Info("current qps excess is : ", excess)
 		//If we need caculate every second speed,
 		//Shouldn't reset to zero;
 
 		//the race out the max Burst?
 		if excess > c.config.Global.ReqBurst {
 			//Just close the client or
-			return fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, excess, c.config.Global.ReqBurst, sqlstmt)
-
+			err := fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, excess, c.config.Global.ReqBurst, sqlstmt)
+			log.Warn(err)
 			//TODO: more gracefully add a Timer and retry?
 		}
 		qpsOnServer.excess = excess

@@ -12,27 +12,7 @@ import (
 	"github.com/ngaut/log"
 )
 
-// Server is the proxy server. It handle the request from frontend, process and dispatch
-// queries, picking right backend conn due to the request context.
-
-// type LimitReqNode struct {
-// 	start int64 //the fp start time
-
-// 	excess     int64
-// 	last       int64
-// 	query      string
-// 	count      int64
-// 	lastSecond int64 //Last second to refresh the excess?
-// }
 type LimitReqNode struct {
-	// start        int64  //the fp start time
-	// query        string //record the sql fingerprint
-	// lastqps      int64
-	// last         int64
-	// period_count int64 // 1s period count
-	// count        int64 //the total count of the printfinger
-	// lastSecond   int64 //record last per
-
 	excess     int64
 	last       int64
 	query      string
