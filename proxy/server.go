@@ -146,7 +146,6 @@ func (s *Server) onConn(c net.Conn) {
 		if err == errSessionQuit {
 			return
 		}
-		session.Close()
 		log.Warnf("session run error: %s", err.Error())
 	}
 }
