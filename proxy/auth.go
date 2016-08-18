@@ -102,21 +102,23 @@ func (session *Session) CheckAuth(username string, passwd []byte, db string) err
 	}
 	//TODO add the IP auth module to check the global auth_ip
 	//check user config auth_IP with current Session Ip
-	if len(session.user.AuthIPs) > 0 {
-		userIPs := &session.user.AuthIPs
-		authIpFlag := false
-		log.Debug("client IP : ", session.cliAddr)
-		log.Debug("User's Auth IP is: ", userIPs)
-		for _, ip := range *userIPs {
-			if cliAddr == ip {
-				authIpFlag = true
-				break
+	if gc.AuthIPActive == true {
+		if len(session.user.AuthIPs) > 0 {
+			userIPs := &session.user.AuthIPs
+			authIpFlag := false
+			log.Debug("client IP : ", session.cliAddr)
+			log.Debug("User's Auth IP is: ", userIPs)
+			for _, ip := range *userIPs {
+				if cliAddr == ip {
+					authIpFlag = true
+					break
+				}
 			}
-		}
-		if authIpFlag != true {
-			log.Debug("This user's Ip is not in the list of User's auth_Ip")
+			if authIpFlag != true {
+				log.Debug("This user's Ip is not in the list of User's auth_Ip")
 
-			return NewDefaultError(ER_NO, "IP Is not in the auth_ip list of the user")
+				return NewDefaultError(ER_NO, "IP Is not in the auth_ip list of the user")
+			}
 		}
 	}
 	if !bytes.Equal(passwd, CalcPassword(session.salt, []byte(session.user.Password))) {

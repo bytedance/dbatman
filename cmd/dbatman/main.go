@@ -49,7 +49,7 @@ func main() {
 	go func() {
 		err := cluster.DisasterControl()
 		if err != nil {
-			log.Debug(err)
+			log.Warn(err)
 		}
 	}()
 	go func() {

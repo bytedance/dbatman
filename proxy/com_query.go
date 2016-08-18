@@ -19,12 +19,13 @@ func getTimestamp() int64 {
 
 func (c *Session) comQuery(sqlstmt string) error {
 
-	err := c.intercept(sqlstmt)
-	if err != nil {
-		return err
-	}
+	//TODO test the flow control module
+	// err := c.intercept(sqlstmt)
+	// if err != nil {
+	// return err
+	// }
 	c.updatefp(sqlstmt)
-	log.Debug(sqlstmt)
+	log.Info(sqlstmt)
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
