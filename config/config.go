@@ -164,8 +164,6 @@ func (c *Conf) parseConfigFile(proxyConfig *ProxyConfig) error {
 	data, err := ioutil.ReadFile(c.path)
 	if err == nil {
 		err = yaml.Unmarshal([]byte(data), proxyConfig)
-		proxyConfig.Global.ReqRate = proxyConfig.Global.ReqRate * 1000
-		proxyConfig.Global.ReqBurst = proxyConfig.Global.ReqBurst * 1000
 		if err == nil {
 			if !validateConfig(proxyConfig) {
 				err = fmt.Errorf("config is invalidate")

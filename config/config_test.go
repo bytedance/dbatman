@@ -17,14 +17,16 @@ func TestConfig(t *testing.T) {
 		Port:              3306,
 		ManagePort:        3307,
 		MaxConnections:    10,
-		LogFilename:       "./log/dbatman.log",
 		LogLevel:          1,
+		LogFilename:       "./log/dbatman.log",
 		LogMaxSize:        1024,
 		ClientTimeout:     1800,
 		ServerTimeout:     1800,
 		WriteTimeInterval: 10,
 		ConfAutoload:      1,
 		AuthIPActive:      false,
+		ReqRate:           1000,
+		ReqBurst:          2000,
 		AuthIPs:           []string{"10.4.64.1", "10.4.64.2"},
 	}
 
