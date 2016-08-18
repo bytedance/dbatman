@@ -5,6 +5,8 @@ import (
 	"net"
 	"runtime"
 
+	"sync"
+
 	"github.com/bytedance/dbatman/config"
 	_ "github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
@@ -12,6 +14,45 @@ import (
 
 // Server is the proxy server. It handle the request from frontend, process and dispatch
 // queries, picking right backend conn due to the request context.
+
+// type LimitReqNode struct {
+// 	start int64 //the fp start time
+
+// 	excess     int64
+// 	last       int64
+// 	query      string
+// 	count      int64
+// 	lastSecond int64 //Last second to refresh the excess?
+// }
+type LimitReqNode struct {
+	// start        int64  //the fp start time
+	// query        string //record the sql fingerprint
+	// lastqps      int64
+	// last         int64
+	// period_count int64 // 1s period count
+	// count        int64 //the total count of the printfinger
+	// lastSecond   int64 //record last per
+
+	excess     int64
+	last       int64
+	query      string
+	count      int64
+	lastSecond int64 //Last second to refresh the excess?
+
+	start        int64 //qps start time by millsecond
+	lastcount    int64 //last count rep num means qps
+	currentcount int64 //repnum in current 1s dperiod
+}
+
+type Ip struct {
+	ip          string
+	mu          sync.Mutex
+	printfinger map[string]*LimitReqNode
+}
+type User struct {
+	user   string
+	iplist map[string]*Ip
+}
 type Server struct {
 	cfg *config.Conf
 
@@ -20,8 +61,14 @@ type Server struct {
 	// schemas map[string]*Schema
 
 	// users    *userAuth
-	listener net.Listener
-	running  bool
+	mu *sync.Mutex
+	// users        map[string]*User
+	//qps base on fingerprint
+	fingerprints map[string]*LimitReqNode
+	//qps base on server
+	qpsOnServer *LimitReqNode
+	listener    net.Listener
+	running     bool
 }
 
 func NewServer(cfg *config.Conf) (*Server, error) {
@@ -30,6 +77,11 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 	s.cfg = cfg
 
 	var err error
+
+	s.fingerprints = make(map[string]*LimitReqNode)
+	// s.users = make(map[string]*User)
+	// s.qpsOnServer = &LimitReqNode{}
+	s.mu = &sync.Mutex{}
 
 	port := s.cfg.GetConfig().Global.Port
 	s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%d", port))
@@ -89,6 +141,8 @@ func (s *Server) onConn(c net.Conn) {
 	if err := session.Run(); err != nil {
 		// TODO
 
+		// session.WriteError(NewDefaultError(err))
+		session.Close()
 		if err == errSessionQuit {
 			return
 		}

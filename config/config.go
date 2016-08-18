@@ -38,6 +38,8 @@ type GlobalConfig struct {
 	WriteTimeInterval int      `yaml:"write_time_interval"`
 	ConfAutoload      int      `yaml:"conf_autoload"`
 	AuthIPActive      bool     `yaml:"authip_active"`
+	ReqRate           int64    `yaml:"rate"`
+	ReqBurst          int64    `yaml:"burst"`
 	AuthIPs           []string `yaml:"auth_ips,omitempty"`
 }
 
@@ -162,6 +164,8 @@ func (c *Conf) parseConfigFile(proxyConfig *ProxyConfig) error {
 	data, err := ioutil.ReadFile(c.path)
 	if err == nil {
 		err = yaml.Unmarshal([]byte(data), proxyConfig)
+		proxyConfig.Global.ReqRate = proxyConfig.Global.ReqRate * 1000
+		proxyConfig.Global.ReqBurst = proxyConfig.Global.ReqBurst * 1000
 		if err == nil {
 			if !validateConfig(proxyConfig) {
 				err = fmt.Errorf("config is invalidate")
@@ -291,6 +295,8 @@ func getDefaultProxyConfig() *ProxyConfig {
 			WriteTimeInterval: 10,
 			ConfAutoload:      1,
 			AuthIPActive:      true,
+			ReqRate:           1000,
+			ReqBurst:          2000,
 			AuthIPs:           []string{"127.0.0.1"},
 		},
 	}
