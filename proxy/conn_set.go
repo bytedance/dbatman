@@ -28,14 +28,25 @@ func (c *Session) handleSet(stmt *parser.Set, sql string) error {
 	}
 
 	defer func() {
-		//only execute when the autocommit 0->1
+		//only execute when the autocommit 0->1 //clear
 		if c.autoCommit == 1 {
-			c.fc.XORStatus(uint16(StatusInAutocommit))
-			c.fc.AndStatus(^uint16(StatusInTrans))
+			log.Debug("clear autocommit tx")
+			c.clearAutoCommitTx()
 		}
 
 	}()
 	return c.handleOtherSet(stmt, sql)
+}
+
+func (c *Session) clearAutoCommitTx() {
+	c.fc.XORStatus(uint16(StatusInAutocommit))
+	// c.bc.rollback(c.isAutoCommit()) // clear the tx connection
+	log.Debug(c.isAutoCommit())
+	if err := c.bc.rollback(c.isAutoCommit()); err != nil {
+		log.Warnf(err.Error())
+	}
+	c.fc.AndStatus(^uint16(StatusInTrans))
+	log.Debug("current tx status is :", c.isInTransaction(), c.bc.tx)
 }
 
 func (c *Session) handleSetAutoCommit(val parser.IExpr) error {

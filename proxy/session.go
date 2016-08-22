@@ -121,9 +121,10 @@ func (session *Session) Close() error {
 			return err
 		}
 		//rollback uncommit data
-		session.handleRollback()
+
 		//set the autocommit mdoe as true
 		session.bc.tx.Exec("set autocommit = 1")
+		session.clearAutoCommitTx()
 		for _, s := range session.bc.stmts {
 			s.Close()
 		}

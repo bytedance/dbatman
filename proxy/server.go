@@ -124,6 +124,7 @@ func (s *Server) onConn(c net.Conn) {
 		// session.WriteError(NewDefaultError(err))
 		session.Close()
 		if err == errSessionQuit {
+			log.Warnf("session : %s", err.Error())
 			return
 		}
 		log.Warnf("session run error: %s", err.Error())

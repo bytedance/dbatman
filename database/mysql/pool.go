@@ -530,9 +530,8 @@ func (db *DB) Ping() error {
 func (db *DB) HeartBeatPing() error {
 	// var dc *driverConn
 	if db.hbConn == nil {
-		dc, err := db.signleconn()
+		dc, err := db.conn(cachedOrNewConn)
 		if err != nil {
-			log.Info("could not connect to db:", db.dsn)
 			return err
 		}
 		db.mu.Lock()
@@ -545,7 +544,7 @@ func (db *DB) HeartBeatPing() error {
 		db.hbConn.Close()
 		db.hbConn = nil
 		db.mu.Lock()
-		log.Warnf("close db(%s) broken conneciton", db.dsn)
+		log.Warnf("close db(%s) broken db", db.dsn)
 		return err
 	}
 	return nil
@@ -1237,6 +1236,7 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 		return errDBClosed
 	}
 	totalProbeNum := len(db.freeConn)
+	// log.Debug("current total free num is ", totalProbeNum)
 	numFree := totalProbeNum
 	hasProbeNum := 0
 
@@ -1248,6 +1248,7 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 		db.mu.Unlock()
 
 		idleSecond := conn.idleSecond()
+		// log.Info("idleSecond and timeout is:", idleSecond, idleTimeout)
 
 		//TODO: log with conn addr/thread_id
 		if idleSecond >= int64(idleTimeout) {
@@ -1361,7 +1362,9 @@ func (tx *Tx) Rollback(inAutoCommit bool) error {
 	if tx.done {
 		return ErrTxDone
 	}
+
 	if inAutoCommit {
+		// log.Debug("clear in pool.rollback")
 		defer tx.close()
 	}
 	tx.dc.Lock()
