@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"io"
 
+	"strings"
+
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql/driver"
@@ -65,10 +67,24 @@ func (session *Session) dispatch(data []byte) (err error) {
 	return
 }
 
-func (session *Session) useDB(db string) error {
+func proceDbName(db string) string {
+	ret := db
+	// filter the `` of the `db`
+	if strings.Contains(db, "`") {
+		log.Debug("db name error :,", db)
+		a := strings.Split(db, "`")
+		ret = a[1]
+	}
+	return ret
 
+}
+func (session *Session) useDB(dbName string) error {
+	// log.Info("use db: ", dbName)
+	// log.Info("transfer db", proceDbName(db))
+	db := proceDbName(dbName)
 	if session.cluster != nil {
 		if session.cluster.DBName != db {
+			// log.Debug("er1,:", session.cluster.DBName)
 			return mysql.NewDefaultError(mysql.ER_BAD_DB_ERROR, db)
 		}
 
@@ -76,14 +92,17 @@ func (session *Session) useDB(db string) error {
 	}
 
 	if _, err := session.config.GetClusterByDBName(db); err != nil {
+		// log.Debug("er2,:", err)
 		return mysql.NewDefaultError(mysql.ER_BAD_DB_ERROR, db)
 	} else if session.cluster, err = cluster.New(session.user.ClusterName); err != nil {
+		// log.Debug("er3,:", err)
 		return err
 	}
 
 	if session.bc == nil {
 		master, err := session.cluster.Master()
 		if err != nil {
+			// log.Debug("er3,:", err)
 			return mysql.NewDefaultError(mysql.ER_BAD_DB_ERROR, db)
 		}
 		slave, err := session.cluster.Slave()

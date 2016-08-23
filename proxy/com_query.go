@@ -24,15 +24,15 @@ func (c *Session) comQuery(sqlstmt string) error {
 	// if err != nil {
 	// return err
 	// }
-	c.updatefp(sqlstmt)
+	// c.updatefp(sqlstmt)
 	// log.Debug("current tx status is:", c.isInTransaction(), c.bc.tx)
+	log.Info(sqlstmt)
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
 		return c.handleMySQLError(
 			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
 	}
-	// log.Info(sqlstmt)
 	switch v := stmt.(type) {
 	case parser.ISelect:
 		return c.handleQuery(v, sqlstmt)
