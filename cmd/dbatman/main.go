@@ -2,17 +2,18 @@ package main
 
 import (
 	"flag"
-	"github.com/bytedance/dbatman/config"
-	"github.com/bytedance/dbatman/database/cluster"
-	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/proxy"
-	"github.com/ngaut/log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
+
+	"github.com/bytedance/dbatman/config"
+	"github.com/bytedance/dbatman/database/cluster"
+	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/proxy"
+	"github.com/ngaut/log"
 )
 
 var (
@@ -45,6 +46,12 @@ func main() {
 
 	mysql.SetLogger(log.Logger())
 
+	go func() {
+		err := cluster.DisasterControl()
+		if err != nil {
+			log.Warn(err)
+		}
+	}()
 	go func() {
 		//log.info("start checking config file")
 		cfg.CheckConfigUpdate(cluster.NotifyChan)

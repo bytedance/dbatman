@@ -15,14 +15,15 @@ package mysql
 import (
 	"errors"
 	"fmt"
-	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/ngaut/log"
 	"io"
 	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/ngaut/log"
 )
 
 var (
@@ -228,7 +229,11 @@ type DB struct {
 	// connections in Stmt.css.
 	numClosed uint64
 
-	mu           sync.Mutex // protects following fields
+	aliveStatus bool // indicate the result heartbeat detected the healthy of the db
+
+	mu     sync.Mutex  // protects following fields
+	hbConn *driverConn //heart beat Conn
+
 	freeConn     []*driverConn
 	connRequests []chan connRequest
 	numOpen      int
@@ -520,6 +525,32 @@ func (db *DB) Ping() error {
 	return nil
 }
 
+//heartbeat ping verifies the health of a db,
+//establish if the conn is nil
+func (db *DB) HeartBeatPing() error {
+	// var dc *driverConn
+	if db.hbConn == nil {
+		dc, err := db.signleconn()
+		if err != nil {
+			log.Info("could not connect to db:", db.dsn)
+			return err
+		}
+		db.mu.Lock()
+		db.hbConn = dc
+		db.mu.Unlock()
+	}
+
+	if broken, err := db.hbConn.isIdleConnectionBroken(); broken {
+		db.mu.Unlock()
+		db.hbConn.Close()
+		db.hbConn = nil
+		db.mu.Lock()
+		log.Warnf("close db(%s) broken conneciton", db.dsn)
+		return err
+	}
+	return nil
+}
+
 // Close closes the database, releasing any open resources.
 //
 // It is rare to Close a DB, as the DB handle is meant to be
@@ -598,6 +629,17 @@ func (db *DB) SetMaxIdleConns(n int) {
 	}
 }
 
+//
+func (db *DB) SetDbAliveStatus(status bool) {
+	db.mu.Lock()
+	db.aliveStatus = status
+	db.mu.Unlock()
+}
+
+func (db *DB) GetDbAliveStatus() bool {
+	return db.aliveStatus
+}
+
 // SetMaxOpenConns sets the maximum number of open connections to the database.
 //
 // If MaxIdleConns is greater than 0 and the new MaxOpenConns is less than
@@ -625,6 +667,7 @@ type DBStats struct {
 	// FreeConnections is the number of pool connections to the database
 	OpenConnections int
 	FreeConnections int
+	AliveStatus     bool
 }
 
 // Stats returns database statistics.
@@ -633,6 +676,7 @@ func (db *DB) Stats() DBStats {
 	stats := DBStats{
 		OpenConnections: db.numOpen,
 		FreeConnections: len(db.freeConn),
+		AliveStatus:     db.aliveStatus,
 	}
 	db.mu.Unlock()
 	return stats
@@ -776,6 +820,21 @@ func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) {
 	dc.inUse = true
 	dc.lastActiveTime = time.Now()
 	db.mu.Unlock()
+	return dc, nil
+}
+
+//just make a new conn and don;t not dep on the pool
+func (db *DB) signleconn() (*driverConn, error) {
+	ci, err := db.driver.Open(db.dsn)
+	if err != nil {
+		return nil, err
+	}
+	dc := &driverConn{
+		db: db,
+		ci: ci,
+	}
+	dc.inUse = true
+	dc.lastActiveTime = time.Now()
 	return dc, nil
 }
 
@@ -1278,26 +1337,33 @@ func (tx *Tx) closePrepared() {
 }
 
 // Commit commits the transaction.
-func (tx *Tx) Commit() error {
+func (tx *Tx) Commit(inAutoCommit bool) error {
 	if tx.done {
 		return ErrTxDone
 	}
-	defer tx.close()
+	//only close when autocommit = false
+	if inAutoCommit {
+		defer tx.close()
+	}
 	tx.dc.Lock()
 	err := tx.txi.Commit()
+	// fmt.Println("poll commit err :", err)
 	tx.dc.Unlock()
 	if err != driver.ErrBadConn {
 		tx.closePrepared()
+		// fmt.Println("close  tx prepared")
 	}
 	return err
 }
 
 // Rollback aborts the transaction.
-func (tx *Tx) Rollback() error {
+func (tx *Tx) Rollback(inAutoCommit bool) error {
 	if tx.done {
 		return ErrTxDone
 	}
-	defer tx.close()
+	if inAutoCommit {
+		defer tx.close()
+	}
 	tx.dc.Lock()
 	err := tx.txi.Rollback()
 	tx.dc.Unlock()

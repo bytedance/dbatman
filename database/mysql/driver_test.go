@@ -13,7 +13,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	//	"github.com/bytedance/dbatman/database/sql"
-	"github.com/bytedance/dbatman/database/sql/driver"
 	"io"
 	"io/ioutil"
 	"log"
@@ -25,6 +24,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/bytedance/dbatman/database/sql/driver"
 )
 
 var (
@@ -1702,7 +1703,7 @@ func TestConcurrent(t *testing.T) {
 					}
 				}
 
-				if err = tx.Commit(); err != nil {
+				if err = tx.Commit(true); err != nil {
 					fatalf("error on conn %d: %s", id, err.Error())
 					return
 				}

@@ -1,22 +1,38 @@
 package proxy
 
 import (
+	"errors"
 	"fmt"
+	"time"
+
 	. "github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
+	"github.com/percona/go-mysql/query"
 )
+
+//we just go the microsecond timestamp
+func getTimestamp() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
+}
 
 func (c *Session) comQuery(sqlstmt string) error {
 
+	//TODO test the flow control module
+	// err := c.intercept(sqlstmt)
+	// if err != nil {
+	// return err
+	// }
+	c.updatefp(sqlstmt)
+	log.Info(sqlstmt)
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
 		return c.handleMySQLError(
 			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
 	}
-
+	// log.Info(sqlstmt)
 	switch v := stmt.(type) {
 	case parser.ISelect:
 		return c.handleQuery(v, sqlstmt)
@@ -44,7 +60,11 @@ func (c *Session) comQuery(sqlstmt string) error {
 		}
 	default:
 		log.Warnf("statement %T[%s] not support now", stmt, sqlstmt)
-		return nil
+		// err := log.Error("statement  not support now")
+		// return nil
+		err := errors.New("statement not support now")
+		return c.handleMySQLError(
+			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
 	}
 
 	return nil
@@ -106,4 +126,79 @@ func (session *Session) exec(sqlstmt string, isread bool) error {
 	}
 
 	return session.fc.WriteOK(rs)
+}
+
+func (c *Session) intercept(sqlstmt string) error {
+	var excess int64
+	now := getTimestamp()
+	c.server.mu.Lock()
+	if qpsOnServer := c.server.qpsOnServer; qpsOnServer != nil {
+
+		//how many microsecond elapsed since last query
+		ms := now - qpsOnServer.last
+		//TODO modify here
+		//Default, we have 1 r/s and  *1000 add the switch to ms 1000 means 1 req per ms
+		excess = qpsOnServer.excess - (c.config.Global.ReqRate*1000*ms)/1000 + 1000
+		if excess < 0 {
+			excess = 0
+		}
+		// log.Info("current qps excess is : ", excess)
+		//If we need caculate every second speed,
+		//Shouldn't reset to zero;
+
+		//the race out the max Burst?
+		if excess > c.config.Global.ReqBurst {
+			//Just close the client or
+			err := fmt.Errorf(`the query excess(%d) over the reqBurst(%d), sql: %s "`, excess, c.config.Global.ReqBurst, sqlstmt)
+			log.Warn(err)
+			//TODO: more gracefully add a Timer and retry?
+		}
+		qpsOnServer.excess = excess
+		qpsOnServer.last = now
+		qpsOnServer.count++
+	} else {
+		qpsOnServer := &LimitReqNode{}
+		qpsOnServer.count = 1
+		qpsOnServer.currentcount = 1
+		qpsOnServer.last = now
+		qpsOnServer.excess = 0
+		c.server.qpsOnServer = qpsOnServer
+
+	}
+
+	c.server.mu.Unlock()
+	return nil
+}
+
+//only collect the qps of the Fingerprint on server
+func (c *Session) updatefp(sqlstmt string) {
+	now := getTimestamp()
+	//*necessary to lock the server
+
+	fp := query.Fingerprint(sqlstmt)
+
+	c.server.mu.Lock()
+
+	if lr, ok := c.server.fingerprints[fp]; ok {
+		//how many microsecond elapsed since last query
+		interval := now - lr.start
+
+		if interval < 1000 {
+			lr.currentcount++
+		} else {
+			lr.lastcount = lr.currentcount
+			lr.start = lr.start + interval/1000*1000
+			lr.currentcount = 1
+		}
+		lr.count++ //total num of printfinger
+
+	} else {
+		lr := &LimitReqNode{}
+		lr.start = now
+		lr.lastcount = 0
+		lr.currentcount = 1
+		lr.count = 1
+		c.server.fingerprints[fp] = lr
+	}
+	c.server.mu.Unlock()
 }

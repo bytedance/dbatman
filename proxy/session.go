@@ -15,6 +15,9 @@ package proxy
 
 import (
 	"errors"
+	"net"
+	"strings"
+
 	"github.com/bytedance/dbatman/cmd/version"
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/cluster"
@@ -22,7 +25,6 @@ import (
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/ngaut/log"
-	"net"
 )
 
 type Session struct {
@@ -35,6 +37,9 @@ type Session struct {
 	cluster *cluster.Cluster
 	bc      *SqlConn
 	fc      *MySQLServerConn
+
+	cliAddr    string //client ip for auth
+	autoCommit uint
 
 	closed bool
 
@@ -49,6 +54,8 @@ func (s *Server) newSession(conn net.Conn) *Session {
 	session.server = s
 	session.config = s.cfg.GetConfig()
 	session.salt, _ = RandomBuf(20)
+	session.autoCommit = 0
+	session.cliAddr = strings.Split(conn.RemoteAddr().String(), ":")[0]
 
 	session.fc = NewMySQLServerConn(session, conn)
 	//session.lastcmd = ComQuit
@@ -106,8 +113,25 @@ func (session *Session) Close() error {
 		return nil
 	}
 
+	//current connection is in AC tx mode reset before store in poll
+	if !session.isAutoCommit() {
+		//Debug
+		if !session.isInTransaction() {
+			err := errors.New("transaction must be in true in the autocommit = 0 mode")
+			return err
+		}
+		//rollback uncommit data
+		session.handleRollback()
+		//set the autocommit mdoe as true
+		session.bc.tx.Exec("set autocommit = 1")
+		for _, s := range session.bc.stmts {
+			s.Close()
+		}
+
+	}
 	session.fc.Close()
 
+	// session.bc.tx.Exec("set autocommit =0 ")
 	// TODO transaction
 	//	session.rollback()
 

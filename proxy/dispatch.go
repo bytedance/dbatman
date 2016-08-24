@@ -13,12 +13,13 @@ package proxy
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/bytedance/dbatman/database/cluster"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/ngaut/log"
-	"io"
 )
 
 func (session *Session) dispatch(data []byte) (err error) {
@@ -139,6 +140,7 @@ func (session *Session) writeRows(rs mysql.Rows) error {
 
 		// Handle Error
 
+		//warnging if in cli_deprecate_mode will get a ok_packet
 		if err != nil {
 			if err == io.EOF {
 				return session.fc.WriteEOF()

@@ -2,11 +2,12 @@ package cluster
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/bytedance/dbatman/config"
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
-	"sync"
-	"time"
 )
 
 var (
@@ -23,6 +24,12 @@ type Cluster struct {
 	cluserName string
 	DBName     string
 	version    int
+}
+
+type CrashDb struct {
+	crashNum   int
+	masterNode *mysql.DB
+	slaveNode  []*mysql.DB
 }
 
 func (c *Cluster) Master() (*mysql.DB, error) {
@@ -45,27 +52,34 @@ func (c *Cluster) Master() (*mysql.DB, error) {
 }
 
 func (c *Cluster) Slave() (*mysql.DB, error) {
-	if len(c.slaveNodes) == 0 {
-		log.Warnf("Slave no exsits, use master in instead")
-		return c.Master()
-	}
+
+	//	if len(c.slaveNodes) == 0 {
+	//		log.Warnf("Slave no exsits, use master in instead")
+	//		return c.Master()
+	//	}
 
 	var (
-		freeConnections int = -1
-		openConnections int = -1
-		serviceSlaveKey string
+		freeConnections int    = -1
+		openConnections int    = -1
+		serviceSlaveKey string = ""
 	)
 
 	//load balance mechanism
 	for key, db := range c.slaveNodes {
 		if db != nil {
 			stats := db.Stats()
-			if stats.FreeConnections > freeConnections ||
-				(stats.FreeConnections == freeConnections && stats.OpenConnections < openConnections) {
-				freeConnections, openConnections = stats.FreeConnections, stats.OpenConnections
-				serviceSlaveKey = key
+			if stats.AliveStatus == true { // only alive db can server
+				if stats.FreeConnections > freeConnections ||
+					(stats.FreeConnections == freeConnections && stats.OpenConnections < openConnections) {
+					freeConnections, openConnections = stats.FreeConnections, stats.OpenConnections
+					serviceSlaveKey = key
+				}
 			}
 		}
+	}
+	if serviceSlaveKey == "" { //there is no slave exist user master instead
+		log.Warnf("Slave no exsits, use master in instead")
+		return c.Master()
 	}
 	db := c.slaveNodes[serviceSlaveKey]
 	if openConnections == 0 {
@@ -77,11 +91,85 @@ func (c *Cluster) Slave() (*mysql.DB, error) {
 	return db, nil
 }
 
+//TODO HeartBeat test for each node
+/*
+Problem the ping use the conn pool to ping the db
+
+*/
+func DisasterControl() error {
+	for {
+		time.Sleep(time.Second)
+		if len(clusterConns) == 0 {
+			err := fmt.Errorf("There is no cluster init")
+			return err
+		}
+		for _, c := range clusterConns {
+			//	log.Info("HeartBeart test the db healthy of clusters:", name)
+			crashDb, err := c.HeartBeat()
+			if err != nil {
+				//return err
+				log.Debug(err)
+			}
+			if crashDb.crashNum != 0 {
+				//TODO add the Manager module to contorle the diseaster
+
+				if crashDb.masterNode != nil {
+					log.Debug("db disconnect :", crashDb.masterNode.Dsn())
+				}
+				if len(crashDb.slaveNode) != 0 {
+					//TODO  INFO the manager module that the slave node has been cut down
+					for _, db := range crashDb.slaveNode {
+						db.SetDbAliveStatus(false)
+						log.Debug("db disconnect ", db.Dsn())
+						log.Info("cut down the db:", db.Dsn())
+					}
+
+				}
+
+			}
+			//all dbs of the current cluster connecting pass
+		}
+	}
+	return nil
+}
+func (c *Cluster) HeartBeat() (*CrashDb, error) {
+	if c.masterNode == nil {
+		log.Info("master node did not exists")
+		err := fmt.Errorf("config is nil")
+		return nil, err
+	}
+	ret := &CrashDb{crashNum: 0, masterNode: nil}
+
+	//get all the cluster cfg
+	masterDb := c.masterNode
+	slaveDbs := c.slaveNodes
+
+	err := masterDb.Ping() //HeartBeatPing or Ping use single conn or user conn from conn pools
+	if err != nil {
+		ret.crashNum++
+		ret.masterNode = masterDb
+	}
+
+	for _, slavedb := range slaveDbs {
+		// check the alive status of db if has been cut down don't need to detect again
+		if slavedb.GetDbAliveStatus() == true {
+			err := slavedb.Ping()
+			if err != nil {
+				ret.crashNum++
+				ret.slaveNode = append(ret.slaveNode, slavedb)
+			}
+		}
+	}
+
+	return ret, nil
+}
 func (c *Cluster) DB(isread bool) (*mysql.DB, error) {
 	if isread {
+		log.Info("return a master conn")
 		return c.Master()
 	}
 
+	log.Info("return a slave conn")
 	return c.Slave()
 }
 
@@ -300,6 +388,7 @@ func openDBFromNodeCfg(nodeCfg *config.NodeConfig) (*mysql.DB, error) {
 func setDBProperty(db *mysql.DB, nodeCfg *config.NodeConfig) {
 	db.SetMaxOpenConns(nodeCfg.MaxConnections)
 	db.SetMaxIdleConns(nodeCfg.MaxConnectionPoolSize)
+	db.SetDbAliveStatus(true)
 }
 
 func getDsnFromNodeCfg(nodeCfg *config.NodeConfig) string {
