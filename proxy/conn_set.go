@@ -43,7 +43,7 @@ func (c *Session) clearAutoCommitTx() {
 	// c.bc.rollback(c.isAutoCommit()) // clear the tx connection
 	log.Debug(c.isAutoCommit())
 	if err := c.bc.rollback(c.isAutoCommit()); err != nil {
-		log.Warnf(err.Error())
+		log.Warnf("session %d clear autocommit err:%s: ", c.sessionId, err.Error())
 	}
 	c.fc.AndStatus(^uint16(StatusInTrans))
 	log.Debug("current tx status is :", c.isInTransaction(), c.bc.tx)

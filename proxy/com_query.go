@@ -59,7 +59,7 @@ func (c *Session) comQuery(sqlstmt string) error {
 			return c.fc.WriteOK(nil)
 		}
 	default:
-		log.Warnf("statement %T[%s] not support now", stmt, sqlstmt)
+		log.Warnf("session %d : statement %T[%s] not support now", c.sessionId, stmt, sqlstmt)
 		// err := log.Error("statement  not support now")
 		// return nil
 		err := errors.New("statement not support now")

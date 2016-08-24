@@ -15,6 +15,7 @@ package proxy
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 
@@ -40,6 +41,7 @@ type Session struct {
 
 	cliAddr    string //client ip for auth
 	autoCommit uint
+	sessionId  int64
 
 	closed bool
 
@@ -50,24 +52,24 @@ var errSessionQuit error = errors.New("session closed by client")
 
 func (s *Server) newSession(conn net.Conn) *Session {
 	session := new(Session)
-
+	id := <-sessionChan
 	session.server = s
 	session.config = s.cfg.GetConfig()
 	session.salt, _ = RandomBuf(20)
 	session.autoCommit = 0
 	session.cliAddr = strings.Split(conn.RemoteAddr().String(), ":")[0]
-
+	session.sessionId = id
 	session.fc = NewMySQLServerConn(session, conn)
 	//session.lastcmd = ComQuit
-
+	log.Info("start new session", session.sessionId)
 	return session
 }
 
 func (session *Session) Handshake() error {
 
 	if err := session.fc.Handshake(); err != nil {
-		log.Debug("handshake error: %s", err)
-		return err
+		erro := fmt.Errorf("session %d : handshake error: %s", session.sessionId, err.Error())
+		return erro
 	}
 
 	return nil
@@ -80,7 +82,8 @@ func (session *Session) Run() error {
 		data, err := session.fc.ReadPacket()
 
 		if err != nil {
-			log.Warn(err)
+			// log.Warn(err)
+			// Usually client close the conn
 			return err
 		}
 
@@ -93,7 +96,7 @@ func (session *Session) Run() error {
 				// TODO handle error
 			}
 
-			log.Warnf("dispatch error: %s", err.Error())
+			log.Warnf("sessionId %d:dispatch error: %s", session.sessionId, err.Error())
 			return err
 		}
 

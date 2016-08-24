@@ -3,11 +3,12 @@ package proxy
 import (
 	"encoding/binary"
 	"fmt"
+	"strconv"
+
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/database/sql/driver"
 	"github.com/bytedance/dbatman/parser"
 	"github.com/ngaut/log"
-	"strconv"
 )
 
 func (c *Session) handleComStmtPrepare(sqlstmt string) error {
@@ -33,7 +34,7 @@ func (c *Session) handleComStmtPrepare(sqlstmt string) error {
 		*parser.Do:
 		return c.prepare(v, sqlstmt)
 	default:
-		log.Warnf("statement %T[%s] not support prepare ops", stmt, sqlstmt)
+		log.Warnf("session %d :statement %T[%s] not support prepare ops", c.sessionId, stmt, sqlstmt)
 		return c.handleMySQLError(
 			mysql.NewDefaultError(mysql.ER_UNSUPPORTED_PS))
 	}

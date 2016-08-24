@@ -12,6 +12,8 @@ import (
 	"github.com/ngaut/log"
 )
 
+var sessionChan = make(chan int64, 10)
+
 type LimitReqNode struct {
 	excess     int64
 	last       int64
@@ -75,14 +77,23 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 
 func (s *Server) Serve() error {
 	s.running = true
+	var sessionId int64 = 0
 	for s.running {
 		conn, err := s.listener.Accept()
 		if err != nil {
 			log.Warning("accept error %s", err.Error())
 			continue
 		}
-
+		//allocate a sessionId for a session
+		select {
+		case sessionChan <- sessionId:
+			//do nothing
+		default:
+			//warnning!
+			log.Warnf("TASK_CHANNEL is full!")
+		}
 		go s.onConn(conn)
+		sessionId += 1
 	}
 
 	return nil
@@ -114,7 +125,7 @@ func (s *Server) onConn(c net.Conn) {
 	}()
 	// Handshake error, here we do not need to close the conn
 	if err := session.Handshake(); err != nil {
-		log.Warnf("handshake error: %s", err)
+		log.Warnf("session %d handshake error: %s", session.sessionId, err)
 		return
 	}
 
@@ -124,9 +135,9 @@ func (s *Server) onConn(c net.Conn) {
 		// session.WriteError(NewDefaultError(err))
 		session.Close()
 		if err == errSessionQuit {
-			log.Warnf("session : %s", err.Error())
+			log.Warnf("session %d: %s", session.sessionId, err.Error())
 			return
 		}
-		log.Warnf("session run error: %s", err.Error())
+		log.Warnf("session %d:session run error: %s", session.sessionId, err.Error())
 	}
 }
