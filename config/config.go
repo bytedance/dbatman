@@ -55,6 +55,7 @@ type NodeConfig struct {
 	Password              string
 	DBName                string
 	Charset               string
+	DBVersion             string
 	Weight                int
 	MaxConnections        int `yaml:"max_connections"`
 	MaxConnectionPoolSize int `yaml:"max_connection_pool_size"`

@@ -16,11 +16,12 @@ package mysql
 import (
 	"bufio"
 	"bytes"
-	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/ngaut/log"
 	"net"
 	"sync/atomic"
 	"time"
+
+	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/ngaut/log"
 )
 
 // MySQLServerCtx is a server-side interface of 1-time-connection
@@ -350,7 +351,6 @@ func (mc *MySQLServerConn) WriteEOF() error {
 
 func (mc *MySQLServerConn) WritePacket(data []byte) error {
 	pktLen := len(data) - 4
-
 	if pktLen > mc.maxPacketAllowed {
 		return ErrPktTooLarge
 	}
@@ -369,7 +369,6 @@ func (mc *MySQLServerConn) WritePacket(data []byte) error {
 			size = pktLen
 		}
 		data[3] = mc.sequence
-
 		// Write packet
 		if mc.writeTimeout > 0 {
 			if err := mc.netConn.SetWriteDeadline(time.Now().Add(mc.writeTimeout)); err != nil {

@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/bytedance/dbatman/database/mysql"
 )
@@ -70,7 +71,7 @@ func (bc *SqlConn) rollback(inAutoCommit bool) error {
 func (session *Session) Executor(isread bool) mysql.Executor {
 
 	// TODO set autocommit
-	// fmt.Println("query with transaction:", session.isInTransaction())
+	fmt.Println("query with transaction:", session.isInTransaction())
 	if session.isInTransaction() {
 		return session.bc.tx
 	}

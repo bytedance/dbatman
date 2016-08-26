@@ -13,7 +13,9 @@ import (
 
 func (c *Session) handleComStmtPrepare(sqlstmt string) error {
 	stmt, err := parser.Parse(sqlstmt)
+	log.Infof("session %d: %s", c.sessionId, sqlstmt)
 	if err != nil {
+
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
 		return c.handleMySQLError(
 			mysql.NewDefaultError(mysql.ER_SYNTAX_ERROR, err.Error()))

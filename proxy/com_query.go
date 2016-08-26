@@ -26,7 +26,7 @@ func (c *Session) comQuery(sqlstmt string) error {
 	// }
 	// c.updatefp(sqlstmt)
 	// log.Debug("current tx status is:", c.isInTransaction(), c.bc.tx)
-	log.Info(sqlstmt)
+	log.Infof("session %d: %s", c.sessionId, sqlstmt)
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
@@ -45,6 +45,10 @@ func (c *Session) comQuery(sqlstmt string) error {
 	case *parser.Commit:
 		return c.handleCommit()
 	case *parser.Rollback:
+		// log.Debug(hack.String(stmt.(*parser.Rollback).Point))
+		if len(stmt.(*parser.Rollback).Point) > 0 {
+			return c.handleExec(stmt, sqlstmt, false)
+		}
 		return c.handleRollback()
 	case parser.IShow:
 		return c.handleShow(sqlstmt, v)
@@ -58,6 +62,9 @@ func (c *Session) comQuery(sqlstmt string) error {
 		} else {
 			return c.fc.WriteOK(nil)
 		}
+	case *parser.SavePoint:
+		return c.handleExec(stmt, sqlstmt, false)
+		// return c.handleQuery(v, sqlstmt)
 	default:
 		log.Warnf("session %d : statement %T[%s] not support now", c.sessionId, stmt, sqlstmt)
 		// err := log.Error("statement  not support now")

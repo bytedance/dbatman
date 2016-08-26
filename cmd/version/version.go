@@ -1,3 +1,3 @@
 package version
 
-var Version string = "dbatman 1.0.0"
+var Version string = "5.5.33-log"
