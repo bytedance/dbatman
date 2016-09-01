@@ -12,7 +12,7 @@ import (
 	"github.com/ngaut/log"
 )
 
-var sessionChan = make(chan int64, 10)
+var sessionChan = make(chan int64, 256)
 
 type LimitReqNode struct {
 	excess     int64

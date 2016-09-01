@@ -47,6 +47,7 @@ func (c *Session) clearAutoCommitTx() {
 	}
 	c.fc.AndStatus(^uint16(StatusInTrans))
 	log.Debug("current tx status is :", c.isInTransaction(), c.bc.tx)
+	c.autoCommit = 0
 }
 
 func (c *Session) handleSetAutoCommit(val parser.IExpr) error {

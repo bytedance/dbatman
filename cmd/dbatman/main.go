@@ -25,7 +25,7 @@ var (
 func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
-
+	runtime.SetBlockProfileRate(1)
 	flag.Parse()
 
 	if len(*configFile) == 0 {
@@ -53,7 +53,7 @@ func main() {
 		}
 	}()
 	go func() {
-		//log.info("start checking config file")
+		// log.info("start checking config file")
 		cfg.CheckConfigUpdate(cluster.NotifyChan)
 	}()
 

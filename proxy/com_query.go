@@ -26,7 +26,7 @@ func (c *Session) comQuery(sqlstmt string) error {
 	// }
 	// c.updatefp(sqlstmt)
 	// log.Debug("current tx status is:", c.isInTransaction(), c.bc.tx)
-	log.Infof("session %d: %s", c.sessionId, sqlstmt)
+	// log.Infof("session %d: %s", c.sessionId, sqlstmt)
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
