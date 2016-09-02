@@ -1,9 +1,5 @@
 package parser
 
-import (
-	"fmt"
-)
-
 const (
 	LONG_LEN              = 10
 	LONGLONG_LEN          = 19

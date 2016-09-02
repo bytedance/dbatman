@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/bytedance/dbatman/parser/charset"
-	. "github.com/bytedance/dbatman/parser/state"
+	// "fmt"
 	"strconv"
 	"strings"
+
+	"github.com/bytedance/dbatman/parser/charset"
+	. "github.com/bytedance/dbatman/parser/state"
 )
 
 const EOFCHAR = 0x100
@@ -90,7 +92,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 	// DEBUG("dbg buf:[" + string(lex.buf) + "]\ndbg enter:\n")
 	for {
-		DEBUG("\t" + GetLexStatus(state) + " current_buf[" + string(lex.buf[lex.ptr:]) + "]\n")
+		// DEBUG("\t" + GetLexStatus(state) + " current_buf[" + string(lex.buf[lex.ptr:]) + "]\n")
 		switch state {
 		case MY_LEX_OPERATOR_OR_IDENT, MY_LEX_START:
 			for c = lex.yyNext(); state_map[c] == MY_LEX_SKIP; c = lex.yyNext() {
@@ -516,7 +518,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 TG_RET:
 
-	DEBUG(fmt.Sprintf("dbg return [%s]\n", MySQLSymName(retstate)))
+	// DEBUG(fmt.Sprintf("dbg return [%s]\n", MySQLSymName(retstate)))
 	return
 }
 
