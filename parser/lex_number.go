@@ -1,5 +1,7 @@
 package parser
 
+import "fmt"
+
 const (
 	LONG_LEN              = 10
 	LONGLONG_LEN          = 19
@@ -84,7 +86,9 @@ func (lex *SQLLexer) scanInt(lval *MySQLSymType) int {
 
 	idx := 0
 	for idx < len(cmp) && cmp[idx] == lex.buf[start] {
-		DEBUG(fmt.Sprintf("cmp:[%c] buf[%c]\n", cmp[idx], lex.buf[start]))
+		if debug {
+			DEBUG(fmt.Sprintf("cmp:[%c] buf[%c]\n", cmp[idx], lex.buf[start]))
+		}
 		idx += 1
 		start += 1
 	}

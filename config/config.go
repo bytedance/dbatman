@@ -229,6 +229,9 @@ func LoadConfig(path string) (*Conf, error) {
 	}
 	conf.lastModifiedTime = fileinfo.ModTime()
 	conf.proxyConfig = defaultProxyConfig
+	fmt.Print(log.GetLogLevel())
+	log.SetLevel(log.LogLevel(conf.proxyConfig.Global.LogLevel))
+	fmt.Print(log.GetLogLevel())
 	return &conf, err
 }
 

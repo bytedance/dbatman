@@ -24,6 +24,25 @@ import (
 	"github.com/ngaut/log"
 )
 
+//TODO this is a slice bufer for get packet from db to front write
+// var SysBytePool = pool.NewSliceSyncPool(
+// 	func(l int, c int) interface{} { return make([]byte, l, c) },
+// 	CheckByte,
+// )
+
+// func CheckByte(i interface{}) bool {
+// 	_, ok := i.([]byte)
+// 	return ok
+// }
+// func GetByte(i interface{}) []byte {
+// 	var b []byte
+// 	var ok bool
+// 	if b, ok = i.([]byte); !ok {
+// 		fmt.Println("is not byte slice type!")
+// 	}
+// 	return b
+// }
+
 // MySQLServerCtx is a server-side interface of 1-time-connection
 // context
 type MySQLServerCtx interface {

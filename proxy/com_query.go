@@ -20,13 +20,12 @@ func getTimestamp() int64 {
 func (c *Session) comQuery(sqlstmt string) error {
 
 	//TODO test the flow control module
-	// err := c.intercept(sqlstmt)
+	err := c.intercept(sqlstmt)
 	// if err != nil {
 	// return err
 	// }
 	// c.updatefp(sqlstmt)
-	// log.Debug("current tx status is:", c.isInTransaction(), c.bc.tx)
-	// log.Infof("session %d: %s", c.sessionId, sqlstmt)
+	log.Infof("session %d: %s", c.sessionId, sqlstmt)
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
@@ -142,13 +141,13 @@ func (c *Session) intercept(sqlstmt string) error {
 	if qpsOnServer := c.server.qpsOnServer; qpsOnServer != nil {
 
 		//how many microsecond elapsed since last query
-		ms := now - qpsOnServer.last
+		// ms := now - qpsOnServer.last
 		//TODO modify here
 		//Default, we have 1 r/s and  *1000 add the switch to ms 1000 means 1 req per ms
-		excess = qpsOnServer.excess - (c.config.Global.ReqRate*1000*ms)/1000 + 1000
-		if excess < 0 {
-			excess = 0
-		}
+		excess = 0 //qpsOnServer.excess - (c.config.Global.ReqRate*1000000*ms)/1000 + 1000
+		// if excess < 0 {
+		// excess = 0
+		// }
 		// log.Info("current qps excess is : ", excess)
 		//If we need caculate every second speed,
 		//Shouldn't reset to zero;

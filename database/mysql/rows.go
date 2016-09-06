@@ -9,8 +9,10 @@
 package mysql
 
 import (
-	"github.com/bytedance/dbatman/database/sql/driver"
 	"io"
+
+	"github.com/bytedance/dbatman/database/sql/driver"
+	// "github.com/ngaut/log"
 )
 
 type MySQLField struct {
@@ -181,7 +183,10 @@ func (rows *BinaryRows) readRowPacket() (driver.RawPacket, error) {
 		// Error otherwise
 		return nil, rows.mc.handleErrorPacket(data)
 	}
+	// ret := append(make([]byte, PacketHeaderLen, len(data)+PacketHeaderLen), data...)
+	// log.Debug("the packet to write is:", ret, len(ret))
 
+	//return ret, nil
 	return append(make([]byte, PacketHeaderLen, len(data)+PacketHeaderLen), data...), nil
 }
 
@@ -230,7 +235,18 @@ func (rows *TextRows) readRowPacket() (driver.RawPacket, error) {
 		return nil, rows.mc.handleErrorPacket(data)
 	}
 
-	// Preserve packet header for proxy usage
+	// // TODO IMP MEM used 30% reuse the MEM
+	// // Preserve packet header for proxy usage
+	// packetI := SysBytePool.Borrow(len(data) + PacketHeaderLen)
+	// packet := GetByte(packetI)
+	// // tmp : =append(make([]byte, PacketHeaderLen, len(data)+PacketHeaderLen), data...)
+	// packet[0] = 0
+	// packet[1] = 0
+	// packet[2] = 0
+	// packet[3] = 0
+	// copy(packet[4:len(data)+PacketHeaderLen], data)
+	// return packet, nil
+
 	return append(make([]byte, PacketHeaderLen, len(data)+PacketHeaderLen), data...), nil
 }
 

@@ -156,6 +156,8 @@ func (session *Session) writeRows(rs mysql.Rows) error {
 
 	for {
 		packet, err := rs.NextRowPacket()
+		// var p []byte = packet
+		// defer mysql.SysBytePool.Return([]byte(packet))
 
 		// Handle Error
 

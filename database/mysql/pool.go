@@ -871,6 +871,9 @@ const debugGetPut = false
 // putConn adds a connection to the db's free pool.
 // err is optionally the last error that occurred on this connection.
 func (db *DB) putConn(dc *driverConn, err error) {
+	if dc.ci.IsBroken() {
+		log.Warning("")
+	}
 	db.mu.Lock()
 	if !dc.inUse {
 		if debugGetPut {
