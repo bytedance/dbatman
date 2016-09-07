@@ -19,8 +19,8 @@ func getTimestamp() int64 {
 
 func (c *Session) comQuery(sqlstmt string) error {
 
-	//TODO test the flow control module
-	err := c.intercept(sqlstmt)
+	//TODO accerlate the flow control module and the figerprint module
+	// err := c.intercept(sqlstmt)
 	// if err != nil {
 	// return err
 	// }
@@ -66,8 +66,6 @@ func (c *Session) comQuery(sqlstmt string) error {
 		// return c.handleQuery(v, sqlstmt)
 	default:
 		log.Warnf("session %d : statement %T[%s] not support now", c.sessionId, stmt, sqlstmt)
-		// err := log.Error("statement  not support now")
-		// return nil
 		err := errors.New("statement not support now")
 		return c.handleMySQLError(
 			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
