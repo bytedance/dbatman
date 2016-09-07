@@ -89,10 +89,13 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 	state = lex.next_state
 	lex.next_state = MY_LEX_OPERATOR_OR_IDENT
-
-	// DEBUG("dbg buf:[" + string(lex.buf) + "]\ndbg enter:\n")
+	if debug {
+		DEBUG("dbg buf:[" + string(lex.buf) + "]\ndbg enter:\n")
+	}
 	for {
-		// DEBUG("\t" + GetLexStatus(state) + " current_buf[" + string(lex.buf[lex.ptr:]) + "]\n")
+		if debug {
+			DEBUG("\t" + GetLexStatus(state) + " current_buf[" + string(lex.buf[lex.ptr:]) + "]\n")
+		}
 		switch state {
 		case MY_LEX_OPERATOR_OR_IDENT, MY_LEX_START:
 			for c = lex.yyNext(); state_map[c] == MY_LEX_SKIP; c = lex.yyNext() {
@@ -517,8 +520,9 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 	retstate = 0
 
 TG_RET:
-
-	// DEBUG(fmt.Sprintf("dbg return [%s]\n", MySQLSymName(retstate)))
+	if debug {
+		DEBUG(fmt.Sprintf("dbg return [%s]\n", MySQLSymName(retstate)))
+	}
 	return
 }
 

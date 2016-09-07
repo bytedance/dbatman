@@ -1,7 +1,8 @@
 package parser
 
 import (
-	// "fmt"
+	"fmt"
+
 	"github.com/bytedance/dbatman/parser/charset"
 	. "github.com/bytedance/dbatman/parser/state"
 )
@@ -48,7 +49,9 @@ func (lex *SQLLexer) getIdentifier() (int, []byte) {
 	}
 
 	idc := lex.buf[lex.tok_start:lex.ptr]
-	// DEBUG(fmt.Sprintf("idc:[" + string(idc) + "]\n"))
+	if debug {
+		DEBUG(fmt.Sprintf("idc:[" + string(idc) + "]\n"))
+	}
 
 	start := lex.ptr
 

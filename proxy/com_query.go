@@ -139,10 +139,10 @@ func (c *Session) intercept(sqlstmt string) error {
 	if qpsOnServer := c.server.qpsOnServer; qpsOnServer != nil {
 
 		//how many microsecond elapsed since last query
-		// ms := now - qpsOnServer.last
+		ms := now - qpsOnServer.last
 		//TODO modify here
 		//Default, we have 1 r/s and  *1000 add the switch to ms 1000 means 1 req per ms
-		excess = 0 //qpsOnServer.excess - (c.config.Global.ReqRate*1000000*ms)/1000 + 1000
+		excess = qpsOnServer.excess - (c.config.Global.ReqRate*1000*ms)/1000 + 1000
 		// if excess < 0 {
 		// excess = 0
 		// }

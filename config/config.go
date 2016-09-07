@@ -206,6 +206,8 @@ func (c *Conf) CheckConfigUpdate(notifyChans ...chan bool) {
 				c.mu.Lock()
 				c.proxyConfig = defaultProxyConfig
 				c.mu.Unlock()
+				//modify the log level when update
+				log.SetLevel(log.LogLevel(conf.proxyConfig.Global.LogLevel))
 
 				for _, notifyChan := range notifyChans {
 					notifyChan <- true
@@ -229,9 +231,8 @@ func LoadConfig(path string) (*Conf, error) {
 	}
 	conf.lastModifiedTime = fileinfo.ModTime()
 	conf.proxyConfig = defaultProxyConfig
-	fmt.Print(log.GetLogLevel())
+	//set the log lever from base on conf
 	log.SetLevel(log.LogLevel(conf.proxyConfig.Global.LogLevel))
-	fmt.Print(log.GetLogLevel())
 	return &conf, err
 }
 
