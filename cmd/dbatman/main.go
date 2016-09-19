@@ -58,11 +58,12 @@ func main() {
 	}()
 
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc,
-		// syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
+	Restart := make(chan os.Signal, 1)
+	signal.Notify(Restart, syscall.SIGINT)
+	signal.Notify(sc, syscall.SIGQUIT)
+	// syscall.SIGHUP,
+	// syscall.SIGINT,
+	//syscall.SIGTERM,
 
 	var svr *proxy.Server
 	svr, err = proxy.NewServer(cfg)
@@ -76,10 +77,17 @@ func main() {
 	}()
 
 	go func() {
-		sig := <-sc
-		log.Infof("Got signal [%d] to exit.", sig)
-		svr.Close()
+		select {
+		case sig := <-sc:
+			log.Infof("Got signal [%d] to exit.", sig)
+			svr.Close()
+		case sig := <-Restart:
+			log.Infof("Got signal [%d] to Restart.", sig)
+			svr.Restart()
+		}
 	}()
 
 	svr.Serve()
+	os.Exit(0)
+
 }

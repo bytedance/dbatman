@@ -14,11 +14,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/ngaut/log"
 	"io"
 	"math"
 	"time"
+
+	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/ngaut/log"
 )
 
 // Packets documentation:
@@ -303,6 +304,7 @@ func (mc *MySQLConn) writeAuthPacket(cipher []byte) error {
 		}
 		mc.netConn = tlsConn
 		mc.buf.nc = tlsConn
+		log.Warn("the mc.buf.nc is :", tlsConn)
 	}
 
 	// Filler [23 bytes] (all 0x00)

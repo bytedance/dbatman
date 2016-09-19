@@ -133,6 +133,15 @@ func (session *Session) Close() error {
 		}
 
 	}
+	if session.isInTransaction() {
+		// session.handleCommit()
+		log.Debugf("session : %d reset the  tx status", session.sessionId)
+		if err := session.bc.rollback(session.isAutoCommit()); err != nil {
+			log.Info(err.Error)
+		}
+
+	}
+	// session.bc.
 	session.fc.Close()
 
 	// session.bc.tx.Exec("set autocommit =0 ")

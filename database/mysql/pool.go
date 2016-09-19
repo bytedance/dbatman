@@ -761,6 +761,7 @@ func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) {
 			db.freeConn = db.freeConn[:numFree-1]
 
 			if broken, _ := conn.isIdleConnectionBroken(); broken {
+				log.Warn("Bad connection colesd")
 				db.mu.Unlock()
 				conn.Close()
 				db.mu.Lock()
@@ -872,7 +873,14 @@ const debugGetPut = false
 // err is optionally the last error that occurred on this connection.
 func (db *DB) putConn(dc *driverConn, err error) {
 	if dc.ci.IsBroken() {
-		log.Warning("")
+		//TODO currently add
+		//To trace the pointer to nil problem
+		const size = 4096
+		buf := make([]byte, size)
+		buf = buf[:runtime.Stack(buf, false)]
+		// log.Fatal("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
+		log.Warnf("%s", buf)
+		log.Warning("put conn error ")
 	}
 	db.mu.Lock()
 	if !dc.inUse {

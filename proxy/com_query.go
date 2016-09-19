@@ -55,7 +55,11 @@ func (c *Session) comQuery(sqlstmt string) error {
 		return c.handleDDL(v, sqlstmt)
 	case *parser.Do, *parser.Call, *parser.FlushTables:
 		return c.handleExec(stmt, sqlstmt, false)
+		//add the describe table module
+	case *parser.DescribeTable:
+		return c.handleQuery(v, sqlstmt)
 	case *parser.Use:
+
 		if err := c.useDB(hack.String(stmt.(*parser.Use).DB)); err != nil {
 			return c.handleMySQLError(err)
 		} else {
@@ -110,6 +114,9 @@ func (session *Session) checkDB(stmt parser.IStatement) error {
 		schemas := hasSchemas.GetSchemas()
 		for _, s := range schemas {
 			if len(s) > 0 && s != session.cluster.DBName {
+				log.Warn("wrong here", session.user.Username,
+					session.fc.RemoteAddr().String(),
+					session.cluster.DBName)
 				NewDefaultError(
 					ER_DBACCESS_DENIED_ERROR,
 					session.user.Username,

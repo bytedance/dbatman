@@ -3,14 +3,20 @@ package proxy
 import (
 	"fmt"
 	"net"
+	"os"
 	"runtime"
+	"time"
 
 	"sync"
+	"syscall"
 
 	"github.com/bytedance/dbatman/config"
 	_ "github.com/bytedance/dbatman/database/mysql"
 	"github.com/ngaut/log"
 )
+
+var startNum = 0
+var closeNum = 0
 
 var sessionChan = make(chan int64, 256)
 
@@ -51,6 +57,8 @@ type Server struct {
 	qpsOnServer *LimitReqNode
 	listener    net.Listener
 	running     bool
+	restart     bool
+	wg          sync.WaitGroup
 }
 
 func NewServer(cfg *config.Conf) (*Server, error) {
@@ -64,9 +72,23 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 	// s.users = make(map[string]*User)
 	// s.qpsOnServer = &LimitReqNode{}
 	s.mu = &sync.Mutex{}
-
+	s.restart = false
 	port := s.cfg.GetConfig().Global.Port
-	s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%d", port))
+
+	// get listenfd from file when restart
+	if os.Getenv("_GRACEFUL_RESTART") == "true" {
+		log.Info("graceful restart with previous listenfd")
+
+		//get the linstenfd
+		file := os.NewFile(3, "")
+		s.listener, err = net.FileListener(file)
+		if err != nil {
+			log.Warn("get linstener err ")
+		}
+
+	} else {
+		s.listener, err = net.Listen("tcp4", fmt.Sprintf(":%d", port))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -76,15 +98,10 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 }
 
 func (s *Server) Serve() error {
+	log.Debug("this is ddbatman v3")
 	s.running = true
 	var sessionId int64 = 0
 	for s.running {
-		conn, err := s.listener.Accept()
-		if err != nil {
-			log.Warning("accept error %s", err.Error())
-			continue
-		}
-		//allocate a sessionId for a session
 		select {
 		case sessionChan <- sessionId:
 			//do nothing
@@ -92,11 +109,67 @@ func (s *Server) Serve() error {
 			//warnning!
 			log.Warnf("TASK_CHANNEL is full!")
 		}
+
+		conn, err := s.Accept()
+		if err != nil {
+			log.Warning("accept error %s", err.Error())
+			continue
+		}
+		//allocate a sessionId for a session
 		go s.onConn(conn)
 		sessionId += 1
 	}
+	if s.restart == true {
+		log.Debug("Begin to restart graceful")
+		listenerFile, err := s.listener.(*net.TCPListener).File()
+		if err != nil {
+			log.Fatal("Fail to get socket file descriptor:", err)
+		}
+		listenerFd := listenerFile.Fd()
 
+		os.Setenv("_GRACEFUL_RESTART", "true")
+		execSpec := &syscall.ProcAttr{
+			Env:   os.Environ(),
+			Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd(), listenerFd},
+		}
+		fork, err := syscall.ForkExec(os.Args[0], os.Args, execSpec)
+		if err != nil {
+			return fmt.Errorf("failed to forkexec: %v", err)
+		}
+
+		log.Infof("start new process success, pid %d.", fork)
+	}
+	timeout := time.NewTimer(time.Minute)
+	wait := make(chan struct{})
+	go func() {
+		s.wg.Wait()
+		wait <- struct{}{}
+	}()
+
+	select {
+	case <-timeout.C:
+		log.Error("server : Waittimeout error when close the service")
+		return nil
+	case <-wait:
+		log.Info("server : all goroutine has been done")
+		return nil
+	}
 	return nil
+}
+func (s *Server) Accept() (net.Conn, error) {
+
+	conn, err := s.listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	// tc.SetKeepAlive(true)
+	// tc.SetKeepAlivePeriod(3 * time.Minute)
+
+	s.wg.Add(1)
+	startNum += 1
+	// log.Info("wait group add 1 total is :", startNum)
+
+	return conn, nil
 }
 
 // TODO check this function if it need routine-safe
@@ -105,6 +178,14 @@ func (s *Server) Close() {
 	if s.listener != nil {
 		s.listener.Close()
 		s.listener = nil
+	}
+}
+func (s *Server) Restart() {
+	s.running = false
+	s.restart = true
+	if s.listener != nil {
+		//s.listener.Close()
+		//s.listener = nil
 	}
 }
 
@@ -117,7 +198,7 @@ func (s *Server) onConn(c net.Conn) {
 				const size = 4096
 				buf := make([]byte, size)
 				buf = buf[:runtime.Stack(buf, false)]
-				log.Fatal("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
+				log.Fatalf("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
 			}
 		}
 
@@ -135,9 +216,14 @@ func (s *Server) onConn(c net.Conn) {
 		// session.WriteError(NewDefaultError(err))
 		session.Close()
 		if err == errSessionQuit {
+
 			log.Warnf("session %d: %s", session.sessionId, err.Error())
-			return
+			// return
 		}
+		closeNum += 1
+		s.wg.Done()
+		log.Info("wait group add 1 total is :", closeNum)
 		log.Warnf("session %d:session run error: %s", session.sessionId, err.Error())
+		return
 	}
 }

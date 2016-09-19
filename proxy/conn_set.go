@@ -39,9 +39,11 @@ func (c *Session) handleSet(stmt *parser.Set, sql string) error {
 }
 
 func (c *Session) clearAutoCommitTx() {
+	// clear the AUTOCOMMIT status
 	c.fc.XORStatus(uint16(StatusInAutocommit))
 	// c.bc.rollback(c.isAutoCommit()) // clear the tx connection
 	log.Debug(c.isAutoCommit())
+	//clear the backend conn's Tx status;
 	if err := c.bc.rollback(c.isAutoCommit()); err != nil {
 		log.Warnf("session %d clear autocommit err:%s: ", c.sessionId, err.Error())
 	}
