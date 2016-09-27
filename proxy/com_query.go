@@ -56,7 +56,7 @@ func (c *Session) comQuery(sqlstmt string) error {
 	case *parser.Do, *parser.Call, *parser.FlushTables:
 		return c.handleExec(stmt, sqlstmt, false)
 		//add the describe table module
-	case *parser.DescribeTable:
+	case *parser.DescribeTable, *parser.DescribeStmt:
 		return c.handleQuery(v, sqlstmt)
 	case *parser.Use:
 

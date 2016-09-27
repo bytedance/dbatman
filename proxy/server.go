@@ -98,7 +98,7 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 }
 
 func (s *Server) Serve() error {
-	log.Debug("this is ddbatman v3")
+	log.Debug("this is ddbatman v4")
 	s.running = true
 	var sessionId int64 = 0
 	for s.running {

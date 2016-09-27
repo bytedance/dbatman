@@ -872,7 +872,8 @@ const debugGetPut = false
 // putConn adds a connection to the db's free pool.
 // err is optionally the last error that occurred on this connection.
 func (db *DB) putConn(dc *driverConn, err error) {
-	if dc.ci.IsBroken() {
+	// if dc.ci.IsBroken() {
+	if broken, _ := dc.isIdleConnectionBroken(); broken {
 		//TODO currently add
 		//To trace the pointer to nil problem
 		const size = 4096

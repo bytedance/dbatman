@@ -623,12 +623,15 @@ func (mc *MySQLConn) handleOkPacket(data []byte) error {
 }
 
 // Read Packets as Field Packets until EOF-Packet or an Error appears
-// http://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition41
+// http://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition41\
+
 func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 	columns := make([]MySQLField, count)
 
 	for i := 0; ; i++ {
+		datali := make([]byte, 0, 256)
 		data, err := mc.readPacket()
+		datali = append(datali, data...)
 		if err != nil {
 			return nil, err
 		}
@@ -641,7 +644,7 @@ func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 			return nil, fmt.Errorf("column count mismatch n:%d len:%d", count, len(columns))
 		}
 
-		if err = mc.readColumn(data, &columns[i]); err != nil {
+		if err = mc.readColumn(datali, &columns[i]); err != nil {
 			return nil, err
 		}
 	}
