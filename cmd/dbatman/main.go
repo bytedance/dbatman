@@ -59,11 +59,11 @@ func main() {
 
 	sc := make(chan os.Signal, 1)
 	Restart := make(chan os.Signal, 1)
-	signal.Notify(Restart, syscall.SIGINT)
-	signal.Notify(sc, syscall.SIGQUIT)
-	// syscall.SIGHUP,
-	// syscall.SIGINT,
-	//syscall.SIGTERM,
+	signal.Notify(Restart, syscall.SIGUSR1)
+	signal.Notify(sc, syscall.SIGQUIT,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM)
 
 	var svr *proxy.Server
 	svr, err = proxy.NewServer(cfg)

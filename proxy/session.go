@@ -139,9 +139,7 @@ func (session *Session) Close() error {
 		if err := session.bc.rollback(session.isAutoCommit()); err != nil {
 			log.Info(err.Error)
 		}
-
 	}
-	// session.bc.
 	session.fc.Close()
 
 	// session.bc.tx.Exec("set autocommit =0 ")
