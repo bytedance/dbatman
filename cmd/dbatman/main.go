@@ -61,6 +61,8 @@ func main() {
 	Restart := make(chan os.Signal, 1)
 	signal.Notify(Restart, syscall.SIGINT)
 	signal.Notify(sc, syscall.SIGQUIT)
+	// signal.Notify(Restart, syscall.SIGHUP)
+	// signal.Notify(sc, syscall.SIGINT)
 	// syscall.SIGHUP,
 	// syscall.SIGINT,
 	//syscall.SIGTERM,

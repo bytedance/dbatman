@@ -10,6 +10,7 @@ import (
 
 	"github.com/bytedance/dbatman/parser/charset"
 	. "github.com/bytedance/dbatman/parser/state"
+	"github.com/ngaut/log"
 )
 
 const EOFCHAR = 0x100
@@ -83,6 +84,9 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 
 	lex.tok_start_prev = lex.tok_start
 	lex.tok_end_prev = lex.tok_end
+	// ss := lex.buf[lex.tok_start:]
+
+	// log.Warnf("the current bug is ", ss) ///hack.String(ll))
 
 	lex.tok_start = lex.ptr
 	lex.tok_end = lex.ptr
@@ -488,6 +492,7 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 				c = lex.yyNext()
 			}
 
+			// log.Warnf("current c is", c)
 			if result_state&0x80 != 0 {
 				result_state = IDENT_QUOTED
 			} else {
@@ -505,10 +510,15 @@ func (lex *SQLLexer) Lex(lval *MySQLSymType) (retstate int) {
 			}
 
 			val := lex.buf[lex.tok_start : lex.ptr-1]
+			// log.Warnf("current buf is", val)
 			var ok bool
 			if retstate, ok = findKeywords(val, false); ok {
 				lex.yyBack()
 				goto TG_RET
+			}
+			if c == ',' {
+				lex.yyBack()
+				log.Warnf("push back here")
 			}
 
 			lval.bytes = val
