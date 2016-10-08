@@ -43,6 +43,10 @@ type Session struct {
 	autoCommit uint
 	sessionId  int64
 
+	//session status
+	txIsolationStmt  string
+	txIsolationInDef bool //is the tx isolation level in dafault?
+
 	closed bool
 
 	// lastcmd uint8
@@ -59,6 +63,7 @@ func (s *Server) newSession(conn net.Conn) *Session {
 	session.autoCommit = 0
 	session.cliAddr = strings.Split(conn.RemoteAddr().String(), ":")[0]
 	session.sessionId = id
+	session.txIsolationInDef = true
 	session.fc = NewMySQLServerConn(session, conn)
 	//session.lastcmd = ComQuit
 	log.Info("start new session", session.sessionId)
@@ -136,6 +141,9 @@ func (session *Session) Close() error {
 	if session.isInTransaction() {
 		// session.handleCommit()
 		log.Debugf("session : %d reset the  tx status", session.sessionId)
+		if session.txIsolationInDef == false {
+			session.bc.tx.Exec("set session transaction isolation level read uncommitted;") //reset to default level
+		}
 		if err := session.bc.rollback(session.isAutoCommit()); err != nil {
 			log.Info(err.Error)
 		}
@@ -160,6 +168,14 @@ func (session *Session) Close() error {
 
 func (session *Session) ServerName() []byte {
 	return hack.Slice(version.Version)
+}
+func (session *Session) GetIsoLevel() (string, bool) {
+	if session.txIsolationInDef {
+		sql := "set session transaction isolation level read committed"
+		return sql, true
+	} else {
+		return session.txIsolationStmt, false
+	}
 }
 
 func (session *Session) Salt() []byte {

@@ -17,7 +17,7 @@ import (
 	"github.com/ngaut/log"
 )
 
-const defaultBufSize = 4096
+const defaultBufSize = 4096 * 3
 const checkBrokenReadTimeoutStr = "100us"
 
 // A buffer which is used for both reading and writing.
@@ -102,6 +102,7 @@ func (b *buffer) fill(need int) error {
 
 		nn, err := b.nc.Read(b.buf[n:])
 		n += nn
+		// log.Warnf("current read num: %d ,need,", n, need)
 
 		switch err {
 		case nil:

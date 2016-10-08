@@ -68,6 +68,21 @@ func (c *Session) comQuery(sqlstmt string) error {
 	case *parser.SavePoint:
 		return c.handleExec(stmt, sqlstmt, false)
 		// return c.handleQuery(v, sqlstmt)
+	case *parser.SetTrans:
+		// log.Warnf("set tx iso level ")
+		t_sl := hack.Slice(sqlstmt)
+		tmp := make([]byte, len(t_sl))
+		copy(tmp, t_sl)
+		// log.Debug(sqlstmt, t_sl, tmp, len(t_sl))
+		c.txIsolationInDef = false
+		sql := hack.String(tmp)
+		// log.Debug(sql, len(sql))
+		c.txIsolationStmt = sql
+		// log.Warnf("set tx iso level finish  ")
+		if c.isInTransaction() {
+			return c.handleExec(stmt, sqlstmt, false)
+		}
+		return c.fc.WriteOK(nil)
 	default:
 		log.Warnf("session %d : statement %T[%s] not support now", c.sessionId, stmt, sqlstmt)
 		err := errors.New("statement not support now")

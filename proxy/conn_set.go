@@ -83,7 +83,7 @@ func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 			}
 			c.fc.AndStatus(^uint16(StatusInAutocommit))
 			////atuocommit  1->0 start a transection
-			err := c.bc.begin()
+			err := c.bc.begin(c)
 			if err != nil {
 				log.Debug(err)
 			}

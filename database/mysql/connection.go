@@ -9,11 +9,12 @@
 package mysql
 
 import (
-	"github.com/bytedance/dbatman/database/sql/driver"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/bytedance/dbatman/database/sql/driver"
 )
 
 type MySQLConn struct {
@@ -64,11 +65,21 @@ func (mc *MySQLConn) handleParams() (err error) {
 	return
 }
 
-func (mc *MySQLConn) Begin() (driver.Tx, error) {
+func (mc *MySQLConn) Begin(s driver.SessionI) (driver.Tx, error) {
 	if mc.netConn == nil {
 		errLog.Print(ErrInvalidConn)
 		return nil, driver.ErrBadConn
 	}
+
+	if txiso, txindef := s.GetIsoLevel(); txindef == false {
+		// log.Debug("current tx isoaltion is:", txiso)
+		// err := mc.exec("set session transaction isolation level read uncommitted")
+		err := mc.exec(txiso)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// log.Debug("set iso finished ")
 	err := mc.exec("START TRANSACTION")
 	if err == nil {
 		return &mysqlTx{mc}, err
@@ -346,6 +357,7 @@ func (mc *MySQLConn) Query(query string, args []driver.Value) (driver.Rows, erro
 		args = nil
 	}
 	// Send command
+	// log.Warnf("*********************************this is a query string")
 	err := mc.writeCommandPacketStr(comQuery, query)
 	if err == nil {
 		// Read Result

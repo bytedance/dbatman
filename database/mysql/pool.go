@@ -1205,28 +1205,28 @@ func (db *DB) fieldlist(table string, wild string, strategy connReuseStrategy) (
 
 // Begin starts a transaction. The isolation level is dependent on
 // the driver.
-func (db *DB) Begin() (*Tx, error) {
+func (db *DB) Begin(s driver.SessionI) (*Tx, error) {
 	var tx *Tx
 	var err error
 	for i := 0; i < maxBadConnRetries; i++ {
-		tx, err = db.begin(cachedOrNewConn)
+		tx, err = db.begin(cachedOrNewConn, s)
 		if err != driver.ErrBadConn {
 			break
 		}
 	}
 	if err == driver.ErrBadConn {
-		return db.begin(alwaysNewConn)
+		return db.begin(alwaysNewConn, s)
 	}
 	return tx, err
 }
 
-func (db *DB) begin(strategy connReuseStrategy) (tx *Tx, err error) {
+func (db *DB) begin(strategy connReuseStrategy, s driver.SessionI) (tx *Tx, err error) {
 	dc, err := db.conn(strategy)
 	if err != nil {
 		return nil, err
 	}
 	dc.Lock()
-	txi, err := dc.ci.Begin()
+	txi, err := dc.ci.Begin(s)
 	dc.Unlock()
 	if err != nil {
 		db.putConn(dc, err)

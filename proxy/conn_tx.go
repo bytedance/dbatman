@@ -18,7 +18,7 @@ func (c *Session) handleBegin() error {
 	}
 
 	c.fc.XORStatus(uint16(StatusInTrans))
-	if err := c.bc.begin(); err != nil {
+	if err := c.bc.begin(c); err != nil {
 		return c.handleMySQLError(err)
 	}
 
