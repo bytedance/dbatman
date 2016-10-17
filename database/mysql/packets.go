@@ -654,7 +654,6 @@ func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 
 func (mc *MySQLConn) readFieldList() ([]MySQLField, error) {
 	columns := make([]MySQLField, 0, 16)
-
 	for {
 		data, err := mc.readPacket()
 		if err != nil {
@@ -677,7 +676,6 @@ func (mc *MySQLConn) readFieldList() ([]MySQLField, error) {
 
 		columns = append(columns, *col)
 	}
-
 	return columns, nil
 }
 

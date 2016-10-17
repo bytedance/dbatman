@@ -27,8 +27,10 @@ import (
 )
 
 var (
-	driversMu sync.Mutex
-	drivers   = make(map[string]driver.Driver)
+	driversMu          sync.Mutex
+	drivers            = make(map[string]driver.Driver)
+	connReqTimeOut     = 10 // 10s reqtimeout conn from connpool
+	errConnPoolTimeOut = errors.New("Get conn from freeConn poolerr,timeout")
 )
 
 // Register makes a database driver available by the provided name.
@@ -795,11 +797,22 @@ func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) {
 		req := make(chan connRequest, 1)
 		db.connRequests = append(db.connRequests, req)
 		db.mu.Unlock()
-		ret := <-req
-		if ret.err == nil {
-			ret.conn.lastActiveTime = time.Now()
+		log.Warn("the conn is Ful!,wait for conn free", db.Dsn())
+		// ret := <-req
+		timeout := time.After(time.Second * time.Duration(connReqTimeOut))
+		select {
+		case ret := <-req:
+			if ret.err == nil {
+				ret.conn.lastActiveTime = time.Now()
+				return ret.conn, ret.err
+			}
+
+		case <-timeout:
+			log.Warnf("freeconn status: opennum :%d, maxOpen :%d", db.numOpen, db.maxOpen)
+			return nil, errConnPoolTimeOut
+
 		}
-		return ret.conn, ret.err
+
 	}
 
 	db.numOpen++ // optimistically
@@ -872,17 +885,6 @@ const debugGetPut = false
 // putConn adds a connection to the db's free pool.
 // err is optionally the last error that occurred on this connection.
 func (db *DB) putConn(dc *driverConn, err error) {
-	// if dc.ci.IsBroken() {
-	if broken, _ := dc.isIdleConnectionBroken(); broken {
-		//TODO currently add
-		//To trace the pointer to nil problem
-		const size = 4096
-		buf := make([]byte, size)
-		buf = buf[:runtime.Stack(buf, false)]
-		// log.Fatal("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
-		log.Warnf("%s", buf)
-		log.Warning("put conn error ")
-	}
 	db.mu.Lock()
 	if !dc.inUse {
 		if debugGetPut {

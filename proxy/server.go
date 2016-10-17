@@ -18,7 +18,9 @@ import (
 var startNum = 0
 var closeNum = 0
 
-var sessionChan = make(chan int64, 256)
+const defaultSessionIDChannelSize = 4096
+
+var sessionChan = make(chan int64, defaultSessionIDChannelSize)
 
 type LimitReqNode struct {
 	excess     int64

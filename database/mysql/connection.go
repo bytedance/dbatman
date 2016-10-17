@@ -93,7 +93,6 @@ func (mc *MySQLConn) Close() (err error) {
 	if mc.netConn != nil {
 		err = mc.writeCommandPacket(comQuit)
 	}
-
 	mc.cleanup()
 
 	return

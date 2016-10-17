@@ -110,7 +110,6 @@ func (mc *MySQLServerConn) Handshake() error {
 		if e, ok := err.(*MySQLError); ok {
 			mc.WriteError(e)
 		}
-
 		mc.cleanup()
 		return err
 	}
@@ -445,6 +444,5 @@ func (mc *MySQLServerConn) cleanup() {
 		mc.Flush()
 		mc.wb = nil
 	}
-
 	mc.MySQLConn.cleanup()
 }

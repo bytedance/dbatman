@@ -11,7 +11,6 @@ package mysql
 import (
 	"io"
 	"net"
-	"runtime"
 	"time"
 
 	"github.com/ngaut/log"
@@ -44,14 +43,7 @@ func newBuffer(nc net.Conn) buffer {
 // read io.EOF or other exception when connection closed
 func (b *buffer) isBroken() bool {
 	if b.nc == nil {
-		//TODO currently add
-		//To trace the pointer to nil problem
-		const size = 4096
-		buf := make([]byte, size)
-		buf = buf[:runtime.Stack(buf, false)]
-		// log.Fatal("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
-		log.Debugf("%s", buf)
-		log.Debug("the conn become's nile return")
+		log.Warn("the conn become's nile return")
 		return true
 	}
 	timeout, _ := time.ParseDuration(checkBrokenReadTimeoutStr)

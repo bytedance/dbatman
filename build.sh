@@ -13,4 +13,3 @@ mkdir -p output
 cp cmd/dbatman/dbatman ./output
 cp config/proxy.yml ./output
 cp config/test.yml ./output
-export GOGC=100
