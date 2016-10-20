@@ -55,6 +55,7 @@ type NodeConfig struct {
 	Password              string
 	DBName                string
 	Charset               string
+	DBVersion             string
 	Weight                int
 	MaxConnections        int `yaml:"max_connections"`
 	MaxConnectionPoolSize int `yaml:"max_connection_pool_size"`
@@ -205,6 +206,8 @@ func (c *Conf) CheckConfigUpdate(notifyChans ...chan bool) {
 				c.mu.Lock()
 				c.proxyConfig = defaultProxyConfig
 				c.mu.Unlock()
+				//modify the log level when update
+				log.SetLevel(log.LogLevel(conf.proxyConfig.Global.LogLevel))
 
 				for _, notifyChan := range notifyChans {
 					notifyChan <- true
@@ -228,6 +231,8 @@ func LoadConfig(path string) (*Conf, error) {
 	}
 	conf.lastModifiedTime = fileinfo.ModTime()
 	conf.proxyConfig = defaultProxyConfig
+	//set the log lever from base on conf
+	log.SetLevel(log.LogLevel(conf.proxyConfig.Global.LogLevel))
 	return &conf, err
 }
 

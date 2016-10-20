@@ -9,13 +9,14 @@
 package mysql
 
 import (
-	"github.com/ngaut/log"
 	"io"
 	"net"
 	"time"
+
+	"github.com/ngaut/log"
 )
 
-const defaultBufSize = 4096
+const defaultBufSize = 4096 * 3
 const checkBrokenReadTimeoutStr = "100us"
 
 // A buffer which is used for both reading and writing.
@@ -41,6 +42,10 @@ func newBuffer(nc net.Conn) buffer {
 
 // read io.EOF or other exception when connection closed
 func (b *buffer) isBroken() bool {
+	if b.nc == nil {
+		log.Warn("the conn become's nile return")
+		return true
+	}
 	timeout, _ := time.ParseDuration(checkBrokenReadTimeoutStr)
 	if err := b.nc.SetReadDeadline(time.Now().Add(timeout)); err != nil {
 		return true
@@ -89,6 +94,7 @@ func (b *buffer) fill(need int) error {
 
 		nn, err := b.nc.Read(b.buf[n:])
 		n += nn
+		// log.Warnf("current read num: %d ,need,", n, need)
 
 		switch err {
 		case nil:

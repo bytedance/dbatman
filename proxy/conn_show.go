@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bytes"
+
 	"github.com/bytedance/dbatman/database/mysql"
 	"github.com/bytedance/dbatman/hack"
 	"github.com/bytedance/dbatman/parser"

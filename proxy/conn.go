@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/bytedance/dbatman/database/mysql"
+	"github.com/bytedance/dbatman/database/sql/driver"
 )
 
 // Wrap the connection
@@ -16,13 +17,14 @@ type SqlConn struct {
 	session *Session
 }
 
-func (bc *SqlConn) begin() error {
+func (bc *SqlConn) begin(s *Session) error {
 	if bc.tx != nil {
 		return errors.New("duplicate begin")
 	}
 
 	var err error
-	bc.tx, err = bc.master.Begin()
+	var s_i driver.SessionI = s
+	bc.tx, err = bc.master.Begin(s_i)
 	if err != nil {
 		return err
 	}
@@ -70,7 +72,6 @@ func (bc *SqlConn) rollback(inAutoCommit bool) error {
 func (session *Session) Executor(isread bool) mysql.Executor {
 
 	// TODO set autocommit
-	// fmt.Println("query with transaction:", session.isInTransaction())
 	if session.isInTransaction() {
 		return session.bc.tx
 	}

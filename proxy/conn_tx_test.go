@@ -34,7 +34,9 @@ func TestProxy_Tx(t *testing.T) {
 		tx.Rollback(inAutoCommit)
 		t.Fatalf("expect 1 rows, got %d", rn)
 	}
-
+	if _, err := tx.Exec(`savepoint a1`); err != nil {
+		t.Fatalf("save point faied", err)
+	}
 	if rs, err := tx.Query("select * from dbatman_test_tx"); err != nil {
 		t.Fatalf("select in trans failed: %s", err)
 	} else {
@@ -47,6 +49,52 @@ func TestProxy_Tx(t *testing.T) {
 			t.Fatalf("expect 1 rows after transaction, got %d", row)
 		}
 	}
+
+	if rs, err := tx.Exec(`insert into dbatman_test_tx values(
+			2,'def')`); err != nil {
+		tx.Rollback(inAutoCommit)
+		t.Fatalf("insert in transaction failed: %s", err)
+	} else if rn, err := rs.RowsAffected(); err != nil {
+		tx.Rollback(inAutoCommit)
+		t.Fatalf("insert failed: %s", err)
+	} else if rn != 1 {
+		tx.Rollback(inAutoCommit)
+		t.Fatalf("expect 1 rows, got %d", rn)
+	}
+	if rs, err := tx.Query("select * from dbatman_test_tx"); err != nil {
+		t.Fatalf("select in trans failed: %s", err)
+	} else {
+		var row int
+		for rs.Next() {
+			row += 1
+		}
+
+		if row != 2 {
+			t.Fatalf("expect 2 rows after transaction, got %d", row)
+		}
+	}
+
+	if _, err := tx.Exec(`rollback to a1`); err != nil {
+		t.Fatalf("rollback to faild", err)
+	}
+
+	if rs, err := tx.Query("select * from dbatman_test_tx"); err != nil {
+		t.Fatalf("select in trans failed: %s", err)
+	} else {
+		var row int
+		for rs.Next() {
+			row += 1
+		}
+
+		if row != 1 {
+			t.Fatalf("expect 0 rows after transaction, got %d", row)
+		}
+	}
+	// add savepoint
+	if err := tx.Rollback(inAutoCommit); err != nil {
+		t.Fatalf("rollback in trans failed: %s", err)
+	}
+	tx, err = db.Begin()
 
 	if err := tx.Rollback(inAutoCommit); err != nil {
 		t.Fatalf("rollback in trans failed: %s", err)

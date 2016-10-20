@@ -19,20 +19,19 @@ func getTimestamp() int64 {
 
 func (c *Session) comQuery(sqlstmt string) error {
 
-	//TODO test the flow control module
+	//TODO accerlate the flow control module and the figerprint module
 	// err := c.intercept(sqlstmt)
 	// if err != nil {
 	// return err
 	// }
-	c.updatefp(sqlstmt)
-	log.Info(sqlstmt)
+	// c.updatefp(sqlstmt)
+	log.Infof("session %d: %s", c.sessionId, sqlstmt)
 	stmt, err := parser.Parse(sqlstmt)
 	if err != nil {
 		log.Warningf(`parse sql "%s" error "%s"`, sqlstmt, err.Error())
 		return c.handleMySQLError(
 			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
 	}
-	// log.Info(sqlstmt)
 	switch v := stmt.(type) {
 	case parser.ISelect:
 		return c.handleQuery(v, sqlstmt)
@@ -45,6 +44,10 @@ func (c *Session) comQuery(sqlstmt string) error {
 	case *parser.Commit:
 		return c.handleCommit()
 	case *parser.Rollback:
+		// log.Debug(hack.String(stmt.(*parser.Rollback).Point))
+		if len(stmt.(*parser.Rollback).Point) > 0 {
+			return c.handleExec(stmt, sqlstmt, false)
+		}
 		return c.handleRollback()
 	case parser.IShow:
 		return c.handleShow(sqlstmt, v)
@@ -52,16 +55,36 @@ func (c *Session) comQuery(sqlstmt string) error {
 		return c.handleDDL(v, sqlstmt)
 	case *parser.Do, *parser.Call, *parser.FlushTables:
 		return c.handleExec(stmt, sqlstmt, false)
+		//add the describe table module
+	case *parser.DescribeTable, *parser.DescribeStmt:
+		return c.handleQuery(v, sqlstmt)
 	case *parser.Use:
+
 		if err := c.useDB(hack.String(stmt.(*parser.Use).DB)); err != nil {
 			return c.handleMySQLError(err)
 		} else {
 			return c.fc.WriteOK(nil)
 		}
+	case *parser.SavePoint:
+		return c.handleExec(stmt, sqlstmt, false)
+		// return c.handleQuery(v, sqlstmt)
+	case *parser.SetTrans:
+		// log.Warnf("set tx iso level ")
+		t_sl := hack.Slice(sqlstmt)
+		tmp := make([]byte, len(t_sl))
+		copy(tmp, t_sl)
+		// log.Debug(sqlstmt, t_sl, tmp, len(t_sl))
+		c.txIsolationInDef = false
+		sql := hack.String(tmp)
+		// log.Debug(sql, len(sql))
+		c.txIsolationStmt = sql
+		// log.Warnf("set tx iso level finish  ")
+		if c.isInTransaction() {
+			return c.handleExec(stmt, sqlstmt, false)
+		}
+		return c.fc.WriteOK(nil)
 	default:
-		log.Warnf("statement %T[%s] not support now", stmt, sqlstmt)
-		// err := log.Error("statement  not support now")
-		// return nil
+		log.Warnf("session %d : statement %T[%s] not support now", c.sessionId, stmt, sqlstmt)
 		err := errors.New("statement not support now")
 		return c.handleMySQLError(
 			NewDefaultError(ER_SYNTAX_ERROR, err.Error()))
@@ -106,6 +129,9 @@ func (session *Session) checkDB(stmt parser.IStatement) error {
 		schemas := hasSchemas.GetSchemas()
 		for _, s := range schemas {
 			if len(s) > 0 && s != session.cluster.DBName {
+				log.Warn("wrong here", session.user.Username,
+					session.fc.RemoteAddr().String(),
+					session.cluster.DBName)
 				NewDefaultError(
 					ER_DBACCESS_DENIED_ERROR,
 					session.user.Username,
@@ -139,9 +165,9 @@ func (c *Session) intercept(sqlstmt string) error {
 		//TODO modify here
 		//Default, we have 1 r/s and  *1000 add the switch to ms 1000 means 1 req per ms
 		excess = qpsOnServer.excess - (c.config.Global.ReqRate*1000*ms)/1000 + 1000
-		if excess < 0 {
-			excess = 0
-		}
+		// if excess < 0 {
+		// excess = 0
+		// }
 		// log.Info("current qps excess is : ", excess)
 		//If we need caculate every second speed,
 		//Shouldn't reset to zero;

@@ -126,7 +126,6 @@ func (session *Session) CheckAuth(username string, passwd []byte, db string) err
 	if !bytes.Equal(passwd, CalcPassword(session.salt, []byte(session.user.Password))) {
 		return NewDefaultError(ER_ACCESS_DENIED_ERROR, session.user.Username, session.fc.RemoteAddr().String(), "Yes")
 	}
-
 	if err := session.useDB(session.user.DBName); err != nil {
 		return err
 	}

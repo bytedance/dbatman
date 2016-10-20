@@ -17,8 +17,9 @@
 package mysql
 
 import (
-	"github.com/bytedance/dbatman/database/sql/driver"
 	"net"
+
+	"github.com/bytedance/dbatman/database/sql/driver"
 )
 
 // MySQLDriver is exported to make the driver directly accessible.
@@ -73,6 +74,15 @@ func (d MySQLDriver) Open(dsn string) (driver.Conn, error) {
 	// Enable TCP Keepalives on TCP connections
 	if tc, ok := mc.netConn.(*net.TCPConn); ok {
 		if err := tc.SetKeepAlive(true); err != nil {
+			// Don't send COM_QUIT before handshake.
+			mc.netConn.Close()
+			mc.netConn = nil
+			return nil, err
+		}
+	}
+	//disable the no delay opt
+	if tc, ok := mc.netConn.(*net.TCPConn); ok {
+		if err := tc.SetNoDelay(false); err != nil {
 			// Don't send COM_QUIT before handshake.
 			mc.netConn.Close()
 			mc.netConn = nil

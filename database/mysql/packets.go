@@ -14,11 +14,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/bytedance/dbatman/database/sql/driver"
-	"github.com/ngaut/log"
 	"io"
 	"math"
 	"time"
+
+	"github.com/bytedance/dbatman/database/sql/driver"
+	"github.com/ngaut/log"
 )
 
 // Packets documentation:
@@ -303,6 +304,7 @@ func (mc *MySQLConn) writeAuthPacket(cipher []byte) error {
 		}
 		mc.netConn = tlsConn
 		mc.buf.nc = tlsConn
+		log.Warn("the mc.buf.nc is :", tlsConn)
 	}
 
 	// Filler [23 bytes] (all 0x00)
@@ -621,12 +623,15 @@ func (mc *MySQLConn) handleOkPacket(data []byte) error {
 }
 
 // Read Packets as Field Packets until EOF-Packet or an Error appears
-// http://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition41
+// http://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition41\
+
 func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 	columns := make([]MySQLField, count)
 
 	for i := 0; ; i++ {
+		datali := make([]byte, 0, 256)
 		data, err := mc.readPacket()
+		datali = append(datali, data...)
 		if err != nil {
 			return nil, err
 		}
@@ -639,7 +644,7 @@ func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 			return nil, fmt.Errorf("column count mismatch n:%d len:%d", count, len(columns))
 		}
 
-		if err = mc.readColumn(data, &columns[i]); err != nil {
+		if err = mc.readColumn(datali, &columns[i]); err != nil {
 			return nil, err
 		}
 	}
@@ -649,7 +654,6 @@ func (mc *MySQLConn) readColumns(count int) ([]MySQLField, error) {
 
 func (mc *MySQLConn) readFieldList() ([]MySQLField, error) {
 	columns := make([]MySQLField, 0, 16)
-
 	for {
 		data, err := mc.readPacket()
 		if err != nil {
@@ -672,7 +676,6 @@ func (mc *MySQLConn) readFieldList() ([]MySQLField, error) {
 
 		columns = append(columns, *col)
 	}
-
 	return columns, nil
 }
 

@@ -27,8 +27,10 @@ import (
 )
 
 var (
-	driversMu sync.Mutex
-	drivers   = make(map[string]driver.Driver)
+	driversMu          sync.Mutex
+	drivers            = make(map[string]driver.Driver)
+	connReqTimeOut     = 10 // 10s reqtimeout conn from connpool
+	errConnPoolTimeOut = errors.New("Get conn from freeConn poolerr,timeout")
 )
 
 // Register makes a database driver available by the provided name.
@@ -530,9 +532,8 @@ func (db *DB) Ping() error {
 func (db *DB) HeartBeatPing() error {
 	// var dc *driverConn
 	if db.hbConn == nil {
-		dc, err := db.signleconn()
+		dc, err := db.conn(cachedOrNewConn)
 		if err != nil {
-			log.Info("could not connect to db:", db.dsn)
 			return err
 		}
 		db.mu.Lock()
@@ -545,7 +546,7 @@ func (db *DB) HeartBeatPing() error {
 		db.hbConn.Close()
 		db.hbConn = nil
 		db.mu.Lock()
-		log.Warnf("close db(%s) broken conneciton", db.dsn)
+		log.Warnf("close db(%s) broken db", db.dsn)
 		return err
 	}
 	return nil
@@ -762,6 +763,7 @@ func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) {
 			db.freeConn = db.freeConn[:numFree-1]
 
 			if broken, _ := conn.isIdleConnectionBroken(); broken {
+				log.Warn("Bad connection colesd")
 				db.mu.Unlock()
 				conn.Close()
 				db.mu.Lock()
@@ -795,11 +797,22 @@ func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) {
 		req := make(chan connRequest, 1)
 		db.connRequests = append(db.connRequests, req)
 		db.mu.Unlock()
-		ret := <-req
-		if ret.err == nil {
-			ret.conn.lastActiveTime = time.Now()
+		log.Warn("the conn is Ful!,wait for conn free", db.Dsn())
+		// ret := <-req
+		timeout := time.After(time.Second * time.Duration(connReqTimeOut))
+		select {
+		case ret := <-req:
+			if ret.err == nil {
+				ret.conn.lastActiveTime = time.Now()
+				return ret.conn, ret.err
+			}
+
+		case <-timeout:
+			log.Warnf("freeconn status: opennum :%d, maxOpen :%d", db.numOpen, db.maxOpen)
+			return nil, errConnPoolTimeOut
+
 		}
-		return ret.conn, ret.err
+
 	}
 
 	db.numOpen++ // optimistically
@@ -1194,28 +1207,28 @@ func (db *DB) fieldlist(table string, wild string, strategy connReuseStrategy) (
 
 // Begin starts a transaction. The isolation level is dependent on
 // the driver.
-func (db *DB) Begin() (*Tx, error) {
+func (db *DB) Begin(s driver.SessionI) (*Tx, error) {
 	var tx *Tx
 	var err error
 	for i := 0; i < maxBadConnRetries; i++ {
-		tx, err = db.begin(cachedOrNewConn)
+		tx, err = db.begin(cachedOrNewConn, s)
 		if err != driver.ErrBadConn {
 			break
 		}
 	}
 	if err == driver.ErrBadConn {
-		return db.begin(alwaysNewConn)
+		return db.begin(alwaysNewConn, s)
 	}
 	return tx, err
 }
 
-func (db *DB) begin(strategy connReuseStrategy) (tx *Tx, err error) {
+func (db *DB) begin(strategy connReuseStrategy, s driver.SessionI) (tx *Tx, err error) {
 	dc, err := db.conn(strategy)
 	if err != nil {
 		return nil, err
 	}
 	dc.Lock()
-	txi, err := dc.ci.Begin()
+	txi, err := dc.ci.Begin(s)
 	dc.Unlock()
 	if err != nil {
 		db.putConn(dc, err)
@@ -1237,6 +1250,7 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 		return errDBClosed
 	}
 	totalProbeNum := len(db.freeConn)
+	// log.Debug("current total free num is ", totalProbeNum)
 	numFree := totalProbeNum
 	hasProbeNum := 0
 
@@ -1248,6 +1262,7 @@ func (db *DB) ProbeIdleConnection(idleTimeout int) error {
 		db.mu.Unlock()
 
 		idleSecond := conn.idleSecond()
+		// log.Info("idleSecond and timeout is:", idleSecond, idleTimeout)
 
 		//TODO: log with conn addr/thread_id
 		if idleSecond >= int64(idleTimeout) {
@@ -1361,7 +1376,9 @@ func (tx *Tx) Rollback(inAutoCommit bool) error {
 	if tx.done {
 		return ErrTxDone
 	}
+
 	if inAutoCommit {
+		// log.Debug("clear in pool.rollback")
 		defer tx.close()
 	}
 	tx.dc.Lock()

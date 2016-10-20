@@ -28,14 +28,31 @@ func (c *Session) handleSet(stmt *parser.Set, sql string) error {
 	}
 
 	defer func() {
-		//only execute when the autocommit 0->1
+		//only execute when the autocommit 0->1 //clear
 		if c.autoCommit == 1 {
-			c.fc.XORStatus(uint16(StatusInAutocommit))
-			c.fc.AndStatus(^uint16(StatusInTrans))
+			log.Debug("clear autocommit tx")
+			c.clearAutoCommitTx()
 		}
 
 	}()
 	return c.handleOtherSet(stmt, sql)
+}
+
+func (c *Session) clearAutoCommitTx() {
+	// clear the AUTOCOMMIT status
+	if _, err := c.bc.tx.Exec("set autocommit = 1"); err != nil {
+		log.Warnf("session id :%d,clear autocommit errr", c.sessionId, err)
+		//don;t need to put conn back
+		return
+	}
+	c.fc.XORStatus(uint16(StatusInAutocommit))
+	//clear the backend conn's Tx status;
+	//put conn back to free conn
+	if err := c.bc.rollback(c.isAutoCommit()); err != nil {
+		log.Warnf("session %d clear autocommit err:%s: ", c.sessionId, err.Error())
+	}
+	c.fc.AndStatus(^uint16(StatusInTrans))
+	c.autoCommit = 0
 }
 
 func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
@@ -69,7 +86,7 @@ func (c *Session) handleSetAutoCommit(val parser.IExpr) error {
 			}
 			c.fc.AndStatus(^uint16(StatusInAutocommit))
 			////atuocommit  1->0 start a transection
-			err := c.bc.begin()
+			err := c.bc.begin(c)
 			if err != nil {
 				log.Debug(err)
 			}

@@ -144,8 +144,9 @@ func (c *Cluster) HeartBeat() (*CrashDb, error) {
 	masterDb := c.masterNode
 	slaveDbs := c.slaveNodes
 
-	err := masterDb.Ping() //HeartBeatPing or Ping use single conn or user conn from conn pools
+	err := masterDb.HeartBeatPing() //HeartBeatPing or Ping use single conn or user conn from conn pools
 	if err != nil {
+		// log.Warn("db ping error ,", err.Error())
 		ret.crashNum++
 		ret.masterNode = masterDb
 	}
@@ -153,9 +154,10 @@ func (c *Cluster) HeartBeat() (*CrashDb, error) {
 	for _, slavedb := range slaveDbs {
 		// check the alive status of db if has been cut down don't need to detect again
 		if slavedb.GetDbAliveStatus() == true {
-			err := slavedb.Ping()
+			err := slavedb.HeartBeatPing()
 			if err != nil {
 				ret.crashNum++
+				// log.Warn("db ping error ,", err.Error())
 				ret.slaveNode = append(ret.slaveNode, slavedb)
 			}
 		}
