@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/bytedance/dbatman/config"
@@ -17,10 +18,6 @@ import (
 
 var startNum = 0
 var closeNum = 0
-
-const defaultSessionIDChannelSize = 4096
-
-var sessionChan = make(chan int64, defaultSessionIDChannelSize)
 
 type LimitReqNode struct {
 	excess     int64
@@ -55,12 +52,18 @@ type Server struct {
 	// users        map[string]*User
 	//qps base on fingerprint
 	fingerprints map[string]*LimitReqNode
+	sessionId    int64
 	//qps base on server
 	qpsOnServer *LimitReqNode
 	listener    net.Listener
 	running     bool
 	restart     bool
 	wg          sync.WaitGroup
+}
+
+func (s *Server) GetSessionId() int64 {
+	ret := atomic.AddInt64(&s.sessionId, 1)
+	return ret
 }
 
 func NewServer(cfg *config.Conf) (*Server, error) {
@@ -76,6 +79,7 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 	s.mu = &sync.Mutex{}
 	s.restart = false
 	port := s.cfg.GetConfig().Global.Port
+	s.sessionId = 0
 
 	// get listenfd from file when restart
 	if os.Getenv("_GRACEFUL_RESTART") == "true" {
@@ -102,15 +106,8 @@ func NewServer(cfg *config.Conf) (*Server, error) {
 func (s *Server) Serve() error {
 	log.Debug("this is ddbatman v4")
 	s.running = true
-	var sessionId int64 = 0
+	// var sessionId int64 = 0
 	for s.running {
-		select {
-		case sessionChan <- sessionId:
-			//do nothing
-		default:
-			//warnning!
-			log.Warnf("TASK_CHANNEL is full!")
-		}
 
 		conn, err := s.Accept()
 		if err != nil {
@@ -119,7 +116,7 @@ func (s *Server) Serve() error {
 		}
 		//allocate a sessionId for a session
 		go s.onConn(conn)
-		sessionId += 1
+		// sessionId += 1
 	}
 	if s.restart == true {
 		log.Debug("Begin to restart graceful")
@@ -164,12 +161,8 @@ func (s *Server) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	// tc.SetKeepAlive(true)
-	// tc.SetKeepAlivePeriod(3 * time.Minute)
-
 	s.wg.Add(1)
 	startNum += 1
-	// log.Info("wait group add 1 total is :", startNum)
 
 	return conn, nil
 }
@@ -222,10 +215,11 @@ func (s *Server) onConn(c net.Conn) {
 			log.Warnf("session %d: %s", session.sessionId, err.Error())
 			// return
 		}
+
 		closeNum += 1
 		s.wg.Done()
-		log.Info("wait group add 1 total is :", closeNum)
-		log.Warnf("session %d:session run error: %s", session.sessionId, err.Error())
+		log.Info("current activity session num is : :", startNum-closeNum)
+		log.Infof("session %d closed ,because of %s", session.sessionId, err.Error())
 		return
 	}
 }

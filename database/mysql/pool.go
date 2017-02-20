@@ -1207,28 +1207,28 @@ func (db *DB) fieldlist(table string, wild string, strategy connReuseStrategy) (
 
 // Begin starts a transaction. The isolation level is dependent on
 // the driver.
-func (db *DB) Begin(s driver.SessionI) (*Tx, error) {
+func (db *DB) Begin() (*Tx, error) {
 	var tx *Tx
 	var err error
 	for i := 0; i < maxBadConnRetries; i++ {
-		tx, err = db.begin(cachedOrNewConn, s)
+		tx, err = db.begin(cachedOrNewConn)
 		if err != driver.ErrBadConn {
 			break
 		}
 	}
 	if err == driver.ErrBadConn {
-		return db.begin(alwaysNewConn, s)
+		return db.begin(alwaysNewConn)
 	}
 	return tx, err
 }
 
-func (db *DB) begin(strategy connReuseStrategy, s driver.SessionI) (tx *Tx, err error) {
+func (db *DB) begin(strategy connReuseStrategy) (tx *Tx, err error) {
 	dc, err := db.conn(strategy)
 	if err != nil {
 		return nil, err
 	}
 	dc.Lock()
-	txi, err := dc.ci.Begin(s)
+	txi, err := dc.ci.Begin()
 	dc.Unlock()
 	if err != nil {
 		db.putConn(dc, err)
@@ -1362,11 +1362,12 @@ func (tx *Tx) Commit(inAutoCommit bool) error {
 	}
 	tx.dc.Lock()
 	err := tx.txi.Commit()
-	// fmt.Println("poll commit err :", err)
 	tx.dc.Unlock()
-	if err != driver.ErrBadConn {
-		tx.closePrepared()
-		// fmt.Println("close  tx prepared")
+
+	if inAutoCommit { // when in autocommit
+		if err != driver.ErrBadConn {
+			tx.closePrepared()
+		}
 	}
 	return err
 }
@@ -1384,8 +1385,10 @@ func (tx *Tx) Rollback(inAutoCommit bool) error {
 	tx.dc.Lock()
 	err := tx.txi.Rollback()
 	tx.dc.Unlock()
-	if err != driver.ErrBadConn {
-		tx.closePrepared()
+	if inAutoCommit { // when in autocommit
+		if err != driver.ErrBadConn {
+			tx.closePrepared()
+		}
 	}
 	return err
 }

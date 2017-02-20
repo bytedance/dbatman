@@ -24,9 +24,10 @@ type Value interface{}
 
 type RawPacket []byte
 type RawStmtParams []byte
-type SessionI interface {
-	GetIsoLevel() (string, bool)
-}
+
+// type SessionI interface {
+// GetIsoLevel() (string, bool)
+// }
 
 // Driver is the interface that must be implemented by a database
 // driver.
@@ -107,7 +108,7 @@ type Conn interface {
 
 	// Begin starts and returns a new transaction.
 	// Begin() (Tx, error)
-	Begin(s SessionI) (Tx, error)
+	Begin() (Tx, error)
 
 	//IsBroken
 	IsBroken() bool

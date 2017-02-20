@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/bytedance/dbatman/database/mysql"
-	"github.com/bytedance/dbatman/database/sql/driver"
 )
 
 // Wrap the connection
@@ -23,8 +22,7 @@ func (bc *SqlConn) begin(s *Session) error {
 	}
 
 	var err error
-	var s_i driver.SessionI = s
-	bc.tx, err = bc.master.Begin(s_i)
+	bc.tx, err = bc.master.Begin()
 	if err != nil {
 		return err
 	}

@@ -20,10 +20,13 @@ import (
 )
 
 var (
-	configFile *string = flag.String("config", getCurrentDir()+"/proxy.yml", "go mysql proxy config file")
+	// the default prxoy.yml dir is ./proxy.yml
+	// the default proxy.log dir is ./proxy.log
+	configFile *string = flag.String("config", "./proxy.yml", "go mysql proxy config file")
 	logLevel   *int    = flag.Int("loglevel", 0, "0-debug| 1-notice|2-warn|3-fatal")
-	logFile    *string = flag.String("logfile", getCurrentDir()+"/proxy.log", "go mysql proxy logfile")
+	logFile    *string = flag.String("logfile", "./proxy.log", "go mysql proxy logfile")
 	gcLevel    *string = flag.String("gclevel", "500", "go gc level")
+	debug              = true
 )
 
 func substr(s string, pos, length int) string {
@@ -43,13 +46,16 @@ func getCurrentDir() string {
 
 func main() {
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	runtime.SetBlockProfileRate(1)
-	os.Setenv("GOGC", "100")
-	log.SetOutputByName(*logFile)
-	flag.Parse() //parse tue input argument
-	println(*logFile)
-	println(*configFile)
+	// runtime  and env config
+	flag.Parse()                         //parse tue input argument
+	runtime.GOMAXPROCS(runtime.NumCPU()) // set max proces
+	runtime.SetBlockProfileRate(1)       // for debug set profile on
+	os.Setenv("GOGC", *gcLevel)          //set the GOGC level default = 500
+
+	//this will set the log output as file i/o rather than
+	if !debug {
+		log.SetOutputByName(*logFile) //set the log
+	}
 
 	if len(*configFile) == 0 {
 		log.Fatal("must use a config file")
